@@ -1,0 +1,11 @@
+import { Hono } from "hono";
+import { userGetController, userPatchController, userPostController, userProfilePutController, userPutController, userSponsorController, } from "./user.controller.js";
+import { userGetMiddleware, userPatchMiddleware, userPostMiddleware, userProfilePutMiddleware, userPutMiddleware, userSponsorMiddleware, } from "./user.middleware.js";
+const user = new Hono();
+user.post("/", userPostMiddleware, userPostController);
+user.put("/", userPutMiddleware, userPutController);
+user.get("/", userGetMiddleware, userGetController);
+user.patch("/:id", userPatchMiddleware, userPatchController);
+user.put("/:id", userProfilePutMiddleware, userProfilePutController);
+user.post("/sponsor", userSponsorMiddleware, userSponsorController);
+export default user;

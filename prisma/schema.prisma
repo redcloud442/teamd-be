@@ -1,0 +1,326 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["user_schema","alliance_schema","packages_schema","merchant_schema","public"]
+}
+
+enum Role {
+  MEMBER
+  ADMIN
+  MERCHANT
+  ACCOUNTING
+@@schema("alliance_schema")
+}
+
+enum ReferralType {
+  DIRECT
+  INDIRECT
+  @@schema("alliance_schema")
+}
+
+
+model user_table {
+  user_id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_date_created     DateTime        @default(now())
+  user_username         String?
+  user_first_name       String?
+  user_last_name        String?
+  user_email            String          @unique
+  user_password         String
+  user_profile_picture  String?
+
+  alliance_member_table alliance_member_table[]
+  user_history_log  user_history_log[]
+  @@schema("user_schema")
+}
+
+model user_history_log {
+  user_history_log_id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_history_log_date_created     DateTime        @default(now())
+  user_ip_address                   String
+  user_history_user_id              String    @db.Uuid
+
+  user_table                      user_table            @relation(fields: [user_history_user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
+  @@schema("user_schema")
+}
+
+model alliance_table {
+  alliance_id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_name             String
+  alliance_date_created     DateTime  @default(now())
+
+  alliance_member_table     alliance_member_table[]
+  @@schema("alliance_schema")
+}
+
+model alliance_member_table {
+  alliance_member_id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_member_role            Role      @default(MEMBER)
+  alliance_member_date_created    DateTime  @default(now())
+
+  alliance_member_alliance_id     String    @db.Uuid
+  alliance_member_user_id         String    @db.Uuid
+  alliance_member_restricted      Boolean   @default(false)
+  alliance_member_date_updated    DateTime?
+  alliance_member_is_active       Boolean   @default(false)
+  user_table                      user_table            @relation(fields: [alliance_member_user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
+  alliance_table                  alliance_table        @relation(fields: [alliance_member_alliance_id], references: [alliance_id], onDelete: Cascade, onUpdate: Cascade)
+
+  merchant_member_table           merchant_member_table[]
+  alliance_earnings_table         alliance_earnings_table[]
+  package_member_connection_table package_member_connection_table[]
+  alliance_referral_link_table    alliance_referral_link_table[]
+  alliance_referral_table         alliance_referral_table[]
+  alliance_referral_from_table    alliance_referral_table[] @relation("FromMember")
+  alliance_top_up_request_table   alliance_top_up_request_table[] @relation("Requestor")
+  approved_top_up_requests        alliance_top_up_request_table[] @relation("Approver")
+  alliance_withdrawal_request_table alliance_withdrawal_request_table[] @relation("WithdrawalRequestor")
+  approved_withdrawal_requests     alliance_withdrawal_request_table[] @relation("WithdrawalApprover")
+  package_ally_bounty_log package_ally_bounty_log[]
+  package_earnings_log package_earnings_log[]
+  alliance_transaction_table alliance_transaction_table[]
+
+  package_ally_bounty_log_from package_ally_bounty_log[] @relation("FromMember")
+  @@schema("alliance_schema")
+}
+
+model alliance_referral_link_table {
+  alliance_referral_link_id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_referral_link             String
+  alliance_referral_link_member_id   String    @db.Uuid
+
+  alliance_member_table              alliance_member_table @relation(fields: [alliance_referral_link_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  alliance_referral_table            alliance_referral_table[]
+
+  @@schema("alliance_schema")
+}
+
+model alliance_referral_table {
+  alliance_referral_id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_referral_date             DateTime  @default(now())
+
+  alliance_referral_hierarchy        String?
+  alliance_referral_member_id        String    @db.Uuid
+  alliance_referral_link_id          String    @db.Uuid
+  alliance_referral_from_member_id   String?   @db.Uuid
+
+  alliance_member_table              alliance_member_table @relation("FromMember",fields: [alliance_referral_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+  alliance_referral_link_table       alliance_referral_link_table @relation(fields: [alliance_referral_link_id], references: [alliance_referral_link_id], onDelete: Cascade, onUpdate: Cascade)
+  alliance_referral_from_table      alliance_member_table? @relation(fields: [alliance_referral_from_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@schema("alliance_schema")
+}
+
+model dashboard_earnings_summary {
+  member_id              String   @id @map("member_id") @db.Uuid
+  total_earnings         Float    @default(0.0) @map("total_earnings")
+  total_withdrawals      Float    @default(0.0) @map("total_withdrawals")
+  direct_referral_amount Float    @default(0.0) @map("direct_referral_amount")
+  indirect_referral_amount Float  @default(0.0) @map("indirect_referral_amount")
+  direct_referral_count  Int      @default(0) @map("direct_referral_count")
+  indirect_referral_count Int     @default(0) @map("indirect_referral_count")
+
+  @@map("dashboard_earnings_summary")
+  @@schema("alliance_schema")
+}
+
+
+model alliance_earnings_table {
+  alliance_earnings_id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_olympus_wallet      Float    @default(0.0)
+  alliance_olympus_earnings    Float    @default(0.0)
+  // alliance_ally_bounty         Float    @default(0.0)
+  // alliance_legion_bounty       Float    @default(0.0)
+  alliance_referral_bounty     Float    @default(0.0)
+  alliance_combined_earnings  Float    @default(0.0)
+  alliance_earnings_member_id  String   @db.Uuid @unique
+
+  alliance_member_table            alliance_member_table @relation(fields: [alliance_earnings_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+
+  @@schema("alliance_schema")
+  @@index([alliance_olympus_wallet], name: "idx_alliance_olympus_wallet")
+  @@index([alliance_olympus_earnings], name: "idx_alliance_olympus_earnings")
+  @@index([alliance_combined_earnings], name: "idx_alliance_combined_earnings")
+  // @@index([alliance_legion_bounty], name: "idx_alliance_legion_bounty")
+  @@index([alliance_referral_bounty], name: "idx_alliance_referral_bounty")
+}
+
+model alliance_top_up_request_table {
+  alliance_top_up_request_id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_top_up_request_amount       Float     @default(0.0)
+  alliance_top_up_request_date         DateTime  @default(now())
+  alliance_top_up_request_status       String    @default("PENDING")
+  alliance_top_up_request_type         String
+  alliance_top_up_request_bank_name    String?
+  alliance_top_up_request_account      String
+  alliance_top_up_request_name         String
+  alliance_top_up_request_attachment   String
+  alliance_top_up_request_reject_note  String?
+
+  alliance_top_up_request_member_id    String    @db.Uuid
+  alliance_top_up_request_approved_by  String?   @db.Uuid
+
+
+  alliance_member_requestor           alliance_member_table @relation("Requestor", fields: [alliance_top_up_request_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+
+  alliance_member_approver            alliance_member_table? @relation("Approver", fields: [alliance_top_up_request_approved_by], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@schema("alliance_schema")
+}
+
+model alliance_withdrawal_request_table {
+  alliance_withdrawal_request_id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_withdrawal_request_amount    Float     @default(0.0)
+  alliance_withdrawal_request_fee       Float     @default(0.0)
+  alliance_withdrawal_request_withdraw_amount     Float     @default(0.0)
+  alliance_withdrawal_request_referral_amount     Float     @default(0.0)
+  alliance_withdrawal_request_earnings_amount     Float     @default(0.0)
+  alliance_withdrawal_request_bank_name           String?
+
+  alliance_withdrawal_request_date      DateTime  @default(now())
+  alliance_withdrawal_request_status    String    @default("APPROVED")
+  alliance_withdrawal_request_account   String    @default("APPROVED")
+  alliance_withdrawal_request_type      String
+  alliance_withdrawal_request_withdraw_type String?
+  alliance_withdrawal_request_member_id String    @db.Uuid
+  alliance_withdrawal_request_approved_by  String?   @db.Uuid
+
+  alliance_withdrawal_request_reject_note  String?
+
+  alliance_member_requestor             alliance_member_table @relation("WithdrawalRequestor", fields: [alliance_withdrawal_request_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade, map: "withdrawal_request_member_fkey")
+  alliance_member_approver            alliance_member_table? @relation("WithdrawalApprover", fields: [alliance_withdrawal_request_approved_by], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade, map: "withdrawal_request_approver_fkey")
+
+  @@schema("alliance_schema")
+}
+
+model alliance_transaction_table {
+  transaction_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  transaction_date DateTime @default(now())
+  transaction_description String
+  transaction_details String?
+  transaction_amount Float?
+  transaction_member_id String @db.Uuid
+
+  alliance_member_table alliance_member_table @relation(fields: [transaction_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@schema("alliance_schema")
+}
+
+
+model package_table {
+  package_id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  package_name       String
+  package_description String
+  package_percentage Float    @default(0.0)
+  packages_days      Int
+  package_is_disabled Boolean @default(false)
+  package_color      String?
+  package_image      String?
+
+  package_member_connection_table package_member_connection_table[]
+  package_earnings_log package_earnings_log[]
+  @@schema("packages_schema")
+
+}
+
+model package_member_connection_table {
+  package_member_connection_id         String   @id @default(uuid()) @db.Uuid
+  package_member_package_id            String   @db.Uuid
+  package_member_member_id             String   @db.Uuid
+  package_member_connection_created    DateTime @default(now())
+  package_member_amount                Float    @default(0.0)
+  package_amount_earnings              Float    @default(0.0)
+  package_member_status                String
+  package_member_is_ready_to_claim     Boolean  @default(false)
+  package_member_completion_date       DateTime?
+
+  package_table       package_table       @relation(fields: [package_member_package_id], references: [package_id], onDelete: Cascade, onUpdate: Cascade)
+  alliance_member_table alliance_member_table @relation(fields: [package_member_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+  package_ally_bounty_log package_ally_bounty_log[]
+  package_earnings_log package_earnings_log[]
+  @@schema("packages_schema")
+  @@index([package_member_package_id], name: "idx_package_member_package_id")
+  @@index([package_member_member_id], name: "idx_package_member_member_id")
+  @@index([package_member_amount], name: "idx_package_member_amount")
+  @@index([package_amount_earnings], name: "idx_package_amount_earnings")
+}
+
+model package_earnings_log {
+  package_earnings_log_id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  package_member_connection_id         String   @db.Uuid
+  package_member_package_id            String   @db.Uuid
+  package_member_member_id             String   @db.Uuid
+  package_member_connection_created    DateTime @default(now())
+  package_member_amount                Float    @default(0.0)
+  package_member_amount_earnings       Float    @default(0.0)
+  package_member_status                String
+
+  package_table                       package_table       @relation(fields: [package_member_package_id], references: [package_id], onDelete: Cascade, onUpdate: Cascade)
+  alliance_member_table               alliance_member_table @relation(fields: [package_member_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+  package_member_connection_table     package_member_connection_table @relation(fields: [package_member_connection_id], references: [package_member_connection_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@schema("packages_schema")
+  @@index([package_member_package_id], name: "idx_package_earnings_package_id")
+  @@index([package_member_member_id], name: "idx_package_earnings_member_id")
+
+}
+
+
+model package_ally_bounty_log {
+  package_ally_bounty_log_id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  package_ally_bounty_log_date_created    DateTime @default(now())
+  package_ally_bounty_member_id           String   @db.Uuid
+  package_ally_bounty_percentage          Float    @default(0.0)
+  package_ally_bounty_earnings            Float    @default(0.0)
+  package_ally_bounty_type                String
+  package_ally_bounty_connection_id       String   @db.Uuid
+  package_ally_bounty_from                String?   @db.Uuid
+
+  alliance_member_table alliance_member_table @relation(fields: [package_ally_bounty_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+  package_member_connection_table package_member_connection_table @relation(fields: [package_ally_bounty_connection_id], references: [package_member_connection_id], onDelete: Cascade, onUpdate: Cascade)
+  alliance_member_table_from alliance_member_table? @relation("FromMember",fields: [package_ally_bounty_from], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+  @@schema("packages_schema")
+}
+
+model merchant_table {
+  merchant_id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  merchant_date_created     DateTime  @default(now())
+  merchant_account_name     String
+  merchant_account_number   String
+  merchant_account_type     String
+
+  @@schema("merchant_schema")
+}
+
+
+model merchant_member_table {
+  merchant_member_id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  merchant_member_date_created     DateTime @default(now())
+  merchant_member_merchant_id      String   @db.Uuid
+  merchant_member_balance          Float    @default(0.0)
+
+  alliance_member_table alliance_member_table @relation(fields: [merchant_member_merchant_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@schema("merchant_schema")
+}
+
+
+model error_table {
+  error_id                String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  error_message           String
+  error_stack_trace       String
+  error_stack_path        String
+  error_function_name     String
+  error_date_created      DateTime     @default(now())
+
+  @@schema("public")
+}
