@@ -43,7 +43,7 @@ export const packagePostMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    10,
+    50,
     60
   );
 
@@ -93,7 +93,7 @@ export const packageGetMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    10,
+    50,
     60
   );
 
@@ -135,7 +135,7 @@ export const packageCreatePostMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    10,
+    50,
     60
   );
 
@@ -197,7 +197,7 @@ export const packageUpdatePutMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    10,
+    50,
     60
   );
 
