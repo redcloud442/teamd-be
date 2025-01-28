@@ -273,7 +273,7 @@ export const packageCreatePostModel = async (params: {
         package_description: packageDescription,
         package_percentage: parsedPackagePercentage,
         packages_days: parsedPackageDays,
-        package_color: packageColor,
+        package_color: packageColor ?? "#000000",
         package_image: packageImage,
       },
     }),

@@ -42,7 +42,7 @@ export const merchantGetMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    10,
+    50,
     60
   );
 
@@ -82,7 +82,7 @@ export const merchantDeleteMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    10,
+    50,
     60
   );
 
@@ -130,7 +130,7 @@ export const merchantPostMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    10,
+    50,
     60
   );
 
@@ -182,7 +182,7 @@ export const merchantPatchMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    10,
+    50,
     60
   );
 

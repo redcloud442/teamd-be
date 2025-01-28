@@ -59,12 +59,15 @@ export const packagesCreatePostController = async (c: Context) => {
 
     return c.json({ message: "Package Created", data: result });
   } catch (error) {
+    console.log(error);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
 
 export const packagesUpdatePutController = async (c: Context) => {
   try {
+    const { packageData } = await c.req.json();
+
     const {
       packageName,
       packageDescription,
@@ -73,7 +76,7 @@ export const packagesUpdatePutController = async (c: Context) => {
       packageIsDisabled,
       packageColor,
       package_image,
-    } = await c.req.json();
+    } = packageData;
 
     const id = c.req.param("id");
 

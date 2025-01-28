@@ -205,6 +205,8 @@ export const packageUpdatePutMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse("Too Many Requests", 429);
   }
 
+  const { packageData } = await c.req.json();
+
   const {
     packageName,
     packageDescription,
@@ -213,7 +215,7 @@ export const packageUpdatePutMiddleware = async (c: Context, next: Next) => {
     packageIsDisabled,
     packageColor,
     package_image,
-  } = await c.req.json();
+  } = packageData;
 
   const id = c.req.param("id");
 

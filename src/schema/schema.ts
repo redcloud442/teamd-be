@@ -145,9 +145,9 @@ export const packagePostSchema = z.object({
 export const createPackagePostSchema = z.object({
   packageName: z.string().min(3),
   packageDescription: z.string().min(3),
-  packagePercentage: z.number().min(1),
-  packageDays: z.number().min(1),
-  packageColor: z.string().min(3).optional(),
+  packagePercentage: z.string().min(1),
+  packageDays: z.string().min(1),
+  packageColor: z.string().optional(),
   packageImage: z.string().min(3).optional(),
 });
 
