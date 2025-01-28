@@ -76,6 +76,9 @@ export const userProfileSchemaPatch = z.object({
     profilePicture: z.string().min(1),
     userId: z.string().uuid(),
 });
+export const userGenerateLinkSchema = z.object({
+    formattedUserName: z.string().min(1),
+});
 export const userSponsorSchema = z.object({
     userId: z.string().uuid(),
 });

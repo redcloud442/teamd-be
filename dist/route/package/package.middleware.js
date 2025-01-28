@@ -56,6 +56,7 @@ export const packageGetMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
+    c.set("teamMemberProfile", teamMemberProfile);
     await next();
 };
 export const packageCreatePostMiddleware = async (c, next) => {

@@ -105,7 +105,7 @@ export const depositPutMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    10,
+    50,
     60
   );
 

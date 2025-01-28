@@ -175,3 +175,13 @@ export const userProfileModelPut = async (params) => {
         });
     });
 };
+export const userGenerateLinkModel = async (params) => {
+    const { formattedUserName } = params;
+    const { data, error } = await supabaseClient.auth.admin.generateLink({
+        type: "magiclink",
+        email: formattedUserName,
+    });
+    if (error)
+        throw error;
+    return data.properties;
+};

@@ -1,4 +1,4 @@
-import { userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userSponsorModel, } from "./user.model.js";
+import { userGenerateLinkModel, userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userSponsorModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
         const { email, password, userId } = await c.req.json();
@@ -60,6 +60,16 @@ export const userProfilePutController = async (c) => {
         const { id } = c.req.param();
         await userProfileModelPut({ profilePicture, userId: id });
         return c.json({ message: "Profile Updated" });
+    }
+    catch (error) {
+        return c.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+};
+export const userGenerateLinkController = async (c) => {
+    try {
+        const { formattedUserName } = await c.req.json();
+        const data = await userGenerateLinkModel({ formattedUserName });
+        return c.json({ url: data });
     }
     catch (error) {
         return c.json({ error: "Internal Server Error" }, { status: 500 });
