@@ -167,20 +167,15 @@ export const userPatchModel = async (params: {
     });
 
     if (role === "ADMIN" || role === "ACCOUNTING" || role === "MERCHANT") {
-      const checkIfHasEarnings =
-        await prisma.alliance_earnings_table.findUnique({
-          where: {
-            alliance_earnings_member_id: memberId,
-          },
-        });
-
-      if (!checkIfHasEarnings) {
-        await prisma.alliance_earnings_table.create({
-          data: {
-            alliance_earnings_member_id: memberId,
-          },
-        });
-      }
+      await prisma.alliance_earnings_table.upsert({
+        where: {
+          alliance_earnings_member_id: memberId,
+        },
+        update: {},
+        create: {
+          alliance_earnings_member_id: memberId,
+        },
+      });
     }
 
     if (role === "MERCHANT") {
