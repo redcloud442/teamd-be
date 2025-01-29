@@ -132,13 +132,16 @@ export const depositPutModel = async (params: {
         },
       });
 
-      // Balance validation and update
-      if (
-        merchant &&
-        status === "APPROVED" &&
-        merchant.merchant_member_balance >=
+      if (merchant && status === "APPROVED") {
+        if (
+          merchant.merchant_member_balance >=
           updatedRequest.alliance_top_up_request_amount
-      ) {
+        ) {
+          throw new Error(
+            "Insufficient balance. Cannot proceed with the update."
+          );
+        }
+
         const updatedMerchant = await tx.merchant_member_table.update({
           where: { merchant_member_id: merchant.merchant_member_id },
           data: {
@@ -153,10 +156,6 @@ export const depositPutModel = async (params: {
           updatedEarnings,
           updatedMerchant,
         };
-      } else {
-        throw new Error(
-          "Insufficient balance. Cannot proceed with the update."
-        );
       }
     } else {
       return { updatedRequest };

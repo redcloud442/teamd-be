@@ -171,6 +171,7 @@ export const packagePostModel = async (params: {
           batch.map((ref) => {
             const calculatedEarnings =
               (Number(amount) * Number(ref.percentage)) / 100;
+            console.log(referralChain);
 
             tx.alliance_earnings_table.update({
               where: { alliance_earnings_member_id: ref.referrerId },
@@ -191,6 +192,7 @@ export const packagePostModel = async (params: {
     return connectionData;
   });
 
+  console.log(bountyLogs);
   if (connectionData) {
     await Promise.all([
       prisma.package_ally_bounty_log.createMany({ data: bountyLogs }),

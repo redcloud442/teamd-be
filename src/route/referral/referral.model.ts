@@ -71,6 +71,8 @@ export const referralIndirectModelPost = async (params: {
 
   if (error) throw error;
 
+  console.log(data);
+
   return data;
 };
 
