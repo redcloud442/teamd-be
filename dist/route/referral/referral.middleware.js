@@ -94,7 +94,7 @@ export const referralTotalGetMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}`, 50, 60);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}`, 100, 60);
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }

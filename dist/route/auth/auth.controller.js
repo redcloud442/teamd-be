@@ -1,11 +1,9 @@
 import { getClientIP } from "../../utils/function.js";
-import { supabaseAnonClient } from "../../utils/supabase.js";
 import { adminModel, loginGetModel, loginModel, registerUserModel, } from "./auth.model.js";
 export const loginController = async (c) => {
     try {
         const ip = getClientIP(c.req.raw);
         const { userName, password } = await c.req.json();
-        console.log(userName, password);
         await loginModel({ userName, password, ip });
         return c.json({ message: "Login successful" }, 200);
     }
@@ -43,9 +41,8 @@ export const adminController = async (c) => {
 };
 export const registerUserController = async (c) => {
     try {
-        const supabaseClient = supabaseAnonClient;
         const { userId, userName, password, firstName, lastName, referalLink, url, } = await c.req.json();
-        await registerUserModel(supabaseClient, {
+        await registerUserModel({
             userId,
             userName,
             password,
@@ -57,7 +54,6 @@ export const registerUserController = async (c) => {
         return c.json({ message: "User created" }, 200);
     }
     catch (error) {
-        console.log(error);
         return c.json({ message: "Error occurred" }, 500);
     }
 };

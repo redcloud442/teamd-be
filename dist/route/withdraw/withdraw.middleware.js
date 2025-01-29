@@ -1,7 +1,7 @@
 import { updateWithdrawSchema, withdrawHistoryPostSchema, withdrawPostSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
-import { protectionAdmin, protectionMemberUser, } from "../../utils/protection.js";
+import { protectionAccountingAdmin, protectionMemberUser, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 import { supabaseClient } from "../../utils/supabase.js";
 export const withdrawPostMiddleware = async (c, next) => {
@@ -93,7 +93,7 @@ export const updateWithdrawMiddleware = async (c, next) => {
     if (user.error) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const response = await protectionAdmin(user.data.user.id, prisma);
+    const response = await protectionAccountingAdmin(user.data.user.id, prisma);
     if (response instanceof Response) {
         return response;
     }
@@ -101,7 +101,7 @@ export const updateWithdrawMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}`, 50, 60);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}`, 100, 60);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }

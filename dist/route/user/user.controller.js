@@ -16,7 +16,6 @@ export const userPostController = async (c) => {
         return c.json(user);
     }
     catch (error) {
-        console.log(error);
         return c.json({ error: "Internal Server Error" }, { status: 500 });
     }
 };
@@ -82,7 +81,6 @@ export const userListController = async (c) => {
         return c.json({ data, totalCount });
     }
     catch (error) {
-        console.log(error);
         return c.json({ error: "Internal Server Error" }, { status: 500 });
     }
 };

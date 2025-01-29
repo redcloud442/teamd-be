@@ -1,10 +1,11 @@
-import { supabaseClient } from "@/utils/supabase.js";
 import type { Context, Next } from "hono";
 import {
   loginCheckSchema,
   LoginSchema,
   registerUserSchema,
 } from "../../schema/schema.js";
+import { supabaseClient } from "../../utils/supabase.js";
+
 import { getClientIP, sendErrorResponse } from "../../utils/function.js";
 import { rateLimit } from "../../utils/redis.js";
 

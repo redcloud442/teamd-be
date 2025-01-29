@@ -7,7 +7,7 @@ import {
 import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import {
-  protectionAdmin,
+  protectionAccountingAdmin,
   protectionMemberUser,
 } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
@@ -151,7 +151,7 @@ export const updateWithdrawMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse("Unauthorized", 401);
   }
 
-  const response = await protectionAdmin(user.data.user.id, prisma);
+  const response = await protectionAccountingAdmin(user.data.user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -165,7 +165,7 @@ export const updateWithdrawMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    50,
+    100,
     60
   );
 

@@ -1,5 +1,6 @@
 import { loginCheckSchema, LoginSchema, registerUserSchema, } from "../../schema/schema.js";
-import { sendErrorResponse } from "../../utils/function.js";
+import { supabaseClient } from "../../utils/supabase.js";
+import { getClientIP, sendErrorResponse } from "../../utils/function.js";
 import { rateLimit } from "../../utils/redis.js";
 export const authMiddleware = async (c, next) => {
     const { userName, password } = await c.req.json();
@@ -36,6 +37,16 @@ export const loginCheckMiddleware = async (c, next) => {
     await next();
 };
 export const registerUserMiddleware = async (c, next) => {
+    const token = c.req.header("Authorization")?.split("Bearer ")[1];
+    if (!token) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    const supabase = supabaseClient;
+    const user = await supabase.auth.getUser(token);
+    if (user.error) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    const ip = getClientIP(c.req.raw);
     const { userId, userName, password, firstName, lastName, referalLink, url } = await c.req.json();
     const parsed = registerUserSchema.safeParse({
         userName,
@@ -49,7 +60,7 @@ export const registerUserMiddleware = async (c, next) => {
     if (!parsed.success) {
         return c.json({ message: "Invalid request" }, 400);
     }
-    const isAllowed = await rateLimit(`rate-limit:${userName}`, 5, 60);
+    const isAllowed = await rateLimit(`rate-limit:${userName}:${ip}`, 5, 60);
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }
