@@ -139,7 +139,7 @@ export const withdrawModel = async (params: {
       data: {
         transaction_amount: finalAmount,
         transaction_description: "Withdrawal Pending",
-        transaction_details: `Account Name: ${accountName} | Account Number: ${accountNumber}`,
+        transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
         transaction_member_id: teamMemberProfile.alliance_member_id,
       },
     }),

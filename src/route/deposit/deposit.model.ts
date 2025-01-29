@@ -76,7 +76,7 @@ export const depositPutModel = async (params: {
   if (!merchant && teamMemberProfile.alliance_member_role === "MERCHANT")
     throw new Error("Merchant not found.");
 
-  await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx) => {
     const existingRequest = await tx.alliance_top_up_request_table.findUnique({
       where: {
         alliance_top_up_request_id: requestId,
@@ -100,9 +100,9 @@ export const depositPutModel = async (params: {
     await tx.alliance_transaction_table.create({
       data: {
         transaction_description: `Deposit ${
-          status.slice(0, 1).toUpperCase() + status.slice(1).toLowerCase()
+          status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
         } ${note ? `(${note})` : ""}`,
-        transaction_details: `Account Name: ${updatedRequest.alliance_top_up_request_name} | Account Number: ${updatedRequest.alliance_top_up_request_account}`,
+        transaction_details: `Account Name: ${updatedRequest.alliance_top_up_request_name}, Account Number: ${updatedRequest.alliance_top_up_request_account}`,
         transaction_amount: updatedRequest.alliance_top_up_request_amount,
         transaction_member_id: updatedRequest.alliance_top_up_request_member_id,
       },
@@ -132,7 +132,13 @@ export const depositPutModel = async (params: {
         },
       });
 
-      if (merchant) {
+      // Balance validation and update
+      if (
+        merchant &&
+        status === "APPROVED" &&
+        merchant.merchant_member_balance >=
+          updatedRequest.alliance_top_up_request_amount
+      ) {
         const updatedMerchant = await tx.merchant_member_table.update({
           where: { merchant_member_id: merchant.merchant_member_id },
           data: {
@@ -147,9 +153,13 @@ export const depositPutModel = async (params: {
           updatedEarnings,
           updatedMerchant,
         };
+      } else {
+        throw new Error(
+          "Insufficient balance. Cannot proceed with the update."
+        );
       }
-
-      return { updatedRequest, updatedEarnings };
+    } else {
+      return { updatedRequest };
     }
   });
 };
