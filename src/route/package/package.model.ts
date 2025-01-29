@@ -352,9 +352,9 @@ export const claimPackagePostModel = async (params: {
       throw new Error("Invalid request.");
     }
 
-    if (!packageConnection.package_member_is_ready_to_claim) {
-      throw new Error("Invalid request. Package is not ready to claim.");
-    }
+    // if (!packageConnection.package_member_is_ready_to_claim) {
+    //   throw new Error("Invalid request. Package is not ready to claim.");
+    // }
 
     const totalClaimedAmount =
       packageConnection.package_member_amount +
@@ -472,7 +472,8 @@ export const packageListGetModel = async (params: {
           completion: percentage.toFixed(2),
           package_connection_id: row.package_member_connection_id,
           profit_amount: row.package_amount_earnings,
-          is_ready_to_claim: isReadyToClaim,
+          // is_ready_to_claim: isReadyToClaim,
+          is_ready_to_claim: true,
         };
       })
     );
