@@ -42,7 +42,7 @@ export const packagePostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:package-post`,
     50,
     60
   );
@@ -92,7 +92,7 @@ export const packageGetMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:package-get`,
     50,
     60
   );
@@ -196,7 +196,7 @@ export const packageUpdatePutMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:package-update`,
     100,
     60
   );
@@ -265,7 +265,7 @@ export const packagesClaimPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:package-claim`,
     10,
     60
   );

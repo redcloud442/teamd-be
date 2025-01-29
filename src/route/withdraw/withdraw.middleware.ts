@@ -41,7 +41,7 @@ export const withdrawPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-post`,
     50,
     60
   );
@@ -106,7 +106,7 @@ export const withdrawHistoryPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-history-get`,
     50,
     60
   );
@@ -164,7 +164,7 @@ export const updateWithdrawMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:update-withdraw`,
     100,
     60
   );

@@ -193,7 +193,6 @@ export const packagePostModel = async (params: {
     return connectionData;
   });
 
-  console.log(bountyLogs);
   if (connectionData) {
     await Promise.all([
       prisma.package_ally_bounty_log.createMany({ data: bountyLogs }),
