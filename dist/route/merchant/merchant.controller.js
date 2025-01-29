@@ -1,5 +1,5 @@
 import { sendErrorResponse } from "../../utils/function.js";
-import { merchantDeleteModel, merchantGetModel, merchantPatchModel, merchantPostModel, } from "./merchant.model.js";
+import { merchantBankModel, merchantDeleteModel, merchantGetModel, merchantPatchModel, merchantPostModel, } from "./merchant.model.js";
 export const merchantGetController = async (c) => {
     try {
         const merchant = await merchantGetModel();
@@ -34,6 +34,16 @@ export const merchantPatchController = async (c) => {
         const { memberId, amount } = await c.req.json();
         await merchantPatchModel({ memberId, amount });
         return c.json({ message: "Merchant Updated" });
+    }
+    catch (error) {
+        return sendErrorResponse("Internal Server Error", 500);
+    }
+};
+export const merchantBankController = async (c) => {
+    try {
+        const params = c.get("params");
+        const data = await merchantBankModel(params);
+        return c.json({ data });
     }
     catch (error) {
         return sendErrorResponse("Internal Server Error", 500);

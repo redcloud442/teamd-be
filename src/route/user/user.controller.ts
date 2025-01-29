@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import {
   userGenerateLinkModel,
+  userListModel,
   userModelGet,
   userModelPost,
   userModelPut,
@@ -17,7 +18,6 @@ export const userPutController = async (c: Context) => {
 
     return c.json({ message: "User Updated" });
   } catch (error) {
-    console.log(error);
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }
 };
@@ -96,6 +96,20 @@ export const userGenerateLinkController = async (c: Context) => {
 
     return c.json({ url: data });
   } catch (error) {
+    return c.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+};
+
+export const userListController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+    const teamMemberProfile = c.get("teamMemberProfile");
+
+    const { data, totalCount } = await userListModel(params, teamMemberProfile);
+
+    return c.json({ data, totalCount });
+  } catch (error) {
+    console.log(error);
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }
 };

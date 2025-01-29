@@ -108,6 +108,17 @@ export const userSponsorSchema = z.object({
   userId: z.string().uuid(),
 });
 
+export const userListSchema = z.object({
+  page: z.number().min(1),
+  limit: z.number().min(1),
+  search: z.string().optional(),
+  columnAccessor: z.string().min(3),
+  isAscendingSort: z.boolean(),
+  userRole: z.string().optional(),
+  dateCreated: z.string().optional(),
+  bannedUser: z.boolean().optional(),
+});
+
 //transaction schema
 
 export const transactionSchemaPost = z.object({
@@ -185,6 +196,11 @@ export const merchantPatchSchema = z.object({
   memberId: z.string().uuid(),
 });
 
+export const merchantBankSchema = z.object({
+  page: z.number().min(1).max(10),
+  limit: z.number().min(1).max(10),
+});
+
 //withdraw schema
 
 export const withdrawPostSchema = z.object({
@@ -219,4 +235,23 @@ export const updateWithdrawSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
   note: z.string().optional(),
   requestId: z.string().uuid(),
+});
+
+//dashboard schema
+
+export const dashboardPostSchema = z.object({
+  dateFilter: z
+    .object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    })
+    .optional(),
+});
+
+//leaderboard schema
+
+export const leaderboardPostSchema = z.object({
+  leaderBoardType: z.enum(["DIRECT", "INDIRECT"]),
+  limit: z.number().min(1),
+  page: z.number().min(1),
 });

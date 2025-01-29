@@ -1,4 +1,4 @@
-import { calculateFee, calculateFinalAmount, sendErrorResponse, } from "../../utils/function.js";
+import { calculateFee, calculateFinalAmount } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import { supabaseClient } from "../../utils/supabase.js";
 export const withdrawModel = async (params) => {
@@ -22,7 +22,7 @@ export const withdrawModel = async (params) => {
         },
     });
     if (existingWithdrawal) {
-        return sendErrorResponse("You have already made a withdrawal today. Please try again tomorrow.", 400);
+        throw new Error("You have already made a withdrawal today. Please try again tomorrow.");
     }
     const amountMatch = await prisma.alliance_earnings_table.findUnique({
         where: {
@@ -35,13 +35,13 @@ export const withdrawModel = async (params) => {
         },
     });
     if (!amountMatch || !teamMemberProfile?.alliance_member_is_active) {
-        return sendErrorResponse("Invalid request.", 400);
+        throw new Error("Invalid request.");
     }
     const { alliance_olympus_earnings, alliance_referral_bounty, alliance_combined_earnings, } = amountMatch;
     const amountValue = Math.round(Number(amount) * 100) / 100;
     const combinedEarnings = Math.round(Number(alliance_combined_earnings) * 100) / 100;
     if (amountValue > combinedEarnings) {
-        return sendErrorResponse("Insufficient balance.", 400);
+        throw new Error("Insufficient balance.");
     }
     let remainingAmount = Number(amount);
     const olympusDeduction = Math.min(remainingAmount, Number(alliance_olympus_earnings));
@@ -49,7 +49,7 @@ export const withdrawModel = async (params) => {
     const referralDeduction = Math.min(remainingAmount, Number(alliance_referral_bounty));
     remainingAmount -= referralDeduction;
     if (remainingAmount > 0) {
-        return sendErrorResponse("Invalid request.", 400);
+        throw new Error("Invalid request.");
     }
     const finalAmount = calculateFinalAmount(Number(amount), "TOTAL");
     const fee = calculateFee(Number(amount), "TOTAL");

@@ -5,15 +5,19 @@ import {
   loginGetController,
   registerUserController,
 } from "./auth.controller.js";
-import { authMiddleware, registerUserMiddleware } from "./auth.middleware.js";
+import {
+  authGetMiddleware,
+  authMiddleware,
+  registerUserMiddleware,
+} from "./auth.middleware.js";
 
 const auth = new Hono();
 
-auth.get("/", loginGetController);
+auth.get("/", authGetMiddleware, loginGetController);
 
 auth.post("/", authMiddleware, loginController);
 
-auth.post("/admin", authMiddleware, adminController);
+auth.post("/securedPrime", authMiddleware, adminController);
 
 auth.post("/register", registerUserMiddleware, registerUserController);
 

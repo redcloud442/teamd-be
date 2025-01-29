@@ -1,7 +1,8 @@
-import bcryptjs from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
-export const loginModel = async (userName, password, ip) => {
+export const loginModel = async (params) => {
+    const { userName, password, ip } = params;
     const user = await prisma.user_table.findFirst({
         where: {
             user_username: {
@@ -21,24 +22,21 @@ export const loginModel = async (userName, password, ip) => {
         },
     });
     if (!user) {
-        return sendErrorResponse("Invalid username or password", 401);
+        throw new Error("Invalid username or password");
     }
     const teamMemberProfile = user.alliance_member_table[0];
     if (!teamMemberProfile)
-        return sendErrorResponse("User profile not found or incomplete.", 403);
+        throw new Error("User profile not found or incomplete.");
     if (teamMemberProfile.alliance_member_restricted) {
-        return sendErrorResponse("User is banned.", 403);
+        throw new Error("User is banned.");
     }
-    if (teamMemberProfile.alliance_member_role === "ADMIN") {
-        return sendErrorResponse("Invalid Request", 401);
-    }
-    const comparePassword = await bcryptjs.compare(password, user.user_password);
+    const comparePassword = await bcrypt.compare(password, user.user_password);
     if (!comparePassword) {
-        return sendErrorResponse("Password Incorrect", 401);
+        throw new Error("Password Incorrect");
     }
     if (teamMemberProfile.alliance_member_restricted ||
         !teamMemberProfile.alliance_member_alliance_id) {
-        return sendErrorResponse("Access restricted or incomplete profile.", 403);
+        throw new Error("Access restricted or incomplete profile.");
     }
     await prisma.$transaction([
         prisma.user_history_log.create({
@@ -80,30 +78,35 @@ export const loginGetModel = async (userName) => {
 export const adminModel = async (userName, password, ip) => {
     const user = await prisma.user_table.findFirst({
         where: {
-            user_username: userName,
+            user_username: {
+                equals: userName,
+                mode: "insensitive",
+            },
+            alliance_member_table: {
+                some: {
+                    alliance_member_role: "ADMIN",
+                },
+            },
         },
-        select: {
-            user_id: true,
-            user_password: true,
+        include: {
+            alliance_member_table: true,
         },
     });
     if (!user) {
-        return sendErrorResponse("User not found", 404);
+        throw new Error("User not found");
     }
-    const comparePassword = await bcryptjs.compare(password, user.user_password);
+    if (!user) {
+        throw new Error("User is not an admin");
+    }
+    const teamMember = user.alliance_member_table[0];
+    const comparePassword = await bcrypt.compare(password, user.user_password);
     if (!comparePassword) {
-        return sendErrorResponse("Password incorrect", 401);
+        throw new Error("Password incorrect");
     }
-    const teamMember = await prisma.alliance_member_table.findFirst({
-        where: {
-            alliance_member_user_id: user.user_id,
-            alliance_member_role: "ADMIN",
-        },
-    });
     if (!teamMember) {
-        return sendErrorResponse("User is not an admin", 403);
+        throw new Error("User is not an admin");
     }
-    return { success: true, user };
+    return { success: true };
 };
 export const registerUserModel = async (supabaseClient, params) => {
     const { userId, userName, password, firstName, lastName, referalLink, url } = params;

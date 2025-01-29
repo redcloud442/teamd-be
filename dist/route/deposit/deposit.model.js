@@ -1,12 +1,11 @@
 import {} from "../../schema/schema.js";
-import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import { supabaseClient } from "../../utils/supabase.js";
 export const depositPostModel = async (params) => {
     const { amount, accountName, accountNumber } = params.TopUpFormValues;
     const { publicUrl } = params;
     if (amount.length > 7 || amount.length < 3) {
-        return sendErrorResponse("Invalid amount", 400);
+        throw new Error("Invalid amount");
     }
     const merchantData = await prisma.merchant_table.findFirst({
         where: {
@@ -20,10 +19,10 @@ export const depositPostModel = async (params) => {
         },
     });
     if (!merchantData) {
-        return sendErrorResponse("Invalid account name or number", 400);
+        throw new Error("Invalid account name or number");
     }
     if (!merchantData) {
-        return sendErrorResponse("Invalid account name or number", 400);
+        throw new Error("Invalid account name or number");
     }
     await prisma.$transaction(async (tx) => {
         await tx.alliance_top_up_request_table.create({
@@ -54,7 +53,7 @@ export const depositPutModel = async (params) => {
         },
     });
     if (!merchant && teamMemberProfile.alliance_member_role === "MERCHANT")
-        return sendErrorResponse("Merchant not found.", 404);
+        throw new Error("Merchant not found.");
     await prisma.$transaction(async (tx) => {
         const existingRequest = await tx.alliance_top_up_request_table.findUnique({
             where: {
@@ -62,7 +61,7 @@ export const depositPutModel = async (params) => {
             },
         });
         if (!existingRequest) {
-            return sendErrorResponse("Request not found.", 404);
+            throw new Error("Request not found.");
         }
         const updatedRequest = await tx.alliance_top_up_request_table.update({
             where: { alliance_top_up_request_id: requestId },
@@ -119,7 +118,7 @@ export const depositPutModel = async (params) => {
     });
 };
 export const depositHistoryPostModel = async (params) => {
-    const { search, page, sortBy, limit, columnAccessor, isAscendingSort, teamMemberId, userId, teamMemberProfile, } = params;
+    const { search, page, sortBy, limit, columnAccessor, isAscendingSort, userId, teamMemberProfile, } = params;
     const input_data = {
         search,
         page,

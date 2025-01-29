@@ -5,11 +5,12 @@ export const loginController = async (c) => {
     try {
         const ip = getClientIP(c.req.raw);
         const { userName, password } = await c.req.json();
-        await loginModel(userName, password, ip);
+        console.log(userName, password);
+        await loginModel({ userName, password, ip });
         return c.json({ message: "Login successful" }, 200);
     }
     catch (error) {
-        return c.json({ message: "Error" }, 500);
+        return c.json({ message: "Invalid username or password" }, 401);
     }
 };
 export const loginGetController = async (c) => {

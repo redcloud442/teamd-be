@@ -1,5 +1,4 @@
 import bcryptjs from "bcryptjs";
-import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import { supabaseClient } from "../../utils/supabase.js";
 export const userModelPut = async (params) => {
@@ -161,7 +160,7 @@ export const userSponsorModel = async (params) => {
         input_data: { userId },
     });
     if (error) {
-        return sendErrorResponse("Failed to get user sponsor", 500);
+        throw new Error("Failed to get user sponsor");
     }
     const { data } = userData;
     return data;
@@ -184,4 +183,100 @@ export const userGenerateLinkModel = async (params) => {
     if (error)
         throw error;
     return data.properties;
+};
+export const userListModel = async (params, teamMemberProfile) => {
+    const { page, limit, search, columnAccessor, isAscendingSort, userRole, dateCreated, bannedUser, } = params;
+    const offset = (page - 1) * limit;
+    const whereCondition = {
+        alliance_member_alliance_id: teamMemberProfile.alliance_member_alliance_id,
+    };
+    if (search) {
+        whereCondition.OR = [
+            {
+                user_table: {
+                    user_username: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                user_table: {
+                    user_first_name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                user_table: {
+                    user_last_name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+        ];
+    }
+    if (userRole !== "") {
+        whereCondition.alliance_member_role = userRole;
+    }
+    if (dateCreated) {
+        whereCondition.user_table = {
+            user_date_created: {
+                gte: new Date(dateCreated),
+                lte: new Date(dateCreated),
+            },
+        };
+    }
+    if (bannedUser) {
+        whereCondition.alliance_member_restricted = true;
+    }
+    let orderByCondition = {};
+    if (columnAccessor) {
+        if (columnAccessor.startsWith("user")) {
+            orderByCondition = {
+                user_table: {
+                    [columnAccessor]: isAscendingSort ? "asc" : "desc",
+                },
+            };
+        }
+        else {
+            orderByCondition = {
+                [columnAccessor]: isAscendingSort ? "asc" : "desc",
+            };
+        }
+    }
+    const userRequest = await prisma.alliance_member_table.findMany({
+        where: whereCondition,
+        include: {
+            user_table: true,
+            merchant_member_table: true,
+        },
+        orderBy: orderByCondition,
+        take: limit,
+        skip: offset,
+    });
+    const totalCount = await prisma.alliance_member_table.count({
+        where: whereCondition,
+    });
+    const formattedData = userRequest.map((entry) => ({
+        alliance_member_id: entry.alliance_member_id,
+        alliance_member_role: entry.alliance_member_role,
+        alliance_member_date_created: entry.alliance_member_date_created.toISOString(),
+        alliance_member_alliance_id: entry.alliance_member_alliance_id,
+        alliance_member_user_id: entry.alliance_member_user_id,
+        alliance_member_restricted: entry.alliance_member_restricted,
+        alliance_member_date_updated: entry.alliance_member_date_updated?.toISOString() || "",
+        alliance_member_is_active: entry.alliance_member_is_active,
+        user_id: entry.user_table.user_id,
+        user_username: entry.user_table.user_username || "",
+        user_first_name: entry.user_table.user_first_name || "",
+        user_last_name: entry.user_table.user_last_name || "",
+        user_date_created: entry.user_table.user_date_created.toISOString(),
+    }));
+    return {
+        totalCount,
+        data: formattedData,
+    };
 };

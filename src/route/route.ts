@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import auth from "./auth/auth.route.js";
+import dashboard from "./dashboard/dashboard.route.js";
 import deposit from "./deposit/deposit.route.js";
 import health from "./health/health.route.js";
+import leaderboard from "./leaderboard/leaderboard.route.js";
 import merchant from "./merchant/merchant.route.js";
 import packages from "./package/package.route.js";
 import referral from "./referral/referral.route.js";
@@ -37,6 +39,12 @@ app.route("/merchant", merchant);
 
 //withdraw route
 app.route("/withdraw", withdraw);
+
+//dashboard route
+app.route("/dashboard", dashboard);
+
+//leaderboard route
+app.route("/leaderboard", leaderboard);
 
 app.get("/", (c) => c.text("This is the api endpoint"));
 

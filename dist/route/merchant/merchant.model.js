@@ -1,4 +1,3 @@
-import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 export const merchantGetModel = async () => {
     const merchant = await prisma.$transaction(async (tx) => {
@@ -21,7 +20,7 @@ export const merchantDeleteModel = async (params) => {
             where: { merchant_id: merchantId },
         });
         if (!merchant)
-            return sendErrorResponse("Merchant not found", 400);
+            throw new Error("Merchant not found");
         return await tx.merchant_table.delete({
             where: { merchant_id: merchantId },
         });
@@ -35,7 +34,7 @@ export const merchantPostModel = async (params) => {
             where: { merchant_account_number: accountNumber },
         });
         if (merchant)
-            return sendErrorResponse("Merchant already exists", 400);
+            throw new Error("Merchant already exists");
         return await tx.merchant_table.create({
             data: {
                 merchant_account_number: accountNumber,
@@ -64,4 +63,17 @@ export const merchantPatchModel = async (params) => {
         });
     });
     return result;
+};
+export const merchantBankModel = async (params) => {
+    const { page, limit } = params;
+    const offset = (page - 1) * limit;
+    const merchantData = await prisma.merchant_table.findMany({
+        take: limit,
+        skip: offset,
+    });
+    const merchantCount = await prisma.merchant_table.count();
+    return {
+        totalCount: merchantCount,
+        data: merchantData,
+    };
 };

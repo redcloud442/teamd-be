@@ -1,5 +1,4 @@
 import { Prisma } from "@prisma/client";
-import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 export const packagePostModel = async (params) => {
     const { amount, packageId, teamMemberProfile } = params;
@@ -32,19 +31,19 @@ export const packagePostModel = async (params) => {
         }),
     ]);
     if (!packageData) {
-        return sendErrorResponse("Package not found.", 404);
+        throw new Error("Package not found.");
     }
     if (packageData.package_is_disabled) {
-        return sendErrorResponse("Package is disabled.", 400);
+        throw new Error("Package is disabled.");
     }
     if (!earningsData) {
-        return sendErrorResponse("Earnings record not found.", 404);
+        throw new Error("Earnings record not found.");
     }
     const { alliance_olympus_wallet, alliance_olympus_earnings, alliance_referral_bounty, alliance_combined_earnings, } = earningsData;
     const combinedEarnings = Number(alliance_combined_earnings.toFixed(2));
     const requestedAmount = Number(amount.toFixed(2));
     if (combinedEarnings < requestedAmount) {
-        return sendErrorResponse("Insufficient balance in the wallet.", 400);
+        throw new Error("Insufficient balance in the wallet.");
     }
     const { olympusWallet, olympusEarnings, referralWallet, updatedCombinedWallet, } = deductFromWallets(requestedAmount, combinedEarnings, Number(alliance_olympus_wallet), Number(alliance_olympus_earnings), Number(alliance_referral_bounty));
     const packagePercentage = new Prisma.Decimal(Number(packageData.package_percentage)).div(100);
@@ -172,7 +171,7 @@ export const packageCreatePostModel = async (params) => {
         where: { package_name: packageName },
     });
     if (checkIfPackageExists) {
-        return sendErrorResponse("Package already exists.", 400);
+        throw new Error("Package already exists.");
     }
     const parsedPackagePercentage = parseFloat(packagePercentage);
     const parsedPackageDays = parseInt(packageDays, 10);
@@ -186,7 +185,7 @@ export const packageCreatePostModel = async (params) => {
                 package_description: packageDescription,
                 package_percentage: parsedPackagePercentage,
                 packages_days: parsedPackageDays,
-                package_color: packageColor,
+                package_color: packageColor ?? "#000000",
                 package_image: packageImage,
             },
         }),
@@ -218,7 +217,7 @@ export const claimPackagePostModel = async (params) => {
             where: { package_member_connection_id: packageConnectionId },
         });
         if (!packageConnection) {
-            return sendErrorResponse("Invalid request.", 400);
+            throw new Error("Invalid request.");
         }
         const packageDetails = await tx.package_table.findUnique({
             where: {
@@ -229,16 +228,16 @@ export const claimPackagePostModel = async (params) => {
             },
         });
         if (!packageDetails) {
-            return sendErrorResponse("Invalid request.", 400);
+            throw new Error("Invalid request.");
         }
         if (!packageConnection.package_member_is_ready_to_claim) {
-            return sendErrorResponse("Invalid request. Package is not ready to claim.", 400);
+            throw new Error("Invalid request. Package is not ready to claim.");
         }
         const totalClaimedAmount = packageConnection.package_member_amount +
             packageConnection.package_amount_earnings;
         const totalAmountToBeClaimed = amount + earnings;
         if (totalClaimedAmount !== totalAmountToBeClaimed) {
-            return sendErrorResponse("Invalid request", 400);
+            throw new Error("Invalid request");
         }
         await tx.package_member_connection_table.update({
             where: { package_member_connection_id: packageConnectionId },

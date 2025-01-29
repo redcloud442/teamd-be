@@ -13,6 +13,19 @@ export const authMiddleware = async (c, next) => {
     }
     await next();
 };
+export const authGetMiddleware = async (c, next) => {
+    const { searchParams } = new URL(c.req.url);
+    const userName = searchParams.get("userName");
+    const parsed = loginCheckSchema.safeParse({ userName });
+    if (!parsed.success) {
+        return c.json({ message: "Invalid userName" }, 400);
+    }
+    const isAllowed = await rateLimit(`rate-limit:${userName}`, 5, 60);
+    if (!isAllowed) {
+        return sendErrorResponse("Too many requests. Please try again later.", 429);
+    }
+    await next();
+};
 export const loginCheckMiddleware = async (c, next) => {
     const { searchParams } = new URL(c.req.url);
     const userName = JSON.parse(searchParams.get("userName"));

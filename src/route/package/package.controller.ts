@@ -91,7 +91,7 @@ export const packagesUpdatePutController = async (c: Context) => {
       packageId: id,
     });
 
-    return c.json({ message: "Package Created", data: result });
+    return c.json({ message: "Package Updated", data: result });
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }

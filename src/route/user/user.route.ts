@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import {
   userGenerateLinkController,
   userGetController,
+  userListController,
   userPatchController,
   userPostController,
   userProfilePutController,
@@ -11,6 +12,7 @@ import {
 import {
   userGenerateLinkMiddleware,
   userGetMiddleware,
+  userListMiddleware,
   userPatchMiddleware,
   userPostMiddleware,
   userProfilePutMiddleware,
@@ -37,5 +39,7 @@ user.post(
 );
 
 user.post("/sponsor", userSponsorMiddleware, userSponsorController);
+
+user.post("/list", userListMiddleware, userListController);
 
 export default user;

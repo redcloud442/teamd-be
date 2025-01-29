@@ -1,5 +1,4 @@
 import { Prisma, type alliance_member_table } from "@prisma/client";
-import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 
 export const packagePostModel = async (params: {
@@ -39,15 +38,15 @@ export const packagePostModel = async (params: {
   ]);
 
   if (!packageData) {
-    return sendErrorResponse("Package not found.", 404);
+    throw new Error("Package not found.");
   }
 
   if (packageData.package_is_disabled) {
-    return sendErrorResponse("Package is disabled.", 400);
+    throw new Error("Package is disabled.");
   }
 
   if (!earningsData) {
-    return sendErrorResponse("Earnings record not found.", 404);
+    throw new Error("Earnings record not found.");
   }
 
   const {
@@ -61,7 +60,7 @@ export const packagePostModel = async (params: {
   const requestedAmount = Number(amount.toFixed(2));
 
   if (combinedEarnings < requestedAmount) {
-    return sendErrorResponse("Insufficient balance in the wallet.", 400);
+    throw new Error("Insufficient balance in the wallet.");
   }
 
   const {
@@ -254,7 +253,7 @@ export const packageCreatePostModel = async (params: {
   });
 
   if (checkIfPackageExists) {
-    return sendErrorResponse("Package already exists.", 400);
+    throw new Error("Package already exists.");
   }
 
   const parsedPackagePercentage = parseFloat(packagePercentage);
@@ -337,7 +336,7 @@ export const claimPackagePostModel = async (params: {
       });
 
     if (!packageConnection) {
-      return sendErrorResponse("Invalid request.", 400);
+      throw new Error("Invalid request.");
     }
 
     const packageDetails = await tx.package_table.findUnique({
@@ -350,14 +349,11 @@ export const claimPackagePostModel = async (params: {
     });
 
     if (!packageDetails) {
-      return sendErrorResponse("Invalid request.", 400);
+      throw new Error("Invalid request.");
     }
 
     if (!packageConnection.package_member_is_ready_to_claim) {
-      return sendErrorResponse(
-        "Invalid request. Package is not ready to claim.",
-        400
-      );
+      throw new Error("Invalid request. Package is not ready to claim.");
     }
 
     const totalClaimedAmount =
@@ -367,7 +363,7 @@ export const claimPackagePostModel = async (params: {
     const totalAmountToBeClaimed = amount + earnings;
 
     if (totalClaimedAmount !== totalAmountToBeClaimed) {
-      return sendErrorResponse("Invalid request", 400);
+      throw new Error("Invalid request");
     }
 
     await tx.package_member_connection_table.update({

@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { sendErrorResponse } from "../../utils/function.js";
 import {
+  merchantBankModel,
   merchantDeleteModel,
   merchantGetModel,
   merchantPatchModel,
@@ -48,6 +49,18 @@ export const merchantPatchController = async (c: Context) => {
     await merchantPatchModel({ memberId, amount });
 
     return c.json({ message: "Merchant Updated" });
+  } catch (error) {
+    return sendErrorResponse("Internal Server Error", 500);
+  }
+};
+
+export const merchantBankController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const data = await merchantBankModel(params);
+
+    return c.json({ data });
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }

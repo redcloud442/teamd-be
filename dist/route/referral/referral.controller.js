@@ -1,5 +1,5 @@
 import { sendErrorResponse } from "../../utils/function.js";
-import { referralDirectModelPost, referralIndirectModelPost, } from "./referral.model.js";
+import { referralDirectModelPost, referralIndirectModelPost, referralTotalGetModel, } from "./referral.model.js";
 export const referralDirectPostController = async (c) => {
     try {
         const { page, limit, search, columnAccessor, isAscendingSort } = await c.req.json();
@@ -34,5 +34,15 @@ export const referralIndirectPostController = async (c) => {
     }
     catch (error) {
         return sendErrorResponse("Invalid data", 400);
+    }
+};
+export const referralTotalGetController = async (c) => {
+    try {
+        const teamMemberProfile = c.get("teamMemberProfile");
+        const { data } = await referralTotalGetModel({ teamMemberProfile });
+        return c.json({ message: "Data fetched successfully", data });
+    }
+    catch (error) {
+        return sendErrorResponse("Internal Server Error", 500);
     }
 };

@@ -38,12 +38,14 @@ export const packagesCreatePostController = async (c) => {
         return c.json({ message: "Package Created", data: result });
     }
     catch (error) {
+        console.log(error);
         return sendErrorResponse("Internal Server Error", 500);
     }
 };
 export const packagesUpdatePutController = async (c) => {
     try {
-        const { packageName, packageDescription, packagePercentage, packageDays, packageIsDisabled, packageColor, package_image, } = await c.req.json();
+        const { packageData } = await c.req.json();
+        const { packageName, packageDescription, packagePercentage, packageDays, packageIsDisabled, packageColor, package_image, } = packageData;
         const id = c.req.param("id");
         const result = await packageUpdatePutModel({
             packageName,
@@ -55,7 +57,7 @@ export const packagesUpdatePutController = async (c) => {
             package_image,
             packageId: id,
         });
-        return c.json({ message: "Package Created", data: result });
+        return c.json({ message: "Package Updated", data: result });
     }
     catch (error) {
         return sendErrorResponse("Internal Server Error", 500);
