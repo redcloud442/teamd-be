@@ -47,7 +47,6 @@ export const withdrawHistoryPostController = async (c: Context) => {
 
     return c.json({ data: withdrawals, totalCount }, 200);
   } catch (e) {
-    console.log(e);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };

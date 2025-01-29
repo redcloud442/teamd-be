@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
@@ -144,35 +144,141 @@ export const adminModel = async (
   return { success: true };
 };
 
-export const registerUserModel = async (
-  supabaseClient: SupabaseClient,
-  params: {
-    userId: string;
-    userName: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    referalLink: string;
-    url: string;
-  }
-) => {
+export const registerUserModel = async (params: {
+  userId: string;
+  userName: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  referalLink: string;
+  url: string;
+}) => {
   const { userId, userName, password, firstName, lastName, referalLink, url } =
     params;
 
-  const parameters = {
-    userId,
-    userName,
-    password,
-    firstName,
-    lastName,
-    referalLink,
-    url,
-    email: `${userName}@gmail.com`,
-  };
+  if (referalLink) {
+    const DEFAULT_ALLIANCE_ID = "35f77cd9-636a-41fa-a346-9cb711e7a338";
 
-  const { error } = await supabaseClient.rpc("create_user_trigger", {
-    input_data: parameters,
+    return await prisma.$transaction(async (tx) => {
+      const user = await tx.user_table.create({
+        data: {
+          user_id: userId,
+          user_email: `${userName}@gmail.com`,
+          user_password: password,
+          user_first_name: firstName,
+          user_last_name: lastName,
+          user_username: userName,
+        },
+      });
+
+      if (!user) {
+        throw new Error("Failed to create user");
+      }
+
+      const allianceMember = await tx.alliance_member_table.create({
+        data: {
+          alliance_member_role: "MEMBER",
+          alliance_member_alliance_id: DEFAULT_ALLIANCE_ID,
+          alliance_member_user_id: userId,
+        },
+        select: {
+          alliance_member_id: true,
+        },
+      });
+
+      const referralLinkURL = `${url}?referralLink=${encodeURIComponent(
+        userName
+      )}`;
+      await tx.alliance_referral_link_table.create({
+        data: {
+          alliance_referral_link: referralLinkURL,
+          alliance_referral_link_member_id: allianceMember.alliance_member_id,
+        },
+      });
+
+      await handleReferral(tx, referalLink, allianceMember.alliance_member_id);
+
+      return {
+        success: true,
+        user,
+      };
+    });
+  }
+};
+
+async function handleReferral(
+  tx: Prisma.TransactionClient,
+  referalLink: string,
+  allianceMemberId: string
+) {
+  const referrerData = await tx.alliance_referral_link_table.findFirst({
+    where: {
+      alliance_member_table: {
+        user_table: {
+          user_username: referalLink,
+        },
+      },
+    },
+    select: {
+      alliance_referral_link_id: true,
+      alliance_member_table: {
+        select: {
+          alliance_member_id: true,
+          alliance_referral_table: {
+            select: {
+              alliance_referral_hierarchy: true,
+            },
+          },
+        },
+      },
+    },
   });
 
-  if (error) throw error;
-};
+  if (!referrerData) {
+    throw new Error("Invalid referral link");
+  }
+
+  const referrerLinkId = referrerData.alliance_referral_link_id;
+  const parentHierarchy =
+    referrerData.alliance_member_table.alliance_referral_table[0]
+      ?.alliance_referral_hierarchy;
+  const referrerMemberId =
+    referrerData.alliance_member_table.alliance_member_id;
+
+  // Ensure referrerMemberId exists in alliance_member_table
+  const referrerMemberExists = await tx.alliance_member_table.findUnique({
+    where: { alliance_member_id: referrerMemberId },
+    select: { alliance_member_id: true },
+  });
+
+  if (!referrerMemberExists) {
+    throw new Error(`Referrer Member ID ${referrerMemberId} does not exist`);
+  }
+
+  // Insert into alliance_referral_table
+  const newReferral = await tx.alliance_referral_table.create({
+    data: {
+      alliance_referral_member_id: allianceMemberId,
+      alliance_referral_link_id: referrerLinkId,
+      alliance_referral_hierarchy: "",
+      alliance_referral_from_member_id: referrerMemberId,
+    },
+    select: {
+      alliance_referral_id: true,
+    },
+  });
+
+  // Generate referral hierarchy
+  const newHierarchy = parentHierarchy
+    ? `${parentHierarchy}.${allianceMemberId}`
+    : `${referrerMemberId}.${allianceMemberId}`;
+
+  await tx.alliance_referral_table.update({
+    where: {
+      alliance_referral_id: newReferral.alliance_referral_id,
+    },
+    data: {
+      alliance_referral_hierarchy: newHierarchy,
+    },
+  });
+}

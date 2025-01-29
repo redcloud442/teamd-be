@@ -59,7 +59,6 @@ export const packagesCreatePostController = async (c: Context) => {
 
     return c.json({ message: "Package Created", data: result });
   } catch (error) {
-    console.log(error);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };

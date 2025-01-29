@@ -1,6 +1,5 @@
 import type { Context } from "hono";
 import { getClientIP } from "../../utils/function.js";
-import { supabaseAnonClient } from "../../utils/supabase.js";
 import {
   adminModel,
   loginGetModel,
@@ -13,7 +12,6 @@ export const loginController = async (c: Context) => {
     const ip = getClientIP(c.req.raw);
 
     const { userName, password } = await c.req.json();
-    console.log(userName, password);
 
     await loginModel({ userName, password, ip });
 
@@ -60,7 +58,6 @@ export const adminController = async (c: Context) => {
 
 export const registerUserController = async (c: Context) => {
   try {
-    const supabaseClient = supabaseAnonClient;
     const {
       userId,
       userName,
@@ -71,7 +68,7 @@ export const registerUserController = async (c: Context) => {
       url,
     } = await c.req.json();
 
-    await registerUserModel(supabaseClient, {
+    await registerUserModel({
       userId,
       userName,
       password,
@@ -83,7 +80,6 @@ export const registerUserController = async (c: Context) => {
 
     return c.json({ message: "User created" }, 200);
   } catch (error) {
-    console.log(error);
     return c.json({ message: "Error occurred" }, 500);
   }
 };
