@@ -77,6 +77,23 @@ export const depositHistoryPostSchema = z.object({
   userId: z.string().optional(),
 });
 
+export const depositListPostSchema = z.object({
+  page: z.number().min(1),
+  limit: z.number().min(1).max(10),
+  search: z.string().optional(),
+  columnAccessor: z.string().min(3),
+  merchantFilter: z.string().optional(),
+  userFilter: z.string().optional(),
+  statusFilter: z.enum(["APPROVED", "REJECTED", "PENDING"]),
+  isAscendingSort: z.boolean(),
+  dateFilter: z
+    .object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    })
+    .optional(),
+});
+
 //user schema
 
 export const userSchemaPut = z.object({
@@ -254,4 +271,11 @@ export const leaderboardPostSchema = z.object({
   leaderBoardType: z.enum(["DIRECT", "INDIRECT"]),
   limit: z.number().min(1),
   page: z.number().min(1),
+});
+
+// options schema
+
+export const userOptionsPostSchema = z.object({
+  page: z.number().min(1).max(10),
+  limit: z.number().min(1).max(500),
 });

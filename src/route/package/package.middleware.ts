@@ -64,6 +64,48 @@ export const packagePostMiddleware = async (c: Context, next: Next) => {
   await next();
 };
 
+export const packagePostListMiddleware = async (c: Context, next: Next) => {
+  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+
+  if (!token) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const supabase = supabaseClient;
+
+  const user = await supabase.auth.getUser(token);
+
+  if (user.error) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const response = await protectionMemberUser(user.data.user.id, prisma);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    50,
+    60
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
+
+  c.set("teamMemberProfile", teamMemberProfile);
+
+  await next();
+};
+
 export const packageGetMiddleware = async (c: Context, next: Next) => {
   const token = c.req.header("Authorization")?.split("Bearer ")[1];
 
@@ -284,6 +326,48 @@ export const packagesClaimPostMiddleware = async (c: Context, next: Next) => {
 
   if (!validation.success) {
     return sendErrorResponse("Invalid request", 400);
+  }
+
+  c.set("teamMemberProfile", teamMemberProfile);
+
+  await next();
+};
+
+export const packagesGetListMiddleware = async (c: Context, next: Next) => {
+  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+
+  if (!token) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const supabase = supabaseClient;
+
+  const user = await supabase.auth.getUser(token);
+
+  if (user.error) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const response = await protectionAdmin(user.data.user.id, prisma);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    100,
+    60
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
   }
 
   c.set("teamMemberProfile", teamMemberProfile);

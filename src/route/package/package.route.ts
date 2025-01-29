@@ -4,6 +4,7 @@ import {
   packagePostController,
   packagesClaimPostController,
   packagesCreatePostController,
+  packagesGetAdminController,
   packagesListPostController,
   packagesUpdatePutController,
 } from "./package.controller.js";
@@ -12,6 +13,7 @@ import {
   packageGetMiddleware,
   packagePostMiddleware,
   packagesClaimPostMiddleware,
+  packagesGetListMiddleware,
   packageUpdatePutMiddleware,
 } from "./package.middleware.js";
 
@@ -24,6 +26,8 @@ packages.get("/", packageGetMiddleware, packageGetController);
 packages.put("/:id", packageUpdatePutMiddleware, packagesUpdatePutController);
 
 packages.post("/list", packageGetMiddleware, packagesListPostController);
+
+packages.get("/list", packagesGetListMiddleware, packagesGetAdminController);
 
 packages.post(
   "/create",

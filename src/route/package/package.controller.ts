@@ -4,6 +4,7 @@ import {
   claimPackagePostModel,
   packageCreatePostModel,
   packageGetModel,
+  packageListGetAdminModel,
   packageListGetModel,
   packagePostModel,
   packageUpdatePutModel,
@@ -120,6 +121,16 @@ export const packagesListPostController = async (c: Context) => {
     const teamMemberProfile = c.get("teamMemberProfile");
 
     const data = await packageListGetModel({ teamMemberProfile });
+
+    return c.json({ data });
+  } catch (error) {
+    return sendErrorResponse("Internal Server Error", 500);
+  }
+};
+
+export const packagesGetAdminController = async (c: Context) => {
+  try {
+    const data = await packageListGetAdminModel();
 
     return c.json({ data });
   } catch (error) {

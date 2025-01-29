@@ -483,6 +483,22 @@ export const packageListGetModel = async (params: {
   return returnData;
 };
 
+export const packageListGetAdminModel = async () => {
+  const result = await prisma.package_table.findMany({
+    select: {
+      package_id: true,
+      package_name: true,
+      package_percentage: true,
+      package_description: true,
+      packages_days: true,
+      package_color: true,
+      package_image: true,
+    },
+  });
+
+  return result;
+};
+
 function generateReferralChain(
   hierarchy: string | null,
   teamMemberId: string,

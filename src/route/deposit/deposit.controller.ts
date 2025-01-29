@@ -2,6 +2,7 @@ import type { Context } from "node:vm";
 import { supabaseClient } from "../../utils/supabase.js";
 import {
   depositHistoryPostModel,
+  depositListPostModel,
   depositPostModel,
   depositPutModel,
 } from "./deposit.model.js";
@@ -76,6 +77,20 @@ export const depositHistoryPostController = async (c: Context) => {
 
     return c.json(data, { status: 200 });
   } catch (e) {
+    return c.json({ message: "Internal Server Error" }, { status: 500 });
+  }
+};
+
+export const depositListPostController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+    const teamMemberProfile = c.get("teamMemberProfile");
+
+    const data = await depositListPostModel(params, teamMemberProfile);
+
+    return c.json(data, { status: 200 });
+  } catch (e) {
+    console.log(e);
     return c.json({ message: "Internal Server Error" }, { status: 500 });
   }
 };
