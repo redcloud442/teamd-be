@@ -1,6 +1,6 @@
-import { redis } from "@/utils/redis.js";
 import type { alliance_member_table } from "@prisma/client";
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
 import { supabaseClient } from "../../utils/supabase.js";
 
 export const referralDirectModelPost = async (params: {
