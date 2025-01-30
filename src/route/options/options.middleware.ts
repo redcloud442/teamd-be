@@ -1,10 +1,10 @@
-import { userOptionsPostSchema } from "@/schema/schema.js";
-import { sendErrorResponse } from "@/utils/function.js";
-import prisma from "@/utils/prisma.js";
-import { protectionMerchantAdmin } from "@/utils/protection.js";
-import { rateLimit } from "@/utils/redis.js";
-import { supabaseClient } from "@/utils/supabase.js";
 import type { Context, Next } from "hono";
+import { userOptionsPostSchema } from "../../schema/schema.js";
+import { sendErrorResponse } from "../../utils/function.js";
+import prisma from "../../utils/prisma.js";
+import { protectionMerchantAdmin } from "../../utils/protection.js";
+import { rateLimit } from "../../utils/redis.js";
+import { supabaseClient } from "../../utils/supabase.js";
 
 export const userOptionsPostMiddleware = async (c: Context, next: Next) => {
   const token = c.req.header("Authorization")?.split("Bearer ")[1];
@@ -34,7 +34,7 @@ export const userOptionsPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-options-post`,
     100,
     60
   );

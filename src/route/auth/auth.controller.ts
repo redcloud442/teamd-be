@@ -11,9 +11,9 @@ export const loginController = async (c: Context) => {
   try {
     const ip = getClientIP(c.req.raw);
 
-    const { userName, password } = await c.req.json();
+    const params = c.get("params");
 
-    await loginModel({ userName, password, ip });
+    await loginModel({ ...params, ip });
 
     return c.json({ message: "Login successful" }, 200);
   } catch (error) {
@@ -23,9 +23,7 @@ export const loginController = async (c: Context) => {
 
 export const loginGetController = async (c: Context) => {
   try {
-    const { searchParams } = new URL(c.req.url);
-
-    const userName = searchParams.get("userName");
+    const userName = c.get("userName");
     if (!userName) {
       return c.json({ message: "userName query parameter is required" }, 400);
     }
@@ -44,11 +42,9 @@ export const loginGetController = async (c: Context) => {
 
 export const adminController = async (c: Context) => {
   try {
-    const ip = getClientIP(c.req.raw);
+    const params = c.get("params");
 
-    const { userName, password } = await c.req.json();
-
-    await adminModel(userName, password, ip);
+    await adminModel(params);
 
     return c.json({ message: "Admin login successful" }, 200);
   } catch (error) {
@@ -58,25 +54,9 @@ export const adminController = async (c: Context) => {
 
 export const registerUserController = async (c: Context) => {
   try {
-    const {
-      userId,
-      userName,
-      password,
-      firstName,
-      lastName,
-      referalLink,
-      url,
-    } = await c.req.json();
+    const params = c.get("params");
 
-    await registerUserModel({
-      userId,
-      userName,
-      password,
-      firstName,
-      lastName,
-      referalLink,
-      url,
-    });
+    await registerUserModel(params);
 
     return c.json({ message: "User created" }, 200);
   } catch (error) {

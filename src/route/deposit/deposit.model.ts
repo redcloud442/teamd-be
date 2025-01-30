@@ -1,7 +1,8 @@
+import type { ReturnDataType, TopUpRequestData } from "@/utils/types.js";
 import { Prisma, type alliance_member_table } from "@prisma/client";
 import { type DepositFormValues } from "../../schema/schema.js";
 import prisma from "../../utils/prisma.js";
-import { supabaseClient } from "../../utils/supabase.js";
+
 export const depositPostModel = async (params: {
   TopUpFormValues: DepositFormValues;
   publicUrl: string;
@@ -75,7 +76,7 @@ export const depositPutModel = async (params: {
   if (!merchant && teamMemberProfile.alliance_member_role === "MERCHANT")
     throw new Error("Merchant not found.");
 
-  await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx) => {
     const existingRequest = await tx.alliance_top_up_request_table.findUnique({
       where: {
         alliance_top_up_request_id: requestId,
@@ -99,9 +100,9 @@ export const depositPutModel = async (params: {
     await tx.alliance_transaction_table.create({
       data: {
         transaction_description: `Deposit ${
-          status.slice(0, 1).toUpperCase() + status.slice(1).toLowerCase()
+          status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
         } ${note ? `(${note})` : ""}`,
-        transaction_details: `Account Name: ${updatedRequest.alliance_top_up_request_name} | Account Number: ${updatedRequest.alliance_top_up_request_account}`,
+        transaction_details: `Account Name: ${updatedRequest.alliance_top_up_request_name}, Account Number: ${updatedRequest.alliance_top_up_request_account}`,
         transaction_amount: updatedRequest.alliance_top_up_request_amount,
         transaction_member_id: updatedRequest.alliance_top_up_request_member_id,
       },
@@ -131,7 +132,16 @@ export const depositPutModel = async (params: {
         },
       });
 
-      if (merchant) {
+      if (merchant && status === "APPROVED") {
+        if (
+          merchant.merchant_member_balance >=
+          updatedRequest.alliance_top_up_request_amount
+        ) {
+          throw new Error(
+            "Insufficient balance. Cannot proceed with the update."
+          );
+        }
+
         const updatedMerchant = await tx.merchant_member_table.update({
           where: { merchant_member_id: merchant.merchant_member_id },
           data: {
@@ -147,56 +157,90 @@ export const depositPutModel = async (params: {
           updatedMerchant,
         };
       }
-
-      return { updatedRequest, updatedEarnings };
+    } else {
+      return { updatedRequest };
     }
   });
 };
 
-export const depositHistoryPostModel = async (params: {
-  search: string;
-  page: string;
-  limit: string;
-  sortBy: string;
-  columnAccessor: string;
-  isAscendingSort: string;
-  teamMemberId: string;
-  userId: string;
-  teamMemberProfile: alliance_member_table;
-}) => {
-  const {
-    search,
-    page,
-    sortBy,
-    limit,
-    columnAccessor,
-    isAscendingSort,
+export const depositHistoryPostModel = async (
+  params: {
+    search: string;
+    page: number;
+    limit: number;
+    sortBy: string;
+    columnAccessor: string;
+    isAscendingSort: string;
+    userId: string;
+  },
+  teamMemberProfile: alliance_member_table
+) => {
+  const { page, limit, search, columnAccessor, isAscendingSort, userId } =
+    params;
 
-    userId,
-    teamMemberProfile,
-  } = params;
+  const offset = (page - 1) * limit;
+  const sortBy = isAscendingSort ? "ASC" : "DESC";
 
-  const input_data = {
-    search,
-    page,
-    limit,
-    sortBy,
-    columnAccessor,
-    isAscendingSort: isAscendingSort,
-    teamId: teamMemberProfile?.alliance_member_alliance_id || "",
-    userId: userId ? userId : teamMemberProfile?.alliance_member_id,
-  };
+  const orderBy = columnAccessor
+    ? Prisma.sql`ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
+    : Prisma.empty;
 
-  const { data, error } = await supabaseClient.rpc(
-    "get_member_top_up_history",
-    {
-      input_data: input_data,
-    }
-  );
+  const commonConditions: Prisma.Sql[] = [
+    Prisma.raw(
+      `m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid AND m.alliance_member_user_id = '${userId}'::uuid`
+    ),
+  ];
 
-  if (error) throw error;
+  if (search) {
+    commonConditions.push(
+      Prisma.raw(
+        `(
+            u.user_username ILIKE '%${search}%'
+            OR u.user_id::TEXT ILIKE '%${search}%'
+            OR u.user_first_name ILIKE '%${search}%'
+            OR u.user_last_name ILIKE '%${search}%'
+          )`
+      )
+    );
+  }
 
-  return data;
+  const dataQueryConditions = [...commonConditions];
+
+  const dataWhereClause = Prisma.sql`${Prisma.join(
+    dataQueryConditions,
+    " AND "
+  )}`;
+
+  const depositHistory: TopUpRequestData[] = await prisma.$queryRaw`
+      SELECT 
+        u.user_first_name,
+        u.user_last_name,
+        u.user_email,
+        m.alliance_member_id,
+        t.*
+      FROM alliance_schema.alliance_top_up_request_table t
+      JOIN alliance_schema.alliance_member_table m 
+        ON t.alliance_top_up_request_member_id = m.alliance_member_id
+      JOIN user_schema.user_table u 
+        ON u.user_id = m.alliance_member_user_id
+      WHERE ${dataWhereClause}
+      ${orderBy}
+      LIMIT ${Prisma.raw(limit.toString())}
+      OFFSET ${Prisma.raw(offset.toString())}
+    `;
+
+  const totalCount: { count: bigint }[] = await prisma.$queryRaw`
+        SELECT 
+          COUNT(*) AS count
+        FROM alliance_schema.alliance_top_up_request_table t
+        JOIN alliance_schema.alliance_member_table m 
+          ON t.alliance_top_up_request_member_id = m.alliance_member_id
+        JOIN user_schema.user_table u 
+        ON u.user_id = m.alliance_member_user_id
+      WHERE ${dataWhereClause}
+    `;
+
+  return { data: depositHistory, totalCount: Number(totalCount[0].count) };
 };
 
 export const depositListPostModel = async (
@@ -228,7 +272,7 @@ export const depositListPostModel = async (
     dateFilter,
   } = params;
 
-  let returnData = {
+  let returnData: ReturnDataType = {
     data: {
       APPROVED: { data: [], count: BigInt(0) },
       REJECTED: { data: [], count: BigInt(0) },
@@ -237,88 +281,97 @@ export const depositListPostModel = async (
     totalCount: BigInt(0),
   };
 
-  // SQL Query Conditions
   const offset = (page - 1) * limit;
   const sortBy = isAscendingSort ? "ASC" : "DESC";
+
   const orderBy = columnAccessor
     ? Prisma.sql`ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
     : Prisma.empty;
 
-  const conditions: Prisma.Sql[] = [
-    Prisma.sql`m.alliance_member_alliance_id = ${teamMemberProfile.alliance_member_alliance_id}::uuid`,
+  const commonConditions: Prisma.Sql[] = [
+    Prisma.raw(
+      `m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid`
+    ),
   ];
 
   if (merchantFilter) {
-    conditions.push(Prisma.sql`approver.user_id::TEXT = ${merchantFilter}`);
+    commonConditions.push(
+      Prisma.raw(`approver.user_id::TEXT = '${merchantFilter}'`)
+    );
   }
 
   if (userFilter) {
-    conditions.push(Prisma.sql`u.user_id::TEXT = ${userFilter}`);
-  }
-
-  if (statusFilter) {
-    conditions.push(
-      Prisma.sql`t.alliance_top_up_request_status = ${statusFilter}`
-    );
+    commonConditions.push(Prisma.raw(`u.user_id::TEXT = '${userFilter}'`));
   }
 
   if (dateFilter?.start && dateFilter?.end) {
-    conditions.push(
-      Prisma.sql`t.alliance_top_up_request_date BETWEEN ${dateFilter.start} AND ${dateFilter.end}`
+    const startDate = new Date(dateFilter.start).toISOString();
+    const endDate = new Date(dateFilter.end).toISOString();
+
+    commonConditions.push(
+      Prisma.raw(
+        `t.alliance_top_up_request_date::DATE BETWEEN '${startDate}'::DATE AND '${endDate}'::DATE`
+      )
     );
   }
-
   if (search) {
-    conditions.push(
-      Prisma.sql`(
-          u.user_username ILIKE ${`%${search}%`}
-          OR u.user_id::TEXT ILIKE ${`%${search}%`}
-          OR u.user_first_name ILIKE ${`%${search}%`}
-          OR u.user_last_name ILIKE ${`%${search}%`}
+    commonConditions.push(
+      Prisma.raw(
+        `(
+          u.user_username ILIKE '%${search}%'
+          OR u.user_id::TEXT ILIKE '%${search}%'
+          OR u.user_first_name ILIKE '%${search}%'
+          OR u.user_last_name ILIKE '%${search}%'
         )`
+      )
     );
   }
 
-  const whereClause =
-    conditions.length > 0
-      ? Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
-      : Prisma.empty;
+  const dataQueryConditions = [...commonConditions];
 
-  // Construct WHERE clause
-  // Fetch paginated top-up requests
-  const topUpRequests = await prisma.$queryRaw(
-    Prisma.sql`
-      SELECT 
-        u.user_id,
-        u.user_first_name,
-        u.user_last_name,
-        u.user_email,
-        u.user_username,
-        m.alliance_member_id,
-        t.*,
-        approver.user_username AS approver_username
-      FROM alliance_schema.alliance_top_up_request_table t
-      JOIN alliance_schema.alliance_member_table m 
-        ON t.alliance_top_up_request_member_id = m.alliance_member_id
-      JOIN user_schema.user_table u 
-        ON u.user_id = m.alliance_member_user_id
-      LEFT JOIN alliance_schema.alliance_member_table mt 
-        ON mt.alliance_member_id = t.alliance_top_up_request_approved_by
-      LEFT JOIN user_schema.user_table approver 
-        ON approver.user_id = mt.alliance_member_user_id
-      ${whereClause}
-      ${orderBy}
-      LIMIT ${Prisma.raw(limit.toString())}
-      OFFSET ${Prisma.raw(offset.toString())}
-    `
-  );
-  console.log("Top-Up Requests:", topUpRequests);
+  if (statusFilter) {
+    dataQueryConditions.push(
+      Prisma.raw(`t.alliance_top_up_request_status = '${statusFilter}'`)
+    );
+  }
 
-  // Fetch status counts
-  const statusCounts = await prisma.$queryRaw<
-    { status: string; count: bigint }[]
-  >(
-    Prisma.sql`
+  const dataWhereClause = Prisma.sql`${Prisma.join(
+    dataQueryConditions,
+    " AND "
+  )}`;
+
+  const countWhereClause = Prisma.sql`${Prisma.join(
+    commonConditions,
+    " AND "
+  )}`;
+
+  const topUpRequests: TopUpRequestData[] = await prisma.$queryRaw`
+    SELECT 
+      u.user_id,
+      u.user_first_name,
+      u.user_last_name,
+      u.user_email,
+      u.user_username,
+      m.alliance_member_id,
+      t.*,
+      approver.user_username AS approver_username
+    FROM alliance_schema.alliance_top_up_request_table t
+    JOIN alliance_schema.alliance_member_table m 
+      ON t.alliance_top_up_request_member_id = m.alliance_member_id
+    JOIN user_schema.user_table u 
+      ON u.user_id = m.alliance_member_user_id
+    LEFT JOIN alliance_schema.alliance_member_table mt 
+      ON mt.alliance_member_id = t.alliance_top_up_request_approved_by
+    LEFT JOIN user_schema.user_table approver 
+      ON approver.user_id = mt.alliance_member_user_id
+    WHERE ${dataWhereClause}
+    ${orderBy}
+    LIMIT ${Prisma.raw(limit.toString())}
+    OFFSET ${Prisma.raw(offset.toString())}
+  `;
+
+  const statusCounts: { status: string; count: bigint }[] =
+    await prisma.$queryRaw`
       SELECT 
         t.alliance_top_up_request_status AS status, 
         COUNT(*) AS count
@@ -331,14 +384,10 @@ export const depositListPostModel = async (
         ON mt.alliance_member_id = t.alliance_top_up_request_approved_by
       LEFT JOIN user_schema.user_table approver 
         ON approver.user_id = mt.alliance_member_user_id
-      ${whereClause}
+      WHERE ${countWhereClause}
       GROUP BY t.alliance_top_up_request_status
-    `
-  );
+    `;
 
-  console.log("Status Counts:", statusCounts);
-
-  // Initialize counts for all statuses
   ["APPROVED", "REJECTED", "PENDING"].forEach((status) => {
     const match = statusCounts.find((item) => item.status === status);
     returnData.data[status as keyof typeof returnData.data].count = match
@@ -346,23 +395,33 @@ export const depositListPostModel = async (
       : BigInt(0);
   });
 
-  // Group requests by status
-  (topUpRequests as any[]).forEach((request) => {
+  topUpRequests.forEach((request) => {
     const status = request.alliance_top_up_request_status;
     if (returnData.data[status as keyof typeof returnData.data]) {
       returnData.data[status as keyof typeof returnData.data].data.push(
-        request as any
+        request
       );
     }
   });
 
-  // Calculate total count
   returnData.totalCount = statusCounts.reduce(
     (sum, item) => sum + BigInt(item.count),
     BigInt(0)
   );
 
-  // Convert BigInt to string for JSON serialization
+  if (teamMemberProfile.alliance_member_role === "MERCHANT") {
+    const merchant = await prisma.merchant_member_table.findFirst({
+      where: {
+        merchant_member_merchant_id: teamMemberProfile.alliance_member_id,
+      },
+      select: {
+        merchant_member_balance: true,
+      },
+    });
+
+    returnData.merchantBalance = merchant?.merchant_member_balance;
+  }
+
   return JSON.parse(
     JSON.stringify(returnData, (key, value) =>
       typeof value === "bigint" ? value.toString() : value

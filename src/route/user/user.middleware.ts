@@ -45,7 +45,7 @@ export const userPutMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-put`,
     50,
     60
   );
@@ -93,7 +93,7 @@ export const userPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-post`,
     50,
     60
   );
@@ -141,7 +141,7 @@ export const userGetMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-get`,
     50,
     60
   );
@@ -183,7 +183,7 @@ export const userPatchMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-patch`,
     100,
     60
   );
@@ -235,7 +235,7 @@ export const userSponsorMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-sponsor`,
     50,
     60
   );
@@ -285,7 +285,7 @@ export const userProfilePutMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-profile-update`,
     50,
     60
   );
@@ -340,7 +340,7 @@ export const userGenerateLinkMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-generate-link`,
     100,
     60
   );
@@ -392,7 +392,76 @@ export const userListMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-list`,
+    100,
+    60
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
+
+  const {
+    page,
+    limit,
+    search,
+    columnAccessor,
+    isAscendingSort,
+    userRole,
+    dateCreated,
+    bannedUser,
+  } = await c.req.json();
+
+  const validate = userListSchema.safeParse({
+    page,
+    limit,
+    search,
+    columnAccessor,
+    isAscendingSort,
+    userRole,
+    dateCreated,
+    bannedUser,
+  });
+
+  if (!validate.success) {
+    return sendErrorResponse("Invalid Request", 400);
+  }
+
+  c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", validate.data);
+
+  await next();
+};
+
+export const userActiveListMiddleware = async (c: Context, next: Next) => {
+  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+
+  if (!token) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const supabase = supabaseClient;
+
+  const user = await supabase.auth.getUser(token);
+
+  if (user.error) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const response = await protectionAdmin(user.data.user.id, prisma);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-active-list`,
     100,
     60
   );

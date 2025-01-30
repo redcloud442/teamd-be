@@ -42,8 +42,8 @@ export const depositMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
-    50,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-post`,
+    10,
     60
   );
 
@@ -162,7 +162,7 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-history-get`,
     50,
     60
   );
@@ -178,7 +178,6 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
     limit,
     columnAccessor,
     isAscendingSort,
-    teamMemberId,
     userId,
   } = await c.req.json();
 
@@ -189,7 +188,7 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
     limit,
     columnAccessor,
     isAscendingSort,
-    teamMemberId,
+
     userId,
   });
 
@@ -198,6 +197,7 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
   }
 
   c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", sanitizedData.data);
 
   return await next();
 };
@@ -230,7 +230,7 @@ export const depositListPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-list-get`,
     50,
     60
   );
@@ -264,7 +264,6 @@ export const depositListPostMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!sanitizedData.success) {
-    console.log(sanitizedData.error);
     return sendErrorResponse("Invalid Request", 400);
   }
 

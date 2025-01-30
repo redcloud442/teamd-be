@@ -1,5 +1,5 @@
-import { sendErrorResponse } from "@/utils/function.js";
 import type { Context } from "hono";
+import { sendErrorResponse } from "../../utils/function.js";
 import { merchantOptionsModel, userOptionsModel } from "./options.model.js";
 
 export const userOptionsPostController = async (c: Context) => {

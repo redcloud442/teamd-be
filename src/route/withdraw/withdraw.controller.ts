@@ -3,6 +3,7 @@ import { sendErrorResponse } from "../../utils/function.js";
 import {
   updateWithdrawModel,
   withdrawHistoryModel,
+  withdrawListPostModel,
   withdrawModel,
 } from "./withdraw.model.js";
 
@@ -30,22 +31,13 @@ export const withdrawPostController = async (c: Context) => {
 
 export const withdrawHistoryPostController = async (c: Context) => {
   try {
-    const { page, limit, search, columnAccessor, isAscendingSort, userId } =
-      await c.req.json();
+    const params = c.get("params");
 
     const teamMemberProfile = c.get("teamMemberProfile");
 
-    const { withdrawals, totalCount } = await withdrawHistoryModel({
-      page,
-      limit,
-      search,
-      columnAccessor,
-      isAscendingSort,
-      userId,
-      teamMemberProfile,
-    });
+    const data = await withdrawHistoryModel(params, teamMemberProfile);
 
-    return c.json({ data: withdrawals, totalCount }, 200);
+    return c.json({ data }, 200);
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
   }
@@ -67,6 +59,23 @@ export const updateWithdrawPostController = async (c: Context) => {
     });
 
     return c.json({ message: "Withdrawal updated" }, 200);
+  } catch (e) {
+    return sendErrorResponse("Internal Server Error", 500);
+  }
+};
+
+export const withdrawListPostController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const teamMemberProfile = c.get("teamMemberProfile");
+
+    const data = await withdrawListPostModel({
+      parameters: params,
+      teamMemberProfile,
+    });
+
+    return c.json({ data }, 200);
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
   }

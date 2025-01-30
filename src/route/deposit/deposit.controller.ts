@@ -50,30 +50,10 @@ export const depositPutController = async (c: Context) => {
 
 export const depositHistoryPostController = async (c: Context) => {
   try {
-    const {
-      search,
-      page,
-      limit,
-      columnAccessor,
-      isAscendingSort,
-      userId,
-      sortBy,
-      teamMemberId,
-    } = await c.req.json();
-
+    const params = c.get("params");
     const teamMemberProfile = c.get("teamMemberProfile");
 
-    const data = await depositHistoryPostModel({
-      search,
-      page,
-      limit,
-      columnAccessor,
-      isAscendingSort,
-      sortBy,
-      userId,
-      teamMemberId,
-      teamMemberProfile,
-    });
+    const data = await depositHistoryPostModel(params, teamMemberProfile);
 
     return c.json(data, { status: 200 });
   } catch (e) {

@@ -99,11 +99,12 @@ export const loginGetModel = async (userName: string) => {
   return user;
 };
 
-export const adminModel = async (
-  userName: string,
-  password: string,
-  ip: string
-) => {
+export const adminModel = async (params: {
+  userName: string;
+  password: string;
+}) => {
+  const { userName, password } = params;
+
   const user = await prisma.user_table.findFirst({
     where: {
       user_username: {
@@ -211,51 +212,31 @@ async function handleReferral(
   referalLink: string,
   allianceMemberId: string
 ) {
-  const referrerData = await tx.alliance_referral_link_table.findFirst({
-    where: {
-      alliance_member_table: {
-        user_table: {
-          user_username: referalLink,
-        },
-      },
-    },
-    select: {
-      alliance_referral_link_id: true,
-      alliance_member_table: {
-        select: {
-          alliance_member_id: true,
-          alliance_referral_table: {
-            select: {
-              alliance_referral_hierarchy: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  const referrerData = await tx.$queryRaw<
+    {
+      alliance_referral_link_id: string;
+      alliance_referral_hierarchy: string;
+      alliance_member_id: string;
+    }[]
+  >`
+    SELECT 
+        rl.alliance_referral_link_id,
+        rt.alliance_referral_hierarchy,
+        am.alliance_member_id
+      FROM alliance_schema.alliance_referral_link_table rl
+      LEFT JOIN alliance_schema.alliance_referral_table rt
+        ON rl.alliance_referral_link_member_id = rt.alliance_referral_member_id
+      LEFT JOIN alliance_schema.alliance_member_table am
+        ON am.alliance_member_id = rl.alliance_referral_link_member_id
+      LEFT JOIN user_schema.user_table ut
+        ON ut.user_id = am.alliance_member_user_id
+      WHERE ut.user_username = ${referalLink}
+  `;
 
-  if (!referrerData) {
-    throw new Error("Invalid referral link");
-  }
+  const referrerLinkId = referrerData[0].alliance_referral_link_id;
+  const parentHierarchy = referrerData[0].alliance_referral_hierarchy;
+  const referrerMemberId = referrerData[0].alliance_member_id;
 
-  const referrerLinkId = referrerData.alliance_referral_link_id;
-  const parentHierarchy =
-    referrerData.alliance_member_table.alliance_referral_table[0]
-      ?.alliance_referral_hierarchy;
-  const referrerMemberId =
-    referrerData.alliance_member_table.alliance_member_id;
-
-  // Ensure referrerMemberId exists in alliance_member_table
-  const referrerMemberExists = await tx.alliance_member_table.findUnique({
-    where: { alliance_member_id: referrerMemberId },
-    select: { alliance_member_id: true },
-  });
-
-  if (!referrerMemberExists) {
-    throw new Error(`Referrer Member ID ${referrerMemberId} does not exist`);
-  }
-
-  // Insert into alliance_referral_table
   const newReferral = await tx.alliance_referral_table.create({
     data: {
       alliance_referral_member_id: allianceMemberId,
@@ -268,7 +249,6 @@ async function handleReferral(
     },
   });
 
-  // Generate referral hierarchy
   const newHierarchy = parentHierarchy
     ? `${parentHierarchy}.${allianceMemberId}`
     : `${referrerMemberId}.${allianceMemberId}`;
