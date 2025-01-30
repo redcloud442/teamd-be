@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import {
+  merchantBalanceController,
   merchantBankController,
   merchantDeleteController,
   merchantGetController,
@@ -7,6 +8,7 @@ import {
   merchantPostController,
 } from "./merchant.controller.js";
 import {
+  merchantBalanceMiddleware,
   merchantBankMiddleware,
   merchantDeleteMiddleware,
   merchantGetMiddleware,
@@ -25,5 +27,11 @@ merchant.delete("/", merchantDeleteMiddleware, merchantDeleteController);
 merchant.get("/", merchantGetMiddleware, merchantGetController);
 
 merchant.post("/bank", merchantBankMiddleware, merchantBankController);
+
+merchant.post(
+  "/balance-history",
+  merchantBalanceMiddleware,
+  merchantBalanceController
+);
 
 export default merchant;

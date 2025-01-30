@@ -29,9 +29,6 @@ export const dashboardPostModel = async (params: {
           return end;
         })();
 
-    console.log(startDate);
-    console.log(endDate);
-
     const [
       totalEarnings,
       packageEarnings,
