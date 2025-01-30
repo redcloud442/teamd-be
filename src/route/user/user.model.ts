@@ -338,12 +338,12 @@ export const userListModel = async (
     if (columnAccessor.startsWith("user")) {
       orderByCondition = {
         user_table: {
-          [columnAccessor]: isAscendingSort ? "asc" : "desc",
+          [columnAccessor]: isAscendingSort ? "desc" : "asc",
         },
       };
     } else {
       orderByCondition = {
-        [columnAccessor]: isAscendingSort ? "asc" : "desc",
+        [columnAccessor]: isAscendingSort ? "desc" : "asc",
       };
     }
   }

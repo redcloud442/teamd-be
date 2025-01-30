@@ -17,10 +17,17 @@ export const dashboardPostModel = async (params: {
           tomorrow.setHours(0, 0, 0, 0);
           return tomorrow;
         })();
-
     const endDate = dateFilter.end
-      ? new Date(dateFilter.end)
-      : new Date(currentDate.setHours(23, 59, 59, 999));
+      ? (() => {
+          const end = new Date(dateFilter.end);
+          end.setHours(23, 59, 59, 999);
+          return end;
+        })()
+      : (() => {
+          const end = new Date(currentDate);
+          end.setHours(23, 59, 59, 999);
+          return end;
+        })();
 
     const [
       totalEarnings,
@@ -91,7 +98,7 @@ export const dashboardPostModel = async (params: {
           SELECT DATE_TRUNC('day', alliance_top_up_request_date) AS date,
                  SUM(COALESCE(alliance_top_up_request_amount, 0)) AS earnings
           FROM alliance_schema.alliance_top_up_request_table
-          WHERE alliance_top_up_request_date BETWEEN ${startDate} AND ${endDate}
+          WHERE alliance_top_up_request_date::date BETWEEN ${startDate} AND ${endDate}
           AND alliance_top_up_request_status = 'APPROVED'
 
           GROUP BY DATE_TRUNC('day', alliance_top_up_request_date)
@@ -100,7 +107,7 @@ export const dashboardPostModel = async (params: {
           SELECT DATE_TRUNC('day', alliance_withdrawal_request_date) AS date,
                  SUM(COALESCE(alliance_withdrawal_request_amount, 0) - COALESCE(alliance_withdrawal_request_fee, 0)) AS withdraw
           FROM alliance_schema.alliance_withdrawal_request_table
-          WHERE alliance_withdrawal_request_date BETWEEN ${startDate} AND ${endDate}
+          WHERE alliance_withdrawal_request_date::date BETWEEN ${startDate} AND ${endDate}
                 AND alliance_withdrawal_request_status = 'APPROVED'
           GROUP BY DATE_TRUNC('day', alliance_withdrawal_request_date)
         )

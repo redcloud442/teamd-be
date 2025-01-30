@@ -301,6 +301,15 @@ model merchant_table {
   @@schema("merchant_schema")
 }
 
+model merchant_balance_log {
+  merchant_balance_log_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  merchant_balance_log_date DateTime @default(now())
+  merchant_balance_log_amount Float @default(0.0)
+  merchant_balance_log_user String
+
+  @@schema("merchant_schema")
+}
+
 
 model merchant_member_table {
   merchant_member_id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
