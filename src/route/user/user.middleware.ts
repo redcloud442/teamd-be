@@ -46,7 +46,7 @@ export const userPutMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-put`,
-    50,
+    100,
     60
   );
 
@@ -94,7 +94,7 @@ export const userPostMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-post`,
-    50,
+    100,
     60
   );
 
@@ -142,7 +142,7 @@ export const userGetMiddleware = async (c: Context, next: Next) => {
 
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-get`,
-    50,
+    100,
     60
   );
 

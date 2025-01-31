@@ -94,6 +94,7 @@ export const depositPutModel = async (params: {
         alliance_top_up_request_approved_by:
           teamMemberProfile.alliance_member_id,
         alliance_top_up_request_reject_note: note ?? null,
+        alliance_top_up_request_date_updated: new Date(),
       },
     });
 
@@ -282,7 +283,7 @@ export const depositListPostModel = async (
   };
 
   const offset = (page - 1) * limit;
-  const sortBy = isAscendingSort ? "ASC" : "DESC";
+  const sortBy = isAscendingSort ? "DESC" : "ASC";
 
   const orderBy = columnAccessor
     ? Prisma.sql`ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`

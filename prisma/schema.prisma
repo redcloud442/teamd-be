@@ -167,6 +167,7 @@ model alliance_top_up_request_table {
 
   alliance_top_up_request_member_id    String    @db.Uuid
   alliance_top_up_request_approved_by  String?   @db.Uuid
+  alliance_top_up_request_date_updated DateTime?
 
 
   alliance_member_requestor           alliance_member_table @relation("Requestor", fields: [alliance_top_up_request_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
@@ -193,6 +194,7 @@ model alliance_withdrawal_request_table {
   alliance_withdrawal_request_withdraw_type String?
   alliance_withdrawal_request_member_id String    @db.Uuid
   alliance_withdrawal_request_approved_by  String?   @db.Uuid
+  alliance_withdrawal_request_date_updated DateTime?
 
   alliance_withdrawal_request_reject_note  String?
 

@@ -69,6 +69,7 @@ export const depositPutModel = async (params) => {
                 alliance_top_up_request_status: status,
                 alliance_top_up_request_approved_by: teamMemberProfile.alliance_member_id,
                 alliance_top_up_request_reject_note: note ?? null,
+                alliance_top_up_request_date_updated: new Date(),
             },
         });
         await tx.alliance_transaction_table.create({
@@ -183,7 +184,7 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
         totalCount: BigInt(0),
     };
     const offset = (page - 1) * limit;
-    const sortBy = isAscendingSort ? "ASC" : "DESC";
+    const sortBy = isAscendingSort ? "DESC" : "ASC";
     const orderBy = columnAccessor
         ? Prisma.sql `ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
         : Prisma.empty;

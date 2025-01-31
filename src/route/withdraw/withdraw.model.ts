@@ -25,20 +25,22 @@ export const withdrawModel = async (params: {
 
   const today = new Date().toISOString().slice(0, 10);
 
+  const startDate = new Date(`${today}T00:00:00Z`);
+  const endDate = new Date(`${today}T23:59:59Z`);
+
   const existingWithdrawal =
     await prisma.alliance_withdrawal_request_table.findFirst({
       where: {
         alliance_withdrawal_request_member_id:
           teamMemberProfile.alliance_member_id,
+        alliance_withdrawal_request_status: {
+          in: ["PENDING", "APPROVED"],
+        },
         AND: [
           {
             alliance_withdrawal_request_date: {
-              gte: new Date(`${today}T00:00:00Z`), // Start of the day
-            },
-          },
-          {
-            alliance_withdrawal_request_date: {
-              lte: new Date(`${today}T23:59:59Z`), // End of the day
+              lte: endDate,
+              gte: startDate,
             },
           },
         ],
@@ -100,9 +102,27 @@ export const withdrawModel = async (params: {
   const finalAmount = calculateFinalAmount(Number(amount), "TOTAL");
   const fee = calculateFee(Number(amount), "TOTAL");
 
-  await prisma.$transaction([
-    // Create the withdrawal request
-    prisma.alliance_withdrawal_request_table.create({
+  await prisma.$transaction(async (tx) => {
+    const countAllRequests: {
+      approverId: string;
+      requestCount: bigint;
+    }[] = await tx.$queryRaw`
+      SELECT am.alliance_member_id AS "approverId",
+             COALESCE(approvedRequests."requestCount", 0) AS "requestCount"
+      FROM alliance_schema.alliance_member_table am
+      LEFT JOIN (
+        SELECT awr.alliance_withdrawal_request_approved_by AS "approverId",
+               COUNT(awr.alliance_withdrawal_request_id) AS "requestCount"
+        FROM alliance_schema.alliance_withdrawal_request_table awr
+        WHERE awr.alliance_withdrawal_request_date BETWEEN ${startDate} AND ${endDate}
+        GROUP BY awr.alliance_withdrawal_request_approved_by
+      ) approvedRequests ON am.alliance_member_id = approvedRequests."approverId"
+      WHERE am.alliance_member_role = 'ACCOUNTING'
+      ORDER BY "requestCount" ASC
+      LIMIT 1;
+    `;
+
+    await tx.alliance_withdrawal_request_table.create({
       data: {
         alliance_withdrawal_request_amount: Number(amount),
         alliance_withdrawal_request_type: bank,
@@ -116,11 +136,12 @@ export const withdrawModel = async (params: {
         alliance_withdrawal_request_earnings_amount: olympusDeduction,
         alliance_withdrawal_request_referral_amount: referralDeduction,
         alliance_withdrawal_request_withdraw_type: earnings,
+        alliance_withdrawal_request_approved_by: countAllRequests[0].approverId,
       },
-    }),
+    });
 
     // Update the earnings
-    prisma.alliance_earnings_table.update({
+    await tx.alliance_earnings_table.update({
       where: {
         alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
       },
@@ -136,17 +157,16 @@ export const withdrawModel = async (params: {
         },
       },
     }),
-
-    // Log the transaction
-    prisma.alliance_transaction_table.create({
-      data: {
-        transaction_amount: finalAmount,
-        transaction_description: "Withdrawal Pending",
-        transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
-        transaction_member_id: teamMemberProfile.alliance_member_id,
-      },
-    }),
-  ]);
+      // Log the transaction
+      await tx.alliance_transaction_table.create({
+        data: {
+          transaction_amount: finalAmount,
+          transaction_description: "Withdrawal Pending",
+          transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
+          transaction_member_id: teamMemberProfile.alliance_member_id,
+        },
+      });
+  });
 };
 
 export const withdrawHistoryModel = async (
@@ -246,13 +266,24 @@ export const updateWithdrawModel = async (params: {
       throw new Error("Request not found.");
     }
 
+    if (
+      teamMemberProfile.alliance_member_id ===
+        existingRequest.alliance_withdrawal_request_approved_by &&
+      teamMemberProfile.alliance_member_role === "ACCOUNTING"
+    ) {
+      throw new Error("You are not authorized to update this request.");
+    }
+
     const updatedRequest = await tx.alliance_withdrawal_request_table.update({
       where: { alliance_withdrawal_request_id: requestId },
       data: {
         alliance_withdrawal_request_status: status,
         alliance_withdrawal_request_approved_by:
-          teamMemberProfile.alliance_member_id,
+          teamMemberProfile.alliance_member_role === "ADMIN"
+            ? teamMemberProfile.alliance_member_id
+            : undefined,
         alliance_withdrawal_request_reject_note: note ?? null,
+        alliance_withdrawal_request_date_updated: new Date(),
       },
     });
 
@@ -263,9 +294,9 @@ export const updateWithdrawModel = async (params: {
             updatedRequest.alliance_withdrawal_request_member_id,
         },
         data: {
-          alliance_olympus_wallet: {
+          alliance_referral_bounty: {
             increment:
-              updatedRequest.alliance_withdrawal_request_earnings_amount,
+              updatedRequest.alliance_withdrawal_request_referral_amount,
           },
           alliance_olympus_earnings: {
             increment:
@@ -283,7 +314,7 @@ export const updateWithdrawModel = async (params: {
         transaction_description: `Withdrawal ${
           status.slice(0, 1).toUpperCase() + status.slice(1).toLowerCase()
         } ${note ? `(${note})` : ""}`,
-        transaction_details: `Account Name: ${updatedRequest.alliance_withdrawal_request_bank_name} | Account Number: ${updatedRequest.alliance_withdrawal_request_account}`,
+        transaction_details: `Account Name: ${updatedRequest.alliance_withdrawal_request_bank_name}, Account Number: ${updatedRequest.alliance_withdrawal_request_account}`,
         transaction_amount: updatedRequest.alliance_withdrawal_request_amount,
         transaction_member_id:
           updatedRequest.alliance_withdrawal_request_member_id,
@@ -335,7 +366,7 @@ export const withdrawListPostModel = async (params: {
   } = parameters;
 
   const offset = (page - 1) * limit;
-  const sortBy = isAscendingSort ? "ASC" : "DESC";
+  const sortBy = isAscendingSort ? "DESC" : "ASC";
 
   const orderBy = columnAccessor
     ? Prisma.sql`ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
@@ -346,6 +377,14 @@ export const withdrawListPostModel = async (params: {
       `m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid`
     ),
   ];
+
+  if (teamMemberProfile.alliance_member_role === "ACCOUNTING") {
+    commonConditions.push(
+      Prisma.raw(
+        `t.alliance_withdrawal_request_approved_by = '${teamMemberProfile.alliance_member_id}'::uuid`
+      )
+    );
+  }
 
   if (userFilter) {
     commonConditions.push(Prisma.raw(`u.user_id::TEXT = '${userFilter}'`));
