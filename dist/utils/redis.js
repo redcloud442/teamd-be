@@ -1,8 +1,9 @@
 import { Redis } from "@upstash/redis";
-const redis = new Redis({
+export const redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL || "https://default.redis.url'",
     token: process.env.UPSTASH_REDIS_REST_TOKEN || "'default-redis-token'",
 });
+export default redis;
 export async function rateLimit(key, limit, ttl) {
     const currentCount = await redis.incr(key);
     if (currentCount === 1) {

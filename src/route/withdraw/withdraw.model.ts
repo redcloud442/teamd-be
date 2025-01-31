@@ -1,7 +1,10 @@
-import type { alliance_member_table } from "@prisma/client";
+import type {
+  WithdrawalRequestData,
+  WithdrawReturnDataType,
+} from "@/utils/types.js";
+import { Prisma, type alliance_member_table } from "@prisma/client";
 import { calculateFee, calculateFinalAmount } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
-import { supabaseClient } from "../../utils/supabase.js";
 
 export const withdrawModel = async (params: {
   earnings: string;
@@ -146,45 +149,83 @@ export const withdrawModel = async (params: {
   ]);
 };
 
-export const withdrawHistoryModel = async (params: {
-  page: string;
-  limit: string;
-  search: string;
-  columnAccessor: string;
-  isAscendingSort: string;
-  userId: string;
-  teamMemberProfile: alliance_member_table;
-}) => {
-  const supabase = supabaseClient;
-  const {
-    page,
-    limit,
-    search,
-    columnAccessor,
-    isAscendingSort,
-    userId,
-    teamMemberProfile,
-  } = params;
+export const withdrawHistoryModel = async (
+  params: {
+    page: number;
+    limit: number;
+    search: string;
+    columnAccessor: string;
+    isAscendingSort: boolean;
+    userId: string;
+  },
+  teamMemberProfile: alliance_member_table
+) => {
+  const { page, limit, search, columnAccessor, isAscendingSort, userId } =
+    params;
 
-  const inputData = {
-    page: page,
-    limit: limit,
-    search,
-    columnAccessor,
-    userId: userId ? userId : teamMemberProfile?.alliance_member_id || "",
-    isAscendingSort: isAscendingSort === "true",
-    teamId: teamMemberProfile?.alliance_member_alliance_id || "",
-  };
+  const offset = (page - 1) * limit;
+  const sortBy = isAscendingSort ? "ASC" : "DESC";
 
-  const { data, error } = await supabase.rpc("get_member_withdrawal_history", {
-    input_data: inputData,
-  });
+  const orderBy = columnAccessor
+    ? Prisma.sql`ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
+    : Prisma.empty;
 
-  if (error) throw error;
+  const commonConditions: Prisma.Sql[] = [
+    Prisma.raw(
+      `m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid AND m.alliance_member_user_id = '${userId}'::uuid`
+    ),
+  ];
 
-  const { data: withdrawals, totalCount } = data;
+  if (search) {
+    commonConditions.push(
+      Prisma.raw(
+        `(
+            u.user_username ILIKE '%${search}%'
+            OR u.user_id::TEXT ILIKE '%${search}%'
+            OR u.user_first_name ILIKE '%${search}%'
+            OR u.user_last_name ILIKE '%${search}%'
+          )`
+      )
+    );
+  }
 
-  return { withdrawals, totalCount };
+  const dataQueryConditions = [...commonConditions];
+
+  const dataWhereClause = Prisma.sql`${Prisma.join(
+    dataQueryConditions,
+    " AND "
+  )}`;
+
+  const withdrawals: WithdrawalRequestData[] = await prisma.$queryRaw`
+      SELECT 
+        u.user_first_name,
+        u.user_last_name,
+        u.user_email,
+        m.alliance_member_id,
+        t.*
+      FROM alliance_schema.alliance_withdrawal_request_table t
+      JOIN alliance_schema.alliance_member_table m 
+        ON t.alliance_withdrawal_request_member_id = m.alliance_member_id
+      JOIN user_schema.user_table u 
+        ON u.user_id = m.alliance_member_user_id
+      WHERE ${dataWhereClause}
+      ${orderBy}
+      LIMIT ${Prisma.raw(limit.toString())}
+      OFFSET ${Prisma.raw(offset.toString())}
+    `;
+
+  const totalCount: { count: bigint }[] = await prisma.$queryRaw`
+        SELECT 
+          COUNT(*) AS count
+        FROM alliance_schema.alliance_withdrawal_request_table t
+        JOIN alliance_schema.alliance_member_table m 
+          ON t.alliance_withdrawal_request_member_id = m.alliance_member_id
+        JOIN user_schema.user_table u 
+        ON u.user_id = m.alliance_member_user_id
+      WHERE ${dataWhereClause}
+    `;
+
+  return { data: withdrawals, totalCount: Number(totalCount[0].count) };
 };
 
 export const updateWithdrawModel = async (params: {
@@ -253,4 +294,171 @@ export const updateWithdrawModel = async (params: {
   });
 
   return result;
+};
+
+export const withdrawListPostModel = async (params: {
+  parameters: {
+    page: number;
+    limit: number;
+    search?: string;
+    columnAccessor: string;
+    userFilter?: string;
+    statusFilter: string;
+    isAscendingSort: boolean;
+    dateFilter?: {
+      start: string;
+      end: string;
+    };
+  };
+  teamMemberProfile: alliance_member_table;
+}) => {
+  const { parameters, teamMemberProfile } = params;
+
+  let returnData: WithdrawReturnDataType = {
+    data: {
+      APPROVED: { data: [], count: BigInt(0) },
+      REJECTED: { data: [], count: BigInt(0) },
+      PENDING: { data: [], count: BigInt(0) },
+    },
+    totalCount: BigInt(0),
+  };
+
+  const {
+    page,
+    limit,
+    search,
+    columnAccessor,
+    userFilter,
+    statusFilter,
+    isAscendingSort,
+    dateFilter,
+  } = parameters;
+
+  const offset = (page - 1) * limit;
+  const sortBy = isAscendingSort ? "ASC" : "DESC";
+
+  const orderBy = columnAccessor
+    ? Prisma.sql`ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
+    : Prisma.empty;
+
+  const commonConditions: Prisma.Sql[] = [
+    Prisma.raw(
+      `m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid`
+    ),
+  ];
+
+  if (userFilter) {
+    commonConditions.push(Prisma.raw(`u.user_id::TEXT = '${userFilter}'`));
+  }
+
+  if (dateFilter?.start && dateFilter?.end) {
+    const startDate = new Date(dateFilter.start).toISOString();
+    const endDate = new Date(dateFilter.end).toISOString();
+
+    commonConditions.push(
+      Prisma.raw(
+        `t.alliance_withdrawal_request_date::DATE BETWEEN '${startDate}'::DATE AND '${endDate}'::DATE`
+      )
+    );
+  }
+  if (search) {
+    commonConditions.push(
+      Prisma.raw(
+        `(
+          u.user_username ILIKE '%${search}%'
+          OR u.user_id::TEXT ILIKE '%${search}%'
+          OR u.user_first_name ILIKE '%${search}%'
+          OR u.user_last_name ILIKE '%${search}%'
+        )`
+      )
+    );
+  }
+
+  const dataQueryConditions = [...commonConditions];
+
+  if (statusFilter) {
+    dataQueryConditions.push(
+      Prisma.raw(`t.alliance_withdrawal_request_status = '${statusFilter}'`)
+    );
+  }
+
+  const dataWhereClause = Prisma.sql`${Prisma.join(
+    dataQueryConditions,
+    " AND "
+  )}`;
+
+  const countWhereClause = Prisma.sql`${Prisma.join(
+    commonConditions,
+    " AND "
+  )}`;
+
+  const withdrawals: WithdrawalRequestData[] = await prisma.$queryRaw`
+    SELECT 
+      u.user_id,
+      u.user_first_name,
+      u.user_last_name,
+      u.user_email,
+      u.user_username,
+      m.alliance_member_id,
+      t.*,
+      approver.user_username AS approver_username
+    FROM alliance_schema.alliance_withdrawal_request_table t
+    JOIN alliance_schema.alliance_member_table m 
+      ON t.alliance_withdrawal_request_member_id = m.alliance_member_id
+    JOIN user_schema.user_table u 
+      ON u.user_id = m.alliance_member_user_id
+    LEFT JOIN alliance_schema.alliance_member_table mt 
+      ON mt.alliance_member_id = t.alliance_withdrawal_request_approved_by
+    LEFT JOIN user_schema.user_table approver 
+      ON approver.user_id = mt.alliance_member_user_id
+    WHERE ${dataWhereClause}
+    ${orderBy}
+    LIMIT ${Prisma.raw(limit.toString())}
+    OFFSET ${Prisma.raw(offset.toString())}
+  `;
+
+  const statusCounts: { status: string; count: bigint }[] =
+    await prisma.$queryRaw`
+      SELECT 
+        t.alliance_withdrawal_request_status AS status, 
+        COUNT(*) AS count
+      FROM alliance_schema.alliance_withdrawal_request_table t
+      JOIN alliance_schema.alliance_member_table m 
+        ON t.alliance_withdrawal_request_member_id = m.alliance_member_id
+      JOIN user_schema.user_table u 
+        ON u.user_id = m.alliance_member_user_id
+      LEFT JOIN alliance_schema.alliance_member_table mt 
+        ON mt.alliance_member_id = t.alliance_withdrawal_request_approved_by
+      LEFT JOIN user_schema.user_table approver 
+        ON approver.user_id = mt.alliance_member_user_id
+      WHERE ${countWhereClause}
+      GROUP BY t.alliance_withdrawal_request_status
+    `;
+
+  ["APPROVED", "REJECTED", "PENDING"].forEach((status) => {
+    const match = statusCounts.find((item) => item.status === status);
+    returnData.data[status as keyof typeof returnData.data].count = match
+      ? BigInt(match.count)
+      : BigInt(0);
+  });
+
+  withdrawals.forEach((request) => {
+    const status = request.alliance_withdrawal_request_status;
+    if (returnData.data[status as keyof typeof returnData.data]) {
+      returnData.data[status as keyof typeof returnData.data].data.push(
+        request
+      );
+    }
+  });
+
+  returnData.totalCount = statusCounts.reduce(
+    (sum, item) => sum + BigInt(item.count),
+    BigInt(0)
+  );
+
+  return JSON.parse(
+    JSON.stringify(returnData, (key, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    )
+  );
 };

@@ -99,11 +99,12 @@ export const loginGetModel = async (userName: string) => {
   return user;
 };
 
-export const adminModel = async (
-  userName: string,
-  password: string,
-  ip: string
-) => {
+export const adminModel = async (params: {
+  userName: string;
+  password: string;
+}) => {
+  const { userName, password } = params;
+
   const user = await prisma.user_table.findFirst({
     where: {
       user_username: {

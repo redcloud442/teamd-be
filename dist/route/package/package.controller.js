@@ -1,5 +1,5 @@
 import { sendErrorResponse } from "../../utils/function.js";
-import { claimPackagePostModel, packageCreatePostModel, packageGetModel, packageListGetModel, packagePostModel, packageUpdatePutModel, } from "./package.model.js";
+import { claimPackagePostModel, packageCreatePostModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packageUpdatePutModel, } from "./package.model.js";
 export const packagePostController = async (c) => {
     try {
         const { amount, packageId } = await c.req.json();
@@ -82,6 +82,15 @@ export const packagesListPostController = async (c) => {
     try {
         const teamMemberProfile = c.get("teamMemberProfile");
         const data = await packageListGetModel({ teamMemberProfile });
+        return c.json({ data });
+    }
+    catch (error) {
+        return sendErrorResponse("Internal Server Error", 500);
+    }
+};
+export const packagesGetAdminController = async (c) => {
+    try {
+        const data = await packageListGetAdminModel();
         return c.json({ data });
     }
     catch (error) {

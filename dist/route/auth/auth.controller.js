@@ -3,8 +3,8 @@ import { adminModel, loginGetModel, loginModel, registerUserModel, } from "./aut
 export const loginController = async (c) => {
     try {
         const ip = getClientIP(c.req.raw);
-        const { userName, password } = await c.req.json();
-        await loginModel({ userName, password, ip });
+        const params = c.get("params");
+        await loginModel({ ...params, ip });
         return c.json({ message: "Login successful" }, 200);
     }
     catch (error) {
@@ -13,8 +13,7 @@ export const loginController = async (c) => {
 };
 export const loginGetController = async (c) => {
     try {
-        const { searchParams } = new URL(c.req.url);
-        const userName = searchParams.get("userName");
+        const userName = c.get("userName");
         if (!userName) {
             return c.json({ message: "userName query parameter is required" }, 400);
         }
@@ -30,9 +29,8 @@ export const loginGetController = async (c) => {
 };
 export const adminController = async (c) => {
     try {
-        const ip = getClientIP(c.req.raw);
-        const { userName, password } = await c.req.json();
-        await adminModel(userName, password, ip);
+        const params = c.get("params");
+        await adminModel(params);
         return c.json({ message: "Admin login successful" }, 200);
     }
     catch (error) {
@@ -41,16 +39,8 @@ export const adminController = async (c) => {
 };
 export const registerUserController = async (c) => {
     try {
-        const { userId, userName, password, firstName, lastName, referalLink, url, } = await c.req.json();
-        await registerUserModel({
-            userId,
-            userName,
-            password,
-            firstName,
-            lastName,
-            referalLink,
-            url,
-        });
+        const params = c.get("params");
+        await registerUserModel(params);
         return c.json({ message: "User created" }, 200);
     }
     catch (error) {

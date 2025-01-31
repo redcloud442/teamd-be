@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { userGenerateLinkController, userGetController, userListController, userPatchController, userPostController, userProfilePutController, userPutController, userSponsorController, } from "./user.controller.js";
-import { userGenerateLinkMiddleware, userGetMiddleware, userListMiddleware, userPatchMiddleware, userPostMiddleware, userProfilePutMiddleware, userPutMiddleware, userSponsorMiddleware, } from "./user.middleware.js";
+import { userActiveListController, userGenerateLinkController, userGetController, userListController, userPatchController, userPostController, userProfilePutController, userPutController, userSponsorController, } from "./user.controller.js";
+import { userActiveListMiddleware, userGenerateLinkMiddleware, userGetMiddleware, userListMiddleware, userPatchMiddleware, userPostMiddleware, userProfilePutMiddleware, userPutMiddleware, userSponsorMiddleware, } from "./user.middleware.js";
 const user = new Hono();
 user.post("/", userPostMiddleware, userPostController);
 user.put("/", userPutMiddleware, userPutController);
@@ -10,4 +10,5 @@ user.put("/:id", userProfilePutMiddleware, userProfilePutController);
 user.post("/generate-link", userGenerateLinkMiddleware, userGenerateLinkController);
 user.post("/sponsor", userSponsorMiddleware, userSponsorController);
 user.post("/list", userListMiddleware, userListController);
+user.post("/active-list", userActiveListMiddleware, userActiveListController);
 export default user;

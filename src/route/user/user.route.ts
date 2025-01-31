@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import {
+  userActiveListController,
   userGenerateLinkController,
   userGetController,
   userListController,
@@ -10,6 +11,7 @@ import {
   userSponsorController,
 } from "./user.controller.js";
 import {
+  userActiveListMiddleware,
   userGenerateLinkMiddleware,
   userGetMiddleware,
   userListMiddleware,
@@ -42,4 +44,5 @@ user.post("/sponsor", userSponsorMiddleware, userSponsorController);
 
 user.post("/list", userListMiddleware, userListController);
 
+user.post("/active-list", userActiveListMiddleware, userActiveListController);
 export default user;

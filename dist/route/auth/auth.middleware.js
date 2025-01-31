@@ -12,6 +12,7 @@ export const authMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }
+    c.set("params", parsed.data);
     await next();
 };
 export const authGetMiddleware = async (c, next) => {
@@ -25,6 +26,7 @@ export const authGetMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }
+    c.set("userName", userName);
     await next();
 };
 export const loginCheckMiddleware = async (c, next) => {
@@ -34,6 +36,11 @@ export const loginCheckMiddleware = async (c, next) => {
     if (!parsed.success) {
         return c.json({ message: "Invalid userName" }, 400);
     }
+    const isAllowed = await rateLimit(`rate-limit:${userName}`, 5, 60);
+    if (!isAllowed) {
+        return sendErrorResponse("Too many requests. Please try again later.", 429);
+    }
+    c.set("userName", userName);
     await next();
 };
 export const registerUserMiddleware = async (c, next) => {
@@ -64,5 +71,6 @@ export const registerUserMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }
+    c.set("params", parsed.data);
     await next();
 };

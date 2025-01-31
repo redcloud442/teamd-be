@@ -1,3 +1,4 @@
+import { Prisma, } from "@prisma/client";
 import bcryptjs from "bcryptjs";
 import prisma from "../../utils/prisma.js";
 import { supabaseClient } from "../../utils/supabase.js";
@@ -130,6 +131,17 @@ export const userPatchModel = async (params) => {
                     : undefined, // Stay as is if no role is included
             },
         });
+        if (role === "ADMIN" || role === "ACCOUNTING" || role === "MERCHANT") {
+            await prisma.alliance_earnings_table.upsert({
+                where: {
+                    alliance_earnings_member_id: memberId,
+                },
+                update: {},
+                create: {
+                    alliance_earnings_member_id: memberId,
+                },
+            });
+        }
         if (role === "MERCHANT") {
             await prisma.merchant_member_table.create({
                 data: {
@@ -237,13 +249,13 @@ export const userListModel = async (params, teamMemberProfile) => {
         if (columnAccessor.startsWith("user")) {
             orderByCondition = {
                 user_table: {
-                    [columnAccessor]: isAscendingSort ? "asc" : "desc",
+                    [columnAccessor]: isAscendingSort ? "desc" : "asc",
                 },
             };
         }
         else {
             orderByCondition = {
-                [columnAccessor]: isAscendingSort ? "asc" : "desc",
+                [columnAccessor]: isAscendingSort ? "desc" : "asc",
             };
         }
     }
@@ -278,5 +290,57 @@ export const userListModel = async (params, teamMemberProfile) => {
     return {
         totalCount,
         data: formattedData,
+    };
+};
+export const userActiveListModel = async (params) => {
+    const { page, limit, search, columnAccessor, isAscendingSort } = params;
+    const offset = (page - 1) * limit;
+    const sortBy = isAscendingSort ? "ASC" : "DESC";
+    const orderBy = columnAccessor
+        ? Prisma.sql `ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
+        : Prisma.empty;
+    const searchCondition = search
+        ? Prisma.sql `
+        AND (
+          ut.user_username ILIKE ${`%${search}%`} OR
+          ut.user_first_name ILIKE ${`%${search}%`} OR
+          ut.user_last_name ILIKE ${`%${search}%`}
+        )
+      `
+        : Prisma.empty;
+    const usersWithActiveWallet = await prisma.$queryRaw `
+    SELECT 
+      ut.user_id,
+      ut.user_username,
+      ut.user_first_name,
+      ut.user_last_name,
+      am.alliance_member_is_active
+    FROM user_schema.user_table ut
+    JOIN alliance_schema.alliance_member_table am
+      ON ut.user_id = am.alliance_member_user_id
+    LEFT JOIN alliance_schema.alliance_earnings_table ae
+      ON ae.alliance_earnings_member_id = am.alliance_member_id
+    WHERE 
+      ae.alliance_combined_earnings > 0
+      ${searchCondition}
+      ${orderBy}
+    LIMIT ${limit}
+    OFFSET ${offset}
+  `;
+    const totalCount = await prisma.$queryRaw `
+    SELECT 
+      COUNT(*)
+    FROM user_schema.user_table ut
+    JOIN alliance_schema.alliance_member_table am
+      ON ut.user_id = am.alliance_member_user_id
+    LEFT JOIN alliance_schema.alliance_earnings_table ae
+      ON ae.alliance_earnings_member_id = am.alliance_member_id
+      WHERE 
+      ae.alliance_combined_earnings > 0
+      ${searchCondition}
+    `;
+    return {
+        data: usersWithActiveWallet,
+        totalCount: Number(totalCount[0]?.count ?? 0),
     };
 };

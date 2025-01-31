@@ -5,6 +5,7 @@ import deposit from "./deposit/deposit.route.js";
 import health from "./health/health.route.js";
 import leaderboard from "./leaderboard/leaderboard.route.js";
 import merchant from "./merchant/merchant.route.js";
+import options from "./options/options.route.js";
 import packages from "./package/package.route.js";
 import referral from "./referral/referral.route.js";
 import transaction from "./transaction/transaction.route.js";
@@ -33,5 +34,7 @@ app.route("/withdraw", withdraw);
 app.route("/dashboard", dashboard);
 //leaderboard route
 app.route("/leaderboard", leaderboard);
+//options route
+app.route("/options", options);
 app.get("/", (c) => c.text("This is the api endpoint"));
 export default app;

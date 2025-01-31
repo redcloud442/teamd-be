@@ -55,8 +55,23 @@ export const depositHistoryPostSchema = z.object({
     sortBy: z.string().optional(),
     columnAccessor: z.string().min(3),
     isAscendingSort: z.boolean(),
-    teamMemberId: z.string().uuid(),
     userId: z.string().optional(),
+});
+export const depositListPostSchema = z.object({
+    page: z.number().min(1),
+    limit: z.number().min(1).max(10),
+    search: z.string().optional(),
+    columnAccessor: z.string().min(3),
+    merchantFilter: z.string().optional(),
+    userFilter: z.string().optional(),
+    statusFilter: z.enum(["APPROVED", "REJECTED", "PENDING"]),
+    isAscendingSort: z.boolean(),
+    dateFilter: z
+        .object({
+        start: z.string().optional(),
+        end: z.string().optional(),
+    })
+        .optional(),
 });
 //user schema
 export const userSchemaPut = z.object({
@@ -91,6 +106,13 @@ export const userListSchema = z.object({
     userRole: z.string().optional(),
     dateCreated: z.string().optional(),
     bannedUser: z.boolean().optional(),
+});
+export const userActiveListSchema = z.object({
+    page: z.number().min(1),
+    limit: z.number().min(1),
+    search: z.string().optional(),
+    columnAccessor: z.string().min(3),
+    isAscendingSort: z.boolean(),
 });
 //transaction schema
 export const transactionSchemaPost = z.object({
@@ -154,6 +176,7 @@ export const merchantPostSchema = z.object({
 export const merchantPatchSchema = z.object({
     amount: z.number().min(1),
     memberId: z.string().uuid(),
+    userName: z.string().min(1),
 });
 export const merchantBankSchema = z.object({
     page: z.number().min(1).max(10),
@@ -191,6 +214,21 @@ export const updateWithdrawSchema = z.object({
     note: z.string().optional(),
     requestId: z.string().uuid(),
 });
+export const withdrawListPostSchema = z.object({
+    page: z.number().min(1),
+    limit: z.number().min(1).max(10),
+    search: z.string().optional(),
+    columnAccessor: z.string().min(3),
+    userFilter: z.string().optional(),
+    statusFilter: z.enum(["APPROVED", "REJECTED", "PENDING"]),
+    isAscendingSort: z.boolean(),
+    dateFilter: z
+        .object({
+        start: z.string().optional(),
+        end: z.string().optional(),
+    })
+        .optional(),
+});
 //dashboard schema
 export const dashboardPostSchema = z.object({
     dateFilter: z
@@ -205,4 +243,9 @@ export const leaderboardPostSchema = z.object({
     leaderBoardType: z.enum(["DIRECT", "INDIRECT"]),
     limit: z.number().min(1),
     page: z.number().min(1),
+});
+// options schema
+export const userOptionsPostSchema = z.object({
+    page: z.number().min(1).max(10),
+    limit: z.number().min(1).max(500),
 });

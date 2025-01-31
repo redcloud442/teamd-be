@@ -112,9 +112,11 @@ export const packagePostModel = async (params) => {
                         transaction_description: "Refer & Earn",
                     };
                 });
-                await Promise.all(batch.map((ref) => {
+                await Promise.all(batch.map(async (ref) => {
+                    if (!ref.referrerId)
+                        return;
                     const calculatedEarnings = (Number(amount) * Number(ref.percentage)) / 100;
-                    tx.alliance_earnings_table.update({
+                    await tx.alliance_earnings_table.update({
                         where: { alliance_earnings_member_id: ref.referrerId },
                         data: {
                             alliance_referral_bounty: {
@@ -278,60 +280,75 @@ export const claimPackagePostModel = async (params) => {
 export const packageListGetModel = async (params) => {
     const { teamMemberProfile } = params;
     const currentTimestamp = new Date();
-    const returnData = await prisma.$transaction(async (tx) => {
-        const chartData = await tx.package_member_connection_table.findMany({
-            where: {
-                package_member_status: "ACTIVE",
-                package_member_member_id: teamMemberProfile.alliance_member_id,
-            },
-            orderBy: {
-                package_member_connection_created: "desc",
-            },
-            include: {
-                package_table: {
-                    select: {
-                        package_name: true,
-                        package_color: true,
-                        packages_days: true,
-                    },
+    const chartData = await prisma.package_member_connection_table.findMany({
+        where: {
+            package_member_status: "ACTIVE",
+            package_member_member_id: teamMemberProfile.alliance_member_id,
+        },
+        orderBy: {
+            package_member_connection_created: "desc",
+        },
+        include: {
+            package_table: {
+                select: {
+                    package_name: true,
+                    package_color: true,
+                    packages_days: true,
                 },
             },
-        });
-        const processedData = await Promise.all(chartData.map(async (row) => {
-            const startDate = new Date(row.package_member_connection_created);
-            const completionDate = row.package_member_completion_date
-                ? new Date(row.package_member_completion_date)
-                : null;
-            const elapsedTimeMs = Math.max(currentTimestamp.getTime() - startDate.getTime(), 0);
-            const totalTimeMs = completionDate
-                ? Math.max(completionDate.getTime() - startDate.getTime(), 0)
-                : 0;
-            let percentage = totalTimeMs > 0 ? (elapsedTimeMs / totalTimeMs) * 100 : 100.0;
-            percentage = Math.min(percentage, 100);
-            const isReadyToClaim = percentage === 100;
-            if (isReadyToClaim) {
-                await tx.package_member_connection_table.update({
-                    where: {
-                        package_member_connection_id: row.package_member_connection_id,
-                    },
-                    data: { package_member_is_ready_to_claim: true },
-                });
-            }
-            return {
-                package: row.package_table.package_name,
-                package_color: row.package_table.package_color,
-                completion_date: completionDate?.toISOString(),
-                amount: row.package_member_amount,
-                completion: percentage.toFixed(2),
-                package_connection_id: row.package_member_connection_id,
-                profit_amount: row.package_amount_earnings,
-                // is_ready_to_claim: isReadyToClaim,
-                is_ready_to_claim: true,
-            };
-        }));
-        return processedData;
+        },
     });
-    return returnData;
+    const processedData = chartData.map((row) => {
+        const startDate = new Date(row.package_member_connection_created);
+        const completionDate = row.package_member_completion_date
+            ? new Date(row.package_member_completion_date)
+            : null;
+        const elapsedTimeMs = Math.max(currentTimestamp.getTime() - startDate.getTime(), 0);
+        const totalTimeMs = completionDate
+            ? Math.max(completionDate.getTime() - startDate.getTime(), 0)
+            : 0;
+        let percentage = totalTimeMs > 0 ? (elapsedTimeMs / totalTimeMs) * 100 : 100;
+        percentage = Math.min(percentage, 100);
+        // Calculate current amount
+        const initialAmount = row.package_member_amount;
+        const profitAmount = row.package_amount_earnings;
+        const currentAmount = initialAmount + (profitAmount * percentage) / 100;
+        // Check and update "is ready to claim" if needed
+        if (percentage === 100 && !row.package_member_is_ready_to_claim) {
+            prisma.package_member_connection_table.update({
+                where: {
+                    package_member_connection_id: row.package_member_connection_id,
+                },
+                data: { package_member_is_ready_to_claim: true },
+            });
+        }
+        return {
+            package: row.package_table.package_name,
+            package_color: row.package_table.package_color || "#FFFFFF", // Default to white if null
+            completion_date: completionDate?.toISOString(),
+            amount: Number(row.package_member_amount.toFixed(2)),
+            completion: Number(percentage.toFixed(2)),
+            package_connection_id: row.package_member_connection_id,
+            profit_amount: Number(row.package_amount_earnings.toFixed(2)),
+            current_amount: Number(currentAmount.toFixed(2)),
+            is_ready_to_claim: percentage === 100,
+        };
+    });
+    return processedData;
+};
+export const packageListGetAdminModel = async () => {
+    const result = await prisma.package_table.findMany({
+        select: {
+            package_id: true,
+            package_name: true,
+            package_percentage: true,
+            package_description: true,
+            packages_days: true,
+            package_color: true,
+            package_image: true,
+        },
+    });
+    return result;
 };
 function generateReferralChain(hierarchy, teamMemberId, maxDepth = 100) {
     if (!hierarchy)

@@ -1,4 +1,4 @@
-import { userGenerateLinkModel, userListModel, userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userSponsorModel, } from "./user.model.js";
+import { userActiveListModel, userGenerateLinkModel, userListModel, userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userSponsorModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
         const { email, password, userId } = await c.req.json();
@@ -79,6 +79,16 @@ export const userListController = async (c) => {
         const teamMemberProfile = c.get("teamMemberProfile");
         const { data, totalCount } = await userListModel(params, teamMemberProfile);
         return c.json({ data, totalCount });
+    }
+    catch (error) {
+        return c.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+};
+export const userActiveListController = async (c) => {
+    try {
+        const params = c.get("params");
+        const data = await userActiveListModel(params);
+        return c.json(data, { status: 200 });
     }
     catch (error) {
         return c.json({ error: "Internal Server Error" }, { status: 500 });

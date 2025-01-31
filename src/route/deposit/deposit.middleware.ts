@@ -1,6 +1,7 @@
 import type { Context, Next } from "hono";
 import {
   depositHistoryPostSchema,
+  depositListPostSchema,
   depositSchema,
   updateDepositSchema,
 } from "../../schema/schema.js";
@@ -177,7 +178,6 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
     limit,
     columnAccessor,
     isAscendingSort,
-    teamMemberId,
     userId,
   } = await c.req.json();
 
@@ -188,7 +188,7 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
     limit,
     columnAccessor,
     isAscendingSort,
-    teamMemberId,
+
     userId,
   });
 
@@ -197,6 +197,78 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
   }
 
   c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", sanitizedData.data);
+
+  return await next();
+};
+
+export const depositListPostMiddleware = async (c: Context, next: Next) => {
+  const token = c.req.header("Authorization")?.split(" ")[1];
+
+  if (!token) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const supabase = supabaseClient;
+
+  const user = await supabase.auth.getUser(token);
+
+  if (user.error) {
+    return null;
+  }
+
+  const response = await protectionMerchantAdmin(user.data.user.id, prisma);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-list-get`,
+    50,
+    60
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
+
+  const {
+    page,
+    limit,
+    search,
+    isAscendingSort,
+    columnAccessor,
+    merchantFilter,
+    userFilter,
+    statusFilter,
+    dateFilter,
+  } = await c.req.json();
+
+  const sanitizedData = depositListPostSchema.safeParse({
+    search,
+    page,
+    limit,
+    columnAccessor,
+    isAscendingSort,
+    merchantFilter,
+    userFilter,
+    statusFilter,
+    dateFilter,
+  });
+
+  if (!sanitizedData.success) {
+    return sendErrorResponse("Invalid Request", 400);
+  }
+
+  c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", sanitizedData.data);
 
   return await next();
 };

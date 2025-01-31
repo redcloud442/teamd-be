@@ -5,6 +5,8 @@ export const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN || "'default-redis-token'",
 });
 
+export default redis;
+
 export async function rateLimit(key: string, limit: number, ttl: number) {
   const currentCount = await redis.incr(key);
 
