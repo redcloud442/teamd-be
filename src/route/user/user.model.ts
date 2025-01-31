@@ -128,7 +128,9 @@ export const userModelGet = async (params: { memberId: string }) => {
     await prisma.alliance_withdrawal_request_table.findFirst({
       where: {
         alliance_withdrawal_request_member_id: memberId,
-        alliance_withdrawal_request_status: "APPROVED",
+        alliance_withdrawal_request_status: {
+          in: ["PENDING", "APPROVED"],
+        },
         AND: [
           {
             alliance_withdrawal_request_date: {

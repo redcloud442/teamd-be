@@ -331,7 +331,7 @@ export const packageListGetModel = async (params) => {
             package_connection_id: row.package_member_connection_id,
             profit_amount: Number(row.package_amount_earnings.toFixed(2)),
             current_amount: Number(currentAmount.toFixed(2)),
-            is_ready_to_claim: percentage === 100,
+            is_ready_to_claim: true,
         };
     });
     return processedData;

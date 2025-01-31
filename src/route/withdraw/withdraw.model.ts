@@ -25,20 +25,22 @@ export const withdrawModel = async (params: {
 
   const today = new Date().toISOString().slice(0, 10);
 
+  const startDate = new Date(`${today}T00:00:00Z`);
+  const endDate = new Date(`${today}T23:59:59Z`);
+
   const existingWithdrawal =
     await prisma.alliance_withdrawal_request_table.findFirst({
       where: {
         alliance_withdrawal_request_member_id:
           teamMemberProfile.alliance_member_id,
+        alliance_withdrawal_request_status: {
+          in: ["PENDING", "APPROVED"],
+        },
         AND: [
           {
             alliance_withdrawal_request_date: {
-              gte: new Date(`${today}T00:00:00Z`),
-            },
-          },
-          {
-            alliance_withdrawal_request_date: {
-              lte: new Date(`${today}T23:59:59Z`),
+              lte: endDate,
+              gte: startDate,
             },
           },
         ],
@@ -105,23 +107,22 @@ export const withdrawModel = async (params: {
       approverId: string;
       requestCount: bigint;
     }[] = await tx.$queryRaw`
-   SELECT am.alliance_member_id AS approverId,
-           COALESCE(approvedRequests.requestCount, 0) AS requestCount
-    FROM alliance_schema.alliance_member_table am
-    LEFT JOIN (
-      SELECT awr.alliance_withdrawal_request_approved_by AS approverId,
-             COUNT(awr.alliance_withdrawal_request_id) AS requestCount
-      FROM alliance_schema.alliance_withdrawal_request_table awr
-      WHERE awr.alliance_withdrawal_request_status = 'PENDING'
-        AND awr.alliance_withdrawal_request_date BETWEEN '${today}T00:00:00Z' AND '${today}T23:59:59Z'
-      GROUP BY awr.alliance_withdrawal_request_approved_by
-    ) approvedRequests ON am.alliance_member_id = approvedRequests.approverId
-    WHERE am.alliance_member_role = 'ACCOUNTING'
-    ORDER BY requestCount ASC
-    LIMIT 1;
+      SELECT am.alliance_member_id AS "approverId",
+             COALESCE(approvedRequests."requestCount", 0) AS "requestCount"
+      FROM alliance_schema.alliance_member_table am
+      LEFT JOIN (
+        SELECT awr.alliance_withdrawal_request_approved_by AS "approverId",
+               COUNT(awr.alliance_withdrawal_request_id) AS "requestCount"
+        FROM alliance_schema.alliance_withdrawal_request_table awr
+        WHERE awr.alliance_withdrawal_request_date BETWEEN ${startDate} AND ${endDate}
+        GROUP BY awr.alliance_withdrawal_request_approved_by
+      ) approvedRequests ON am.alliance_member_id = approvedRequests."approverId"
+      WHERE am.alliance_member_role = 'ACCOUNTING'
+      ORDER BY "requestCount" ASC
+      LIMIT 1;
     `;
 
-    tx.alliance_withdrawal_request_table.create({
+    await tx.alliance_withdrawal_request_table.create({
       data: {
         alliance_withdrawal_request_amount: Number(amount),
         alliance_withdrawal_request_type: bank,
@@ -137,26 +138,27 @@ export const withdrawModel = async (params: {
         alliance_withdrawal_request_withdraw_type: earnings,
         alliance_withdrawal_request_approved_by: countAllRequests[0].approverId,
       },
+    });
+
+    // Update the earnings
+    await tx.alliance_earnings_table.update({
+      where: {
+        alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
+      },
+      data: {
+        alliance_olympus_earnings: {
+          decrement: olympusDeduction,
+        },
+        alliance_referral_bounty: {
+          decrement: referralDeduction,
+        },
+        alliance_combined_earnings: {
+          decrement: Number(amount),
+        },
+      },
     }),
-      // Update the earnings
-      tx.alliance_earnings_table.update({
-        where: {
-          alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
-        },
-        data: {
-          alliance_olympus_earnings: {
-            decrement: olympusDeduction,
-          },
-          alliance_referral_bounty: {
-            decrement: referralDeduction,
-          },
-          alliance_combined_earnings: {
-            decrement: Number(amount),
-          },
-        },
-      }),
       // Log the transaction
-      tx.alliance_transaction_table.create({
+      await tx.alliance_transaction_table.create({
         data: {
           transaction_amount: finalAmount,
           transaction_description: "Withdrawal Pending",
@@ -292,9 +294,9 @@ export const updateWithdrawModel = async (params: {
             updatedRequest.alliance_withdrawal_request_member_id,
         },
         data: {
-          alliance_olympus_wallet: {
+          alliance_referral_bounty: {
             increment:
-              updatedRequest.alliance_withdrawal_request_earnings_amount,
+              updatedRequest.alliance_withdrawal_request_referral_amount,
           },
           alliance_olympus_earnings: {
             increment:
@@ -312,7 +314,7 @@ export const updateWithdrawModel = async (params: {
         transaction_description: `Withdrawal ${
           status.slice(0, 1).toUpperCase() + status.slice(1).toLowerCase()
         } ${note ? `(${note})` : ""}`,
-        transaction_details: `Account Name: ${updatedRequest.alliance_withdrawal_request_bank_name} | Account Number: ${updatedRequest.alliance_withdrawal_request_account}`,
+        transaction_details: `Account Name: ${updatedRequest.alliance_withdrawal_request_bank_name}, Account Number: ${updatedRequest.alliance_withdrawal_request_account}`,
         transaction_amount: updatedRequest.alliance_withdrawal_request_amount,
         transaction_member_id:
           updatedRequest.alliance_withdrawal_request_member_id,
@@ -364,7 +366,7 @@ export const withdrawListPostModel = async (params: {
   } = parameters;
 
   const offset = (page - 1) * limit;
-  const sortBy = isAscendingSort ? "ASC" : "DESC";
+  const sortBy = isAscendingSort ? "DESC" : "ASC";
 
   const orderBy = columnAccessor
     ? Prisma.sql`ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
@@ -372,15 +374,17 @@ export const withdrawListPostModel = async (params: {
 
   const commonConditions: Prisma.Sql[] = [
     Prisma.raw(
-      `m.alliance_member_alliance_id = '${
-        teamMemberProfile.alliance_member_alliance_id
-      }'::uuid AND ${
-        teamMemberProfile.alliance_member_role === "ACCOUNTING"
-          ? "t.alliance_withdrawal_request_approved_by = '${teamMemberProfile.alliance_member_id}'::uuid"
-          : ""
-      }`
+      `m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid`
     ),
   ];
+
+  if (teamMemberProfile.alliance_member_role === "ACCOUNTING") {
+    commonConditions.push(
+      Prisma.raw(
+        `t.alliance_withdrawal_request_approved_by = '${teamMemberProfile.alliance_member_id}'::uuid`
+      )
+    );
+  }
 
   if (userFilter) {
     commonConditions.push(Prisma.raw(`u.user_id::TEXT = '${userFilter}'`));
