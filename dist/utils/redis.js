@@ -7,14 +7,11 @@ export default redis;
 export async function rateLimit(key, limit, ttl) {
     const currentCount = await redis.incr(key);
     if (currentCount === 1) {
-        // Set expiration time for the key only when created
         await redis.expire(key, ttl);
     }
     else {
-        // Double-check if expiration is missing due to external interference
         const ttlCheck = await redis.ttl(key);
         if (ttlCheck === -1) {
-            // Reset the expiration time if no TTL exists
             await redis.expire(key, ttl);
         }
     }
