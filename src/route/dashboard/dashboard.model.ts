@@ -8,15 +8,19 @@ export const dashboardPostModel = async (params: {
   return await prisma.$transaction(async (tx) => {
     const { dateFilter } = params;
 
-    const currentDate = new Date();
     const startDate = dateFilter.start
       ? new Date(dateFilter.start)
       : (() => {
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          tomorrow.setHours(0, 0, 0, 0);
-          return tomorrow;
+          const today = new Date();
+          today.setUTCFullYear(
+            today.getUTCFullYear(),
+            today.getUTCMonth(),
+            today.getUTCDate()
+          );
+          today.setUTCHours(0, 0, 0, 0);
+          return today;
         })();
+
     const endDate = dateFilter.end
       ? (() => {
           const end = new Date(dateFilter.end);
@@ -24,7 +28,7 @@ export const dashboardPostModel = async (params: {
           return end;
         })()
       : (() => {
-          const end = new Date(currentDate);
+          const end = new Date();
           end.setHours(23, 59, 59, 999);
           return end;
         })();
