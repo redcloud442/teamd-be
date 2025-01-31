@@ -193,6 +193,7 @@ model alliance_withdrawal_request_table {
   alliance_withdrawal_request_withdraw_type String?
   alliance_withdrawal_request_member_id String    @db.Uuid
   alliance_withdrawal_request_approved_by  String?   @db.Uuid
+  alliance_withdrawal_request_date_updated DateTime?
 
   alliance_withdrawal_request_reject_note  String?
 
