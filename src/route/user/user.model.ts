@@ -387,16 +387,13 @@ export const userListModel = async (
   };
 };
 
-export const userActiveListModel = async (
-  params: {
-    page: number;
-    limit: number;
-    search: string;
-    columnAccessor: string;
-    isAscendingSort: boolean;
-  },
-  teamMemberProfile: alliance_member_table
-) => {
+export const userActiveListModel = async (params: {
+  page: number;
+  limit: number;
+  search: string;
+  columnAccessor: string;
+  isAscendingSort: boolean;
+}) => {
   const { page, limit, search, columnAccessor, isAscendingSort } = params;
 
   const offset = (page - 1) * limit;
@@ -406,15 +403,14 @@ export const userActiveListModel = async (
   const orderBy = columnAccessor
     ? Prisma.sql`ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
     : Prisma.empty;
-
   const searchCondition = search
-    ? Prisma.sql`(
-      AND (
-        ut.user_username ILIKE ${`%${search}%`} OR
-        ut.user_first_name ILIKE ${`%${search}%`} OR
-        ut.user_last_name ILIKE ${`%${search}%`}
-      )
-    )`
+    ? Prisma.sql`
+        AND (
+          ut.user_username ILIKE ${`%${search}%`} OR
+          ut.user_first_name ILIKE ${`%${search}%`} OR
+          ut.user_last_name ILIKE ${`%${search}%`}
+        )
+      `
     : Prisma.empty;
 
   const usersWithActiveWallet: user_table[] = await prisma.$queryRaw`
@@ -436,8 +432,6 @@ export const userActiveListModel = async (
     LIMIT ${limit}
     OFFSET ${offset}
   `;
-
-  console.log(usersWithActiveWallet);
 
   const totalCount: { count: bigint }[] = await prisma.$queryRaw`
     SELECT 

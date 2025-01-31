@@ -32,7 +32,6 @@ export const userOptionsPostMiddleware = async (c, next) => {
         limit,
     });
     if (!validation.success) {
-        console.log(validation.error);
         return sendErrorResponse("Invalid request", 400);
     }
     c.set("params", validation.data);

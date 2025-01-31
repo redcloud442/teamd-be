@@ -54,7 +54,7 @@ export const withdrawListPostController = async (c) => {
             parameters: params,
             teamMemberProfile,
         });
-        return c.json({ data }, 200);
+        return c.json(data, 200);
     }
     catch (e) {
         return sendErrorResponse("Internal Server Error", 500);

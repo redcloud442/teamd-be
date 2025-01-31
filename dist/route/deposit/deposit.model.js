@@ -99,8 +99,8 @@ export const depositPutModel = async (params) => {
                 },
             });
             if (merchant && status === "APPROVED") {
-                if (merchant.merchant_member_balance >=
-                    updatedRequest.alliance_top_up_request_amount) {
+                if (updatedRequest.alliance_top_up_request_amount >
+                    merchant.merchant_member_balance) {
                     throw new Error("Insufficient balance. Cannot proceed with the update.");
                 }
                 const updatedMerchant = await tx.merchant_member_table.update({

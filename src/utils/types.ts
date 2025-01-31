@@ -1,6 +1,7 @@
 import type {
   alliance_top_up_request_table,
   alliance_withdrawal_request_table,
+  package_member_connection_table,
 } from "@prisma/client";
 
 export type UserRequestdata = {
@@ -58,4 +59,12 @@ export type WithdrawReturnDataType = {
     };
   };
   totalCount: bigint;
+};
+
+export type PackageMemberWithPackage = package_member_connection_table & {
+  package_table: {
+    package_name: string;
+    package_color: string | null;
+    packages_days: number | null;
+  };
 };

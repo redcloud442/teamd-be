@@ -1,4 +1,5 @@
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
 import { supabaseClient } from "../../utils/supabase.js";
 export const referralDirectModelPost = async (params) => {
     const { page, limit, search, columnAccessor, isAscendingSort, teamMemberProfile, } = params;
@@ -11,11 +12,17 @@ export const referralDirectModelPost = async (params) => {
         teamMemberId: teamMemberProfile?.alliance_member_id || "",
         teamId: teamMemberProfile?.alliance_member_alliance_id || "",
     };
+    const cacheKey = `referral-direct-${teamMemberProfile.alliance_member_id}-${page}-${limit}-${search}-${columnAccessor}-${isAscendingSort}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const { data, error } = await supabaseClient.rpc("get_ally_bounty", {
         input_data: inputData,
     });
     if (error)
         throw error;
+    await redis.set(cacheKey, data, { ex: 300 });
     return data;
 };
 export const referralIndirectModelPost = async (params) => {
@@ -29,11 +36,17 @@ export const referralIndirectModelPost = async (params) => {
         teamMemberId: teamMemberProfile?.alliance_member_id || "",
         teamId: teamMemberProfile?.alliance_member_alliance_id || "",
     };
+    const cacheKey = `referral-indirect-${teamMemberProfile.alliance_member_id}-${page}-${limit}-${search}-${columnAccessor}-${isAscendingSort}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const { data, error } = await supabaseClient.rpc("get_legion_bounty", {
         input_data: inputData,
     });
     if (error)
         throw error;
+    await redis.set(cacheKey, data, { ex: 300 });
     return data;
 };
 export const referralTotalGetModel = async (params) => {

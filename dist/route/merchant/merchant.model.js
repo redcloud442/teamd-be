@@ -46,19 +46,25 @@ export const merchantPostModel = async (params) => {
     return result;
 };
 export const merchantPatchModel = async (params) => {
-    const { memberId, amount } = params;
+    const { memberId, amount, userName } = params;
     const result = await prisma.$transaction(async (tx) => {
         const merchant = await tx.merchant_member_table.findFirst({
             where: { merchant_member_id: memberId },
         });
         if (!merchant)
             throw new Error("Merchant not found");
-        return await tx.merchant_member_table.update({
+        await tx.merchant_member_table.update({
             where: { merchant_member_id: memberId },
             data: {
                 merchant_member_balance: {
                     increment: amount,
                 },
+            },
+        });
+        await tx.merchant_balance_log.create({
+            data: {
+                merchant_balance_log_amount: amount,
+                merchant_balance_log_user: userName,
             },
         });
     });
@@ -75,5 +81,18 @@ export const merchantBankModel = async (params) => {
     return {
         totalCount: merchantCount,
         data: merchantData,
+    };
+};
+export const merchantBalanceModel = async (params) => {
+    const { page, limit } = params;
+    const offset = (page - 1) * limit;
+    const merchantBalance = await prisma.merchant_balance_log.findMany({
+        take: limit,
+        skip: offset,
+    });
+    const merchantBalanceCount = await prisma.merchant_balance_log.count();
+    return {
+        totalCount: merchantBalanceCount,
+        data: merchantBalance,
     };
 };

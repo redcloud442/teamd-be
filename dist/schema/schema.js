@@ -176,6 +176,7 @@ export const merchantPostSchema = z.object({
 export const merchantPatchSchema = z.object({
     amount: z.number().min(1),
     memberId: z.string().uuid(),
+    userName: z.string().min(1),
 });
 export const merchantBankSchema = z.object({
     page: z.number().min(1).max(10),

@@ -116,9 +116,8 @@ export const userListController = async (c: Context) => {
 export const userActiveListController = async (c: Context) => {
   try {
     const params = c.get("params");
-    const teamMemberProfile = c.get("teamMemberProfile");
 
-    const data = await userActiveListModel(params, teamMemberProfile);
+    const data = await userActiveListModel(params);
 
     return c.json(data, { status: 200 });
   } catch (error) {

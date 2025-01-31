@@ -249,13 +249,13 @@ export const userListModel = async (params, teamMemberProfile) => {
         if (columnAccessor.startsWith("user")) {
             orderByCondition = {
                 user_table: {
-                    [columnAccessor]: isAscendingSort ? "asc" : "desc",
+                    [columnAccessor]: isAscendingSort ? "desc" : "asc",
                 },
             };
         }
         else {
             orderByCondition = {
-                [columnAccessor]: isAscendingSort ? "asc" : "desc",
+                [columnAccessor]: isAscendingSort ? "desc" : "asc",
             };
         }
     }
@@ -292,7 +292,7 @@ export const userListModel = async (params, teamMemberProfile) => {
         data: formattedData,
     };
 };
-export const userActiveListModel = async (params, teamMemberProfile) => {
+export const userActiveListModel = async (params) => {
     const { page, limit, search, columnAccessor, isAscendingSort } = params;
     const offset = (page - 1) * limit;
     const sortBy = isAscendingSort ? "ASC" : "DESC";
@@ -300,13 +300,13 @@ export const userActiveListModel = async (params, teamMemberProfile) => {
         ? Prisma.sql `ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
         : Prisma.empty;
     const searchCondition = search
-        ? Prisma.sql `(
-      AND (
-        ut.user_username ILIKE ${`%${search}%`} OR
-        ut.user_first_name ILIKE ${`%${search}%`} OR
-        ut.user_last_name ILIKE ${`%${search}%`}
-      )
-    )`
+        ? Prisma.sql `
+        AND (
+          ut.user_username ILIKE ${`%${search}%`} OR
+          ut.user_first_name ILIKE ${`%${search}%`} OR
+          ut.user_last_name ILIKE ${`%${search}%`}
+        )
+      `
         : Prisma.empty;
     const usersWithActiveWallet = await prisma.$queryRaw `
     SELECT 
@@ -327,7 +327,6 @@ export const userActiveListModel = async (params, teamMemberProfile) => {
     LIMIT ${limit}
     OFFSET ${offset}
   `;
-    console.log(usersWithActiveWallet);
     const totalCount = await prisma.$queryRaw `
     SELECT 
       COUNT(*)

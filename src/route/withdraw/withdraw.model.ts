@@ -420,7 +420,7 @@ export const withdrawListPostModel = async (params: {
   const statusCounts: { status: string; count: bigint }[] =
     await prisma.$queryRaw`
       SELECT 
-        t.alliance_top_up_request_status AS status, 
+        t.alliance_withdrawal_request_status AS status, 
         COUNT(*) AS count
       FROM alliance_schema.alliance_withdrawal_request_table t
       JOIN alliance_schema.alliance_member_table m 
