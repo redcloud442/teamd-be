@@ -354,9 +354,9 @@ export const claimPackagePostModel = async (params: {
       throw new Error("Invalid request.");
     }
 
-    // if (!packageConnection.package_member_is_ready_to_claim) {
-    //   throw new Error("Invalid request. Package is not ready to claim.");
-    // }
+    if (!packageConnection.package_member_is_ready_to_claim) {
+      throw new Error("Invalid request. Package is not ready to claim.");
+    }
 
     const totalClaimedAmount =
       packageConnection.package_member_amount +
@@ -435,51 +435,54 @@ export const packageListGetModel = async (params: {
     },
   });
 
-  const processedData = chartData.map((row) => {
-    const startDate = new Date(row.package_member_connection_created);
-    const completionDate = row.package_member_completion_date
-      ? new Date(row.package_member_completion_date)
-      : null;
+  const processedData = await Promise.all(
+    chartData.map(async (row) => {
+      const startDate = new Date(row.package_member_connection_created);
+      const completionDate = row.package_member_completion_date
+        ? new Date(row.package_member_completion_date)
+        : null;
 
-    const elapsedTimeMs = Math.max(
-      currentTimestamp.getTime() - startDate.getTime(),
-      0
-    );
-    const totalTimeMs = completionDate
-      ? Math.max(completionDate.getTime() - startDate.getTime(), 0)
-      : 0;
+      console.log(startDate, completionDate);
 
-    let percentage =
-      totalTimeMs > 0 ? (elapsedTimeMs / totalTimeMs) * 100 : 100;
-    percentage = Math.min(percentage, 100);
+      const elapsedTimeMs = Math.max(
+        currentTimestamp.getTime() - startDate.getTime(),
+        0
+      );
+      const totalTimeMs = completionDate
+        ? Math.max(completionDate.getTime() - startDate.getTime(), 0)
+        : 0;
 
-    // Calculate current amount
-    const initialAmount = row.package_member_amount;
-    const profitAmount = row.package_amount_earnings;
-    const currentAmount = initialAmount + (profitAmount * percentage) / 100;
+      let percentage =
+        totalTimeMs > 0 ? (elapsedTimeMs / totalTimeMs) * 100 : 100;
+      percentage = Math.min(percentage, 100);
 
-    // Check and update "is ready to claim" if needed
-    if (percentage === 100 && !row.package_member_is_ready_to_claim) {
-      prisma.package_member_connection_table.update({
-        where: {
-          package_member_connection_id: row.package_member_connection_id,
-        },
-        data: { package_member_is_ready_to_claim: true },
-      });
-    }
+      // Calculate current amount
+      const initialAmount = row.package_member_amount;
+      const profitAmount = row.package_amount_earnings;
+      const currentAmount = initialAmount + (profitAmount * percentage) / 100;
 
-    return {
-      package: row.package_table.package_name,
-      package_color: row.package_table.package_color || "#FFFFFF", // Default to white if null
-      completion_date: completionDate?.toISOString(),
-      amount: Number(row.package_member_amount.toFixed(2)),
-      completion: Number(percentage.toFixed(2)),
-      package_connection_id: row.package_member_connection_id,
-      profit_amount: Number(row.package_amount_earnings.toFixed(2)),
-      current_amount: Number(currentAmount.toFixed(2)),
-      is_ready_to_claim: true,
-    };
-  });
+      if (percentage === 100 && !row.package_member_is_ready_to_claim) {
+        await prisma.package_member_connection_table.update({
+          where: {
+            package_member_connection_id: row.package_member_connection_id,
+          },
+          data: { package_member_is_ready_to_claim: true },
+        });
+      }
+
+      return {
+        package: row.package_table.package_name,
+        package_color: row.package_table.package_color || "#FFFFFF",
+        completion_date: completionDate?.toISOString(),
+        amount: Number(row.package_member_amount.toFixed(2)),
+        completion: Number(percentage.toFixed(2)),
+        package_connection_id: row.package_member_connection_id,
+        profit_amount: Number(row.package_amount_earnings.toFixed(2)),
+        current_amount: Number(Math.trunc(currentAmount)),
+        is_ready_to_claim: percentage === 100,
+      };
+    })
+  );
 
   return processedData;
 };
