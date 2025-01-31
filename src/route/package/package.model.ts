@@ -442,8 +442,6 @@ export const packageListGetModel = async (params: {
         ? new Date(row.package_member_completion_date)
         : null;
 
-      console.log(startDate, completionDate);
-
       const elapsedTimeMs = Math.max(
         currentTimestamp.getTime() - startDate.getTime(),
         0
