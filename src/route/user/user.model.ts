@@ -165,6 +165,7 @@ export const userPatchModel = async (params: {
       where: { alliance_member_id: memberId },
       data: {
         alliance_member_role: role,
+        alliance_member_date_updated: new Date(),
         alliance_member_is_active:
           role &&
           ["ADMIN", "MERCHANT", "ACCOUNTING"].some((r) => role.includes(r))
