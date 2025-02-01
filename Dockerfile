@@ -57,6 +57,8 @@ USER redcloud
 ENV PORT=3000
 EXPOSE 3000
 
+
+
 # Define the entrypoint for the container
 ENTRYPOINT ["/app/entrypoint.sh"]
 
