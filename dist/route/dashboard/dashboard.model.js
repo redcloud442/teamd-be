@@ -65,9 +65,9 @@ export const dashboardPostModel = async (params) => {
                     },
                 },
             }),
-            tx.alliance_member_table.count({
+            tx.package_member_connection_table.count({
                 where: {
-                    alliance_member_date_created: { gte: startDate, lte: endDate },
+                    package_member_connection_created: { gte: startDate, lte: endDate },
                 },
             }),
             tx.$queryRaw `

@@ -232,9 +232,9 @@ export const claimPackagePostModel = async (params) => {
         if (!packageDetails) {
             throw new Error("Invalid request.");
         }
-        // if (!packageConnection.package_member_is_ready_to_claim) {
-        //   throw new Error("Invalid request. Package is not ready to claim.");
-        // }
+        if (!packageConnection.package_member_is_ready_to_claim) {
+            throw new Error("Invalid request. Package is not ready to claim.");
+        }
         const totalClaimedAmount = packageConnection.package_member_amount +
             packageConnection.package_amount_earnings;
         const totalAmountToBeClaimed = amount + earnings;
@@ -298,7 +298,7 @@ export const packageListGetModel = async (params) => {
             },
         },
     });
-    const processedData = chartData.map((row) => {
+    const processedData = await Promise.all(chartData.map(async (row) => {
         const startDate = new Date(row.package_member_connection_created);
         const completionDate = row.package_member_completion_date
             ? new Date(row.package_member_completion_date)
@@ -313,9 +313,8 @@ export const packageListGetModel = async (params) => {
         const initialAmount = row.package_member_amount;
         const profitAmount = row.package_amount_earnings;
         const currentAmount = initialAmount + (profitAmount * percentage) / 100;
-        // Check and update "is ready to claim" if needed
         if (percentage === 100 && !row.package_member_is_ready_to_claim) {
-            prisma.package_member_connection_table.update({
+            await prisma.package_member_connection_table.update({
                 where: {
                     package_member_connection_id: row.package_member_connection_id,
                 },
@@ -324,16 +323,16 @@ export const packageListGetModel = async (params) => {
         }
         return {
             package: row.package_table.package_name,
-            package_color: row.package_table.package_color || "#FFFFFF", // Default to white if null
+            package_color: row.package_table.package_color || "#FFFFFF",
             completion_date: completionDate?.toISOString(),
             amount: Number(row.package_member_amount.toFixed(2)),
             completion: Number(percentage.toFixed(2)),
             package_connection_id: row.package_member_connection_id,
             profit_amount: Number(row.package_amount_earnings.toFixed(2)),
-            current_amount: Number(currentAmount.toFixed(2)),
-            is_ready_to_claim: true,
+            current_amount: Number(Math.trunc(currentAmount)),
+            is_ready_to_claim: percentage === 100,
         };
-    });
+    }));
     return processedData;
 };
 export const packageListGetAdminModel = async () => {
