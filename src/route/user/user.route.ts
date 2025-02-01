@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import {
   userActiveListController,
+  userChangePasswordController,
   userGenerateLinkController,
   userGetController,
   userListController,
@@ -12,6 +13,7 @@ import {
 } from "./user.controller.js";
 import {
   userActiveListMiddleware,
+  userChangePasswordMiddleware,
   userGenerateLinkMiddleware,
   userGetMiddleware,
   userListMiddleware,
@@ -33,6 +35,12 @@ user.get("/", userGetMiddleware, userGetController);
 user.patch("/:id", userPatchMiddleware, userPatchController);
 
 user.put("/:id", userProfilePutMiddleware, userProfilePutController);
+
+user.put(
+  "/:id/change-password",
+  userChangePasswordMiddleware,
+  userChangePasswordController
+);
 
 user.post(
   "/generate-link",

@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import {
   userActiveListModel,
+  userChangePasswordModel,
   userGenerateLinkModel,
   userListModel,
   userModelGet,
@@ -120,6 +121,18 @@ export const userActiveListController = async (c: Context) => {
     const data = await userActiveListModel(params);
 
     return c.json(data, { status: 200 });
+  } catch (error) {
+    return c.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+};
+
+export const userChangePasswordController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    await userChangePasswordModel(params);
+
+    return c.json({ message: "Password Updated" });
   } catch (error) {
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }

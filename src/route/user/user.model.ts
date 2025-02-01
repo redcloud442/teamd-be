@@ -454,3 +454,31 @@ export const userActiveListModel = async (params: {
     totalCount: Number(totalCount[0]?.count ?? 0),
   };
 };
+
+export const userChangePasswordModel = async (params: {
+  password: string;
+  userId: string;
+}) => {
+  const { password, userId } = params;
+
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user_table.findUnique({
+      where: { user_id: userId },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const hashedPassword = await bcryptjs.hash(password, 10);
+
+    await tx.user_table.update({
+      where: { user_id: userId },
+      data: { user_password: hashedPassword },
+    });
+
+    await supabaseClient.auth.admin.updateUserById(userId, {
+      password: password,
+    });
+  });
+};
