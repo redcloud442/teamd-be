@@ -127,6 +127,7 @@ export const userPatchModel = async (params) => {
             where: { alliance_member_id: memberId },
             data: {
                 alliance_member_role: role,
+                alliance_member_date_updated: new Date(),
                 alliance_member_is_active: role &&
                     ["ADMIN", "MERCHANT", "ACCOUNTING"].some((r) => role.includes(r))
                     ? true
@@ -169,15 +170,24 @@ export const userPatchModel = async (params) => {
 };
 export const userSponsorModel = async (params) => {
     const { userId } = params;
-    const supabase = supabaseClient;
-    const { data: userData, error } = await supabase.rpc("get_user_sponsor", {
-        input_data: { userId },
-    });
-    if (error) {
-        throw new Error("Failed to get user sponsor");
+    const user = await prisma.$queryRaw `
+  SELECT 
+        ut2.user_username
+      FROM user_schema.user_table ut
+      JOIN alliance_schema.alliance_member_table am
+        ON am.alliance_member_user_id = ut.user_id
+      JOIN alliance_schema.alliance_referral_table art
+        ON art.alliance_referral_member_id = am.alliance_member_id
+      JOIN alliance_schema.alliance_member_table am2
+        ON am2.alliance_member_id = art.alliance_referral_from_member_id
+      JOIN user_schema.user_table ut2
+        ON ut2.user_id = am2.alliance_member_user_id
+      WHERE ut.user_id = ${userId}::uuid
+  `;
+    if (!user) {
+        return { success: false, error: "User not found." };
     }
-    const { data } = userData;
-    return data;
+    return user[0].user_username;
 };
 export const userProfileModelPut = async (params) => {
     const { profilePicture, userId } = params;
@@ -345,4 +355,23 @@ export const userActiveListModel = async (params) => {
         data: usersWithActiveWallet,
         totalCount: Number(totalCount[0]?.count ?? 0),
     };
+};
+export const userChangePasswordModel = async (params) => {
+    const { password, userId } = params;
+    await prisma.$transaction(async (tx) => {
+        const user = await tx.user_table.findUnique({
+            where: { user_id: userId },
+        });
+        if (!user) {
+            throw new Error("User not found");
+        }
+        const hashedPassword = await bcryptjs.hash(password, 10);
+        await tx.user_table.update({
+            where: { user_id: userId },
+            data: { user_password: hashedPassword },
+        });
+        await supabaseClient.auth.admin.updateUserById(userId, {
+            password: password,
+        });
+    });
 };

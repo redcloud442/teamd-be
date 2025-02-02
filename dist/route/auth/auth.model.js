@@ -144,6 +144,11 @@ export const registerUserModel = async (params) => {
                     alliance_referral_link_member_id: allianceMember.alliance_member_id,
                 },
             });
+            await tx.alliance_earnings_table.create({
+                data: {
+                    alliance_earnings_member_id: allianceMember.alliance_member_id,
+                },
+            });
             await handleReferral(tx, referalLink, allianceMember.alliance_member_id);
             return {
                 success: true,

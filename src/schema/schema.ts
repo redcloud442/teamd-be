@@ -68,7 +68,7 @@ export const updateDepositSchema = z.object({
 
 export const depositHistoryPostSchema = z.object({
   page: z.number().min(1),
-  limit: z.number().min(1),
+  limit: z.number().min(1).max(10),
   search: z.string().optional(),
   sortBy: z.string().optional(),
   columnAccessor: z.string().min(3),
@@ -131,7 +131,7 @@ export const userSponsorSchema = z.object({
 
 export const userListSchema = z.object({
   page: z.number().min(1),
-  limit: z.number().min(1),
+  limit: z.number().min(1).max(10),
   search: z.string().optional(),
   columnAccessor: z.string().min(3),
   isAscendingSort: z.boolean(),
@@ -142,7 +142,7 @@ export const userListSchema = z.object({
 
 export const userActiveListSchema = z.object({
   page: z.number().min(1),
-  limit: z.number().min(1),
+  limit: z.number().min(1).max(10),
   search: z.string().optional(),
   columnAccessor: z.string().min(3),
   isAscendingSort: z.boolean(),
@@ -159,7 +159,7 @@ export const transactionSchemaPost = z.object({
 
 export const directReferralsSchemaPost = z.object({
   page: z.string().min(1),
-  limit: z.string().min(1),
+  limit: z.string().min(1).max(10),
   search: z.string().optional(),
   columnAccessor: z.string().min(3),
   isAscendingSort: z.string(),
@@ -167,7 +167,7 @@ export const directReferralsSchemaPost = z.object({
 
 export const indirectReferralsSchemaPost = z.object({
   page: z.string().min(1),
-  limit: z.string().min(1),
+  limit: z.string().min(1).max(10),
   search: z.string().optional(),
   columnAccessor: z.string().min(3),
   isAscendingSort: z.string(),
@@ -196,7 +196,7 @@ export const updatePackageSchema = z.object({
   packageDescription: z.string().min(3),
   packagePercentage: z.string().min(1),
   packageDays: z.string().min(1),
-  packageIsDisabled: z.boolean(),
+  packageIsDisabled: z.boolean().optional(),
   packageColor: z.string().nullable().optional(),
   package_image: z.string().nullable().optional(),
   packageId: z.string().uuid(),
@@ -298,7 +298,7 @@ export const dashboardPostSchema = z.object({
 
 export const leaderboardPostSchema = z.object({
   leaderBoardType: z.enum(["DIRECT", "INDIRECT"]),
-  limit: z.number().min(1),
+  limit: z.number().min(1).max(10),
   page: z.number().min(1),
 });
 

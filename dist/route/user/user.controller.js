@@ -1,4 +1,4 @@
-import { userActiveListModel, userGenerateLinkModel, userListModel, userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userSponsorModel, } from "./user.model.js";
+import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userListModel, userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userSponsorModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
         const { email, password, userId } = await c.req.json();
@@ -46,7 +46,7 @@ export const userSponsorController = async (c) => {
     try {
         const { userId } = await c.req.json();
         const data = await userSponsorModel({ userId });
-        return c.json({ data });
+        return c.json(data, { status: 200 });
     }
     catch (error) {
         return c.json({ error: "Internal Server Error" }, { status: 500 });
@@ -89,6 +89,16 @@ export const userActiveListController = async (c) => {
         const params = c.get("params");
         const data = await userActiveListModel(params);
         return c.json(data, { status: 200 });
+    }
+    catch (error) {
+        return c.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+};
+export const userChangePasswordController = async (c) => {
+    try {
+        const params = c.get("params");
+        await userChangePasswordModel(params);
+        return c.json({ message: "Password Updated" });
     }
     catch (error) {
         return c.json({ error: "Internal Server Error" }, { status: 500 });
