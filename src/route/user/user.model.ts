@@ -216,19 +216,26 @@ export const userPatchModel = async (params: {
 export const userSponsorModel = async (params: { userId: string }) => {
   const { userId } = params;
 
-  const supabase = supabaseClient;
+  const user: { user_username: string }[] = await prisma.$queryRaw`
+  SELECT 
+        ut2.user_username
+      FROM user_schema.user_table ut
+      JOIN alliance_schema.alliance_member_table am
+        ON am.alliance_member_user_id = ut.user_id
+      JOIN alliance_schema.alliance_referral_table art
+        ON art.alliance_referral_member_id = am.alliance_member_id
+      JOIN alliance_schema.alliance_member_table am2
+        ON am2.alliance_member_id = art.alliance_referral_from_member_id
+      JOIN user_schema.user_table ut2
+        ON ut2.user_id = am2.alliance_member_user_id
+      WHERE ut.user_id = ${userId}::uuid
+  `;
 
-  const { data: userData, error } = await supabase.rpc("get_user_sponsor", {
-    input_data: { userId },
-  });
-
-  if (error) {
-    throw new Error("Failed to get user sponsor");
+  if (!user) {
+    return { success: false, error: "User not found." };
   }
 
-  const { data } = userData;
-
-  return data;
+  return user[0].user_username;
 };
 
 export const userProfileModelPut = async (params: {

@@ -69,7 +69,7 @@ export const userSponsorController = async (c: Context) => {
 
     const data = await userSponsorModel({ userId });
 
-    return c.json({ data });
+    return c.json(data, { status: 200 });
   } catch (error) {
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }

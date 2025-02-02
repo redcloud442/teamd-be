@@ -14,12 +14,14 @@ export const dashboardPostModel = async (params) => {
         const endDate = dateFilter.end
             ? (() => {
                 const end = new Date(dateFilter.end);
-                end.setHours(23, 59, 59, 999);
+                end.setUTCFullYear(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+                end.setUTCHours(23, 59, 59, 999);
                 return end;
             })()
             : (() => {
                 const end = new Date();
-                end.setHours(23, 59, 59, 999);
+                end.setUTCFullYear(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+                end.setUTCHours(23, 59, 59, 999);
                 return end;
             })();
         const [totalEarnings, packageEarnings, totalActivatedUserByDate, totalApprovedWithdrawal, totalWithdraw, bountyEarnings, activePackageWithinTheDay, chartDataRaw,] = await Promise.all([

@@ -190,10 +190,17 @@ export const registerUserModel = async (params: {
       const referralLinkURL = `${url}?referralLink=${encodeURIComponent(
         userName
       )}`;
+
       await tx.alliance_referral_link_table.create({
         data: {
           alliance_referral_link: referralLinkURL,
           alliance_referral_link_member_id: allianceMember.alliance_member_id,
+        },
+      });
+
+      await tx.alliance_earnings_table.create({
+        data: {
+          alliance_earnings_member_id: allianceMember.alliance_member_id,
         },
       });
 
