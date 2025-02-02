@@ -207,6 +207,7 @@ export const packagePostModel = async (params: {
       where: { alliance_member_id: teamMemberProfile.alliance_member_id },
       data: {
         alliance_member_is_active: true,
+        alliance_member_date_updated: new Date(),
       },
     });
   }
