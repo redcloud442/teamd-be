@@ -28,7 +28,10 @@ export const dashboardPostModel = async (params) => {
             tx.alliance_top_up_request_table.aggregate({
                 _sum: { alliance_top_up_request_amount: true },
                 where: {
-                    alliance_top_up_request_date: { gte: startDate, lte: endDate },
+                    alliance_top_up_request_date_updated: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
                     alliance_top_up_request_status: "APPROVED",
                 },
             }),
@@ -47,14 +50,20 @@ export const dashboardPostModel = async (params) => {
             tx.alliance_withdrawal_request_table.count({
                 where: {
                     alliance_withdrawal_request_status: "APPROVED",
-                    alliance_withdrawal_request_date: { gte: startDate, lte: endDate },
+                    alliance_withdrawal_request_date_updated: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
                 },
             }),
             tx.alliance_withdrawal_request_table.aggregate({
                 _sum: { alliance_withdrawal_request_amount: true },
                 where: {
                     alliance_withdrawal_request_status: "APPROVED",
-                    alliance_withdrawal_request_date: { gte: startDate, lte: endDate },
+                    alliance_withdrawal_request_date_updated: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
                 },
             }),
             tx.package_ally_bounty_log.groupBy({
