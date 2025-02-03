@@ -16,24 +16,11 @@ import {
   protectionMemberUser,
 } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
-import { supabaseClient } from "../../utils/supabase.js";
 
 export const userPutMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return null;
-  }
-
-  const response = await protectionMemberUser(user.data.user.id, prisma);
+  const response = await protectionMemberUser(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -67,21 +54,9 @@ export const userPutMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userPostMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const response = await protectionMemberUser(user.data.user.id, prisma);
+  const response = await protectionMemberUser(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -115,21 +90,9 @@ export const userPostMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userGetMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const response = await protectionMemberUser(user.data.user.id, prisma);
+  const response = await protectionMemberUser(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -157,21 +120,9 @@ export const userGetMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userPatchMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const response = await protectionAdmin(user.data.user.id, prisma);
+  const response = await protectionAdmin(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -209,21 +160,9 @@ export const userPatchMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userSponsorMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const response = await protectionMemberUser(user.data.user.id, prisma);
+  const response = await protectionMemberUser(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -259,21 +198,9 @@ export const userSponsorMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userProfilePutMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const response = await protectionMemberUser(user.data.user.id, prisma);
+  const response = await protectionMemberUser(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -314,21 +241,9 @@ export const userProfilePutMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userGenerateLinkMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const response = await protectionAdmin(user.data.user.id, prisma);
+  const response = await protectionAdmin(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -366,21 +281,9 @@ export const userGenerateLinkMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userListMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const response = await protectionAdmin(user.data.user.id, prisma);
+  const response = await protectionAdmin(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -435,21 +338,9 @@ export const userListMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userActiveListMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const response = await protectionAdmin(user.data.user.id, prisma);
+  const response = await protectionAdmin(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -504,21 +395,9 @@ export const userActiveListMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userChangePasswordMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const response = await protectionMemberUser(user.data.user.id, prisma);
+  const response = await protectionMemberUser(user.id, prisma);
 
   if (response instanceof Response) {
     return response;

@@ -12,24 +12,11 @@ import {
   protectionMerchantAdmin,
 } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
-import { supabaseClient } from "../../utils/supabase.js";
 
 export const depositMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split("Bearer ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return null;
-  }
-
-  const response = await protectionMemberUser(user.data.user.id, prisma);
+  const response = await protectionMemberUser(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -78,21 +65,9 @@ export const depositMiddleware = async (c: Context, next: Next) => {
 };
 
 export const depositPutMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split(" ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return null;
-  }
-
-  const response = await protectionMerchantAdmin(user.data.user.id, prisma);
+  const response = await protectionMerchantAdmin(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -135,21 +110,9 @@ export const depositPutMiddleware = async (c: Context, next: Next) => {
 };
 
 export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split(" ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return null;
-  }
-
-  const response = await protectionMerchantAdmin(user.data.user.id, prisma);
+  const response = await protectionMerchantAdmin(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -203,21 +166,9 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
 };
 
 export const depositListPostMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization")?.split(" ")[1];
+  const user = c.get("user");
 
-  if (!token) {
-    return sendErrorResponse("Unauthorized", 401);
-  }
-
-  const supabase = supabaseClient;
-
-  const user = await supabase.auth.getUser(token);
-
-  if (user.error) {
-    return null;
-  }
-
-  const response = await protectionMerchantAdmin(user.data.user.id, prisma);
+  const response = await protectionMerchantAdmin(user.id, prisma);
 
   if (response instanceof Response) {
     return response;

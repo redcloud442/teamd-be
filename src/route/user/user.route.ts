@@ -53,4 +53,5 @@ user.post("/sponsor", userSponsorMiddleware, userSponsorController);
 user.post("/list", userListMiddleware, userListController);
 
 user.post("/active-list", userActiveListMiddleware, userActiveListController);
+
 export default user;
