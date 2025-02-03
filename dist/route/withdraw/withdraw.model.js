@@ -6,24 +6,26 @@ export const withdrawModel = async (params) => {
     const today = new Date().toISOString().slice(0, 10);
     const startDate = new Date(`${today}T00:00:00Z`);
     const endDate = new Date(`${today}T23:59:59Z`);
-    const existingWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setUTCHours(23, 59, 59, 999);
+    // Check for "PACKAGE" withdrawals
+    const existingPackageWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
         where: {
             alliance_withdrawal_request_member_id: teamMemberProfile.alliance_member_id,
             alliance_withdrawal_request_status: {
                 in: ["PENDING", "APPROVED"],
             },
-            AND: [
-                {
-                    alliance_withdrawal_request_date: {
-                        lte: endDate,
-                        gte: startDate,
-                    },
-                },
-            ],
+            alliance_withdrawal_request_withdraw_type: earnings,
+            alliance_withdrawal_request_date: {
+                gte: todayStart, // Start of the day
+                lte: todayEnd, // End of the day
+            },
         },
     });
-    if (existingWithdrawal) {
-        throw new Error("You have already made a withdrawal today. Please try again tomorrow.");
+    if (existingPackageWithdrawal) {
+        throw new Error("You have already made a PACKAGE withdrawal today. Please try again tomorrow.");
     }
     const amountMatch = await prisma.alliance_earnings_table.findUnique({
         where: {
@@ -113,7 +115,7 @@ export const withdrawModel = async (params) => {
             await tx.alliance_transaction_table.create({
                 data: {
                     transaction_amount: finalAmount,
-                    transaction_description: "Withdrawal Pending",
+                    transaction_description: `Withdrawal ${earnings === "PACKAGE" ? "Package" : "Referral"} Ongoing.`,
                     transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
                     transaction_member_id: teamMemberProfile.alliance_member_id,
                 },
@@ -178,7 +180,7 @@ export const updateWithdrawModel = async (params) => {
         if (!existingRequest) {
             throw new Error("Request not found.");
         }
-        if (teamMemberProfile.alliance_member_id ===
+        if (teamMemberProfile.alliance_member_id !==
             existingRequest.alliance_withdrawal_request_approved_by &&
             teamMemberProfile.alliance_member_role === "ACCOUNTING") {
             throw new Error("You are not authorized to update this request.");
