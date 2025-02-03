@@ -77,6 +77,27 @@ export const depositPutModel = async (params: {
     throw new Error("Merchant not found.");
 
   return await prisma.$transaction(async (tx) => {
+    const existingDeposit =
+      await prisma.alliance_top_up_request_table.findFirst({
+        where: {
+          alliance_top_up_request_member_id:
+            teamMemberProfile.alliance_member_id,
+          alliance_top_up_request_status: "PENDING",
+        },
+        take: 1,
+        orderBy: {
+          alliance_top_up_request_date: "desc",
+        },
+
+        select: {
+          alliance_top_up_request_id: true,
+        },
+      });
+
+    if (existingDeposit) {
+      throw new Error("You cannot make a new deposit request.");
+    }
+
     const existingRequest = await tx.alliance_top_up_request_table.findUnique({
       where: {
         alliance_top_up_request_id: requestId,

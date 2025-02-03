@@ -94,6 +94,7 @@ export const userModelPost = async (params) => {
 export const userModelGet = async (params) => {
     const { memberId } = params;
     let isWithdrawalToday = false;
+    let canUserDeposit = false;
     const today = new Date().toISOString().split("T")[0];
     const existingWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
         where: {
@@ -115,10 +116,26 @@ export const userModelGet = async (params) => {
             ],
         },
     });
+    const existingDeposit = await prisma.alliance_top_up_request_table.findFirst({
+        where: {
+            alliance_top_up_request_member_id: memberId,
+            alliance_top_up_request_status: "PENDING",
+        },
+        take: 1,
+        orderBy: {
+            alliance_top_up_request_date: "desc",
+        },
+        select: {
+            alliance_top_up_request_id: true,
+        },
+    });
     if (existingWithdrawal) {
         isWithdrawalToday = true;
     }
-    return { isWithdrawalToday };
+    if (existingDeposit) {
+        canUserDeposit = true;
+    }
+    return { isWithdrawalToday, canUserDeposit };
 };
 export const userPatchModel = async (params) => {
     const { memberId, action, role } = params;
