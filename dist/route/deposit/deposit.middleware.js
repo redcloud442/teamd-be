@@ -1,4 +1,4 @@
-import { depositHistoryPostSchema, depositListPostSchema, depositSchema, updateDepositSchema, } from "../../schema/schema.js";
+import { depositHistoryPostSchema, depositListPostSchema, depositReferencePostSchema, depositSchema, updateDepositSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import { protectionMemberUser, protectionMerchantAdmin, } from "../../utils/protection.js";
@@ -18,17 +18,19 @@ export const depositMiddleware = async (c, next) => {
         return sendErrorResponse("Too Many Requests", 429);
     }
     const { TopUpFormValues } = await c.req.json();
-    const { amount, topUpMode, accountName, accountNumber } = TopUpFormValues;
+    const { amount, topUpMode, accountName, accountNumber, reference } = TopUpFormValues;
     const sanitizedData = depositSchema.safeParse({
         amount,
         topUpMode,
         accountName,
         accountNumber,
+        reference,
     });
     if (!sanitizedData.success) {
         return sendErrorResponse("Invalid Request", 400);
     }
     c.set("teamMemberProfile", teamMemberProfile);
+    c.set("params", sanitizedData.data);
     return await next();
 };
 export const depositPutMiddleware = async (c, next) => {
@@ -115,6 +117,31 @@ export const depositListPostMiddleware = async (c, next) => {
         userFilter,
         statusFilter,
         dateFilter,
+    });
+    if (!sanitizedData.success) {
+        return sendErrorResponse("Invalid Request", 400);
+    }
+    c.set("teamMemberProfile", teamMemberProfile);
+    c.set("params", sanitizedData.data);
+    return await next();
+};
+export const depositReferenceMiddleware = async (c, next) => {
+    const user = c.get("user");
+    const response = await protectionMemberUser(user.id, prisma);
+    if (response instanceof Response) {
+        return response;
+    }
+    const { teamMemberProfile } = response;
+    if (!teamMemberProfile) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:deposit-reference-get`, 5, 60);
+    if (!isAllowed) {
+        return sendErrorResponse("Too Many Requests", 429);
+    }
+    const { reference } = await c.req.json();
+    const sanitizedData = depositReferencePostSchema.safeParse({
+        reference,
     });
     if (!sanitizedData.success) {
         return sendErrorResponse("Invalid Request", 400);

@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import {} from "../../schema/schema.js";
 import prisma from "../../utils/prisma.js";
 export const depositPostModel = async (params) => {
-    const { amount, accountName, accountNumber } = params.TopUpFormValues;
+    const { amount, accountName, accountNumber, reference } = params.TopUpFormValues;
     const { publicUrl } = params;
     if (amount.length > 7 || amount.length < 3) {
         throw new Error("Invalid amount");
@@ -33,6 +33,7 @@ export const depositPostModel = async (params) => {
                 alliance_top_up_request_account: accountNumber,
                 alliance_top_up_request_attachment: publicUrl,
                 alliance_top_up_request_member_id: params.teamMemberProfile.alliance_member_id,
+                alliance_top_up_request_reference_number: reference,
             },
         });
         await tx.alliance_transaction_table.create({
@@ -297,4 +298,13 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
         returnData.merchantBalance = merchant?.merchant_member_balance;
     }
     return JSON.parse(JSON.stringify(returnData, (key, value) => typeof value === "bigint" ? value.toString() : value));
+};
+export const depositReferencePostModel = async (params) => {
+    const { reference } = params;
+    const deposit = await prisma.alliance_top_up_request_table.findFirst({
+        where: {
+            alliance_top_up_request_reference_number: reference,
+        },
+    });
+    return deposit ? true : false;
 };

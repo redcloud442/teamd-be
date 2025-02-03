@@ -42,6 +42,7 @@ export const depositSchema = z.object({
     topUpMode: z.string().min(1, "Top up mode is required"),
     accountName: z.string().min(1, "Field is required"),
     accountNumber: z.string().min(1, "Field is required"),
+    reference: z.string().min(5, "Field is required").max(5, "Field is required"),
 });
 export const updateDepositSchema = z.object({
     status: z.enum(["APPROVED", "REJECTED"]),
@@ -72,6 +73,9 @@ export const depositListPostSchema = z.object({
         end: z.string().optional(),
     })
         .optional(),
+});
+export const depositReferencePostSchema = z.object({
+    reference: z.string().min(5, "Field is required").max(5, "Field is required"),
 });
 //user schema
 export const userSchemaPut = z.object({

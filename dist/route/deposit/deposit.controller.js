@@ -1,13 +1,15 @@
 import { supabaseClient } from "../../utils/supabase.js";
-import { depositHistoryPostModel, depositListPostModel, depositPostModel, depositPutModel, } from "./deposit.model.js";
+import { depositHistoryPostModel, depositListPostModel, depositPostModel, depositPutModel, depositReferencePostModel, } from "./deposit.model.js";
 export const depositPostController = async (c) => {
     const supabase = supabaseClient;
-    const { TopUpFormValues, publicUrl } = await c.req.json();
+    const { publicUrl } = await c.req.json();
     try {
         const teamMemberProfile = c.get("teamMemberProfile");
-        const { amount, topUpMode, accountName, accountNumber } = TopUpFormValues;
+        const params = c.get("params");
         await depositPostModel({
-            TopUpFormValues: { amount, topUpMode, accountName, accountNumber },
+            TopUpFormValues: {
+                ...params,
+            },
             publicUrl: publicUrl,
             teamMemberProfile: teamMemberProfile,
         });
@@ -50,6 +52,16 @@ export const depositListPostController = async (c) => {
         const params = c.get("params");
         const teamMemberProfile = c.get("teamMemberProfile");
         const data = await depositListPostModel(params, teamMemberProfile);
+        return c.json(data, { status: 200 });
+    }
+    catch (e) {
+        return c.json({ message: "Internal Server Error" }, { status: 500 });
+    }
+};
+export const depositReferencePostController = async (c) => {
+    try {
+        const params = c.get("params");
+        const data = await depositReferencePostModel(params);
         return c.json(data, { status: 200 });
     }
     catch (e) {
