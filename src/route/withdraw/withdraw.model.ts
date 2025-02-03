@@ -9,6 +9,7 @@ import prisma from "../../utils/prisma.js";
 export const withdrawModel = async (params: {
   earnings: string;
   accountNumber: string;
+  selectedEarnings: string;
   accountName: string;
   amount: number;
   bank: string;
@@ -68,43 +69,50 @@ export const withdrawModel = async (params: {
     throw new Error("Invalid request.");
   }
 
-  const {
-    alliance_olympus_earnings,
-    alliance_referral_bounty,
-    alliance_combined_earnings,
-  } = amountMatch;
+  const { alliance_olympus_earnings, alliance_referral_bounty } = amountMatch;
 
   const amountValue = Math.round(Number(amount) * 100) / 100;
-  const combinedEarnings =
-    Math.round(Number(alliance_combined_earnings) * 100) / 100;
 
-  if (amountValue > combinedEarnings) {
+  const earningsType =
+    earnings === "PACKAGE"
+      ? "alliance_olympus_earnings"
+      : "alliance_referral_bounty";
+
+  const earningsValue = Math.round(Number(earningsType) * 100) / 100;
+
+  if (amountValue > earningsValue) {
     throw new Error("Insufficient balance.");
   }
 
   let remainingAmount = Number(amount);
-  const olympusDeduction = Math.min(
-    remainingAmount,
-    Number(alliance_olympus_earnings)
-  );
-  remainingAmount -= olympusDeduction;
 
-  const referralDeduction = Math.min(
-    remainingAmount,
-    Number(alliance_referral_bounty)
-  );
-  remainingAmount -= referralDeduction;
+  if (earnings === "PACKAGE") {
+    const olympusDeduction = Math.min(
+      remainingAmount,
+      Number(alliance_olympus_earnings)
+    );
+
+    remainingAmount -= olympusDeduction;
+  }
+
+  if (earnings === "REFERRAL") {
+    const referralDeduction = Math.min(
+      remainingAmount,
+      Number(alliance_referral_bounty)
+    );
+    remainingAmount -= referralDeduction;
+  }
 
   if (remainingAmount > 0) {
     throw new Error("Invalid request.");
   }
 
-  const finalAmount = calculateFinalAmount(Number(amount), "TOTAL");
-  const fee = calculateFee(Number(amount), "TOTAL");
+  const finalAmount = calculateFinalAmount(Number(amount), earnings);
+  const fee = calculateFee(Number(amount), earnings);
 
   await prisma.$transaction(async (tx) => {
     const countAllRequests: {
-      approverId: string;
+      approverId: string | null;
       requestCount: bigint;
     }[] = await tx.$queryRaw`
       SELECT am.alliance_member_id AS "approverId",
@@ -133,10 +141,9 @@ export const withdrawModel = async (params: {
         alliance_withdrawal_request_status: "PENDING",
         alliance_withdrawal_request_member_id:
           teamMemberProfile.alliance_member_id,
-        alliance_withdrawal_request_earnings_amount: olympusDeduction,
-        alliance_withdrawal_request_referral_amount: referralDeduction,
         alliance_withdrawal_request_withdraw_type: earnings,
-        alliance_withdrawal_request_approved_by: countAllRequests[0].approverId,
+        alliance_withdrawal_request_approved_by:
+          countAllRequests[0]?.approverId ?? null,
       },
     });
 
@@ -146,11 +153,8 @@ export const withdrawModel = async (params: {
         alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
       },
       data: {
-        alliance_olympus_earnings: {
-          decrement: olympusDeduction,
-        },
-        alliance_referral_bounty: {
-          decrement: referralDeduction,
+        [earningsType]: {
+          decrement: Number(amount),
         },
         alliance_combined_earnings: {
           decrement: Number(amount),

@@ -66,16 +66,8 @@ export const withdrawPostMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse(validate.error.message, 400);
   }
 
-  if (!["TOTAL"].includes(earnings)) {
-    return sendErrorResponse("Invalid request.", 400);
-  }
-
-  if (Number(amount) <= 0 || Number(amount) < 200) {
-    return sendErrorResponse("Invalid request.", 400);
-  }
-
   c.set("teamMemberProfile", teamMemberProfile);
-
+  c.set("params", validate.data);
   await next();
 };
 
