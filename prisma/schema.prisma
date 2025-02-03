@@ -159,11 +159,11 @@ model alliance_top_up_request_table {
   alliance_top_up_request_date         DateTime  @default(now())
   alliance_top_up_request_status       String    @default("PENDING")
   alliance_top_up_request_type         String
-  alliance_top_up_request_bank_name    String?
   alliance_top_up_request_account      String
   alliance_top_up_request_name         String
   alliance_top_up_request_attachment   String
   alliance_top_up_request_reject_note  String?
+  alliance_top_up_request_reference_number String? @unique
 
   alliance_top_up_request_member_id    String    @db.Uuid
   alliance_top_up_request_approved_by  String?   @db.Uuid

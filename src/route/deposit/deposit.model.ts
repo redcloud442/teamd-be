@@ -8,7 +8,8 @@ export const depositPostModel = async (params: {
   publicUrl: string;
   teamMemberProfile: alliance_member_table;
 }) => {
-  const { amount, accountName, accountNumber } = params.TopUpFormValues;
+  const { amount, accountName, accountNumber, reference } =
+    params.TopUpFormValues;
 
   const { publicUrl } = params;
 
@@ -46,6 +47,7 @@ export const depositPostModel = async (params: {
         alliance_top_up_request_attachment: publicUrl,
         alliance_top_up_request_member_id:
           params.teamMemberProfile.alliance_member_id,
+        alliance_top_up_request_reference_number: reference,
       },
     });
     await tx.alliance_transaction_table.create({
@@ -449,4 +451,18 @@ export const depositListPostModel = async (
       typeof value === "bigint" ? value.toString() : value
     )
   );
+};
+
+export const depositReferencePostModel = async (params: {
+  reference: string;
+}): Promise<boolean> => {
+  const { reference } = params;
+
+  const deposit = await prisma.alliance_top_up_request_table.findFirst({
+    where: {
+      alliance_top_up_request_reference_number: reference,
+    },
+  });
+
+  return deposit ? true : false;
 };

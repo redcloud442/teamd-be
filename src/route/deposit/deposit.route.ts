@@ -4,17 +4,25 @@ import {
   depositListPostController,
   depositPostController,
   depositPutController,
+  depositReferencePostController,
 } from "./deposit.controller.js";
 import {
   depositHistoryPostMiddleware,
   depositListPostMiddleware,
   depositMiddleware,
   depositPutMiddleware,
+  depositReferenceMiddleware,
 } from "./deposit.middleware.js";
 
 const deposit = new Hono();
 
 deposit.post("/", depositMiddleware, depositPostController);
+
+deposit.post(
+  "/reference",
+  depositReferenceMiddleware,
+  depositReferencePostController
+);
 
 deposit.post(
   "/history",
