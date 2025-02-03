@@ -68,6 +68,7 @@ export const withdrawPostMiddleware = async (c: Context, next: Next) => {
 
   c.set("teamMemberProfile", teamMemberProfile);
   c.set("params", validate.data);
+
   await next();
 };
 
