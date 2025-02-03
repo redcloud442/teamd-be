@@ -9,22 +9,18 @@ import {
 
 export const withdrawPostController = async (c: Context) => {
   try {
-    const { earnings, accountNumber, accountName, amount, bank } =
-      await c.req.json();
+    const params = c.get("params");
 
     const teamMemberProfile = c.get("teamMemberProfile");
 
     await withdrawModel({
-      earnings,
-      accountNumber,
-      accountName,
-      amount,
-      bank,
+      ...params,
       teamMemberProfile,
     });
 
     return c.json({ message: "Withdrawal successful" }, 200);
   } catch (e) {
+    console.log(e);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
@@ -60,6 +56,7 @@ export const updateWithdrawPostController = async (c: Context) => {
 
     return c.json({ message: "Withdrawal updated" }, 200);
   } catch (e) {
+    console.log(e);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };

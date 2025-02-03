@@ -136,7 +136,8 @@ export const withdrawModel = async (params: {
         alliance_withdrawal_request_earnings_amount: olympusDeduction,
         alliance_withdrawal_request_referral_amount: referralDeduction,
         alliance_withdrawal_request_withdraw_type: earnings,
-        alliance_withdrawal_request_approved_by: countAllRequests[0].approverId,
+        alliance_withdrawal_request_approved_by:
+          countAllRequests[0]?.approverId,
       },
     });
 
@@ -267,7 +268,7 @@ export const updateWithdrawModel = async (params: {
     }
 
     if (
-      teamMemberProfile.alliance_member_id ===
+      teamMemberProfile.alliance_member_id !==
         existingRequest.alliance_withdrawal_request_approved_by &&
       teamMemberProfile.alliance_member_role === "ACCOUNTING"
     ) {
