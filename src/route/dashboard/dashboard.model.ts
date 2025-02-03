@@ -118,7 +118,7 @@ export const dashboardPostModel = async (params: {
 
       tx.$queryRaw`
         WITH daily_earnings AS (
-          SELECT DATE_TRUNC('day', alliance_top_up_request_date) AS date,
+          SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated) AS date,
                  SUM(COALESCE(alliance_top_up_request_amount, 0)) AS earnings
           FROM alliance_schema.alliance_top_up_request_table
           WHERE alliance_top_up_request_date_updated::date BETWEEN ${startDate} AND ${endDate}
