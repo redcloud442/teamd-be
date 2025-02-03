@@ -124,10 +124,10 @@ export const dashboardPostModel = async (params: {
           WHERE alliance_top_up_request_date::date BETWEEN ${startDate} AND ${endDate}
           AND alliance_top_up_request_status = 'APPROVED'
 
-          GROUP BY DATE_TRUNC('day', alliance_top_up_request_date)
+          GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated)
         ),
         daily_withdraw AS (
-          SELECT DATE_TRUNC('day', alliance_withdrawal_request_date) AS date,
+          SELECT DATE_TRUNC('day', alliance_withdrawal_request_date_updated) AS date,
                  SUM(COALESCE(alliance_withdrawal_request_amount, 0) - COALESCE(alliance_withdrawal_request_fee, 0)) AS withdraw
           FROM alliance_schema.alliance_withdrawal_request_table
           WHERE alliance_withdrawal_request_date::date BETWEEN ${startDate} AND ${endDate}

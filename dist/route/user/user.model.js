@@ -93,32 +93,60 @@ export const userModelPost = async (params) => {
 };
 export const userModelGet = async (params) => {
     const { memberId } = params;
-    let isWithdrawalToday = false;
-    const today = new Date().toISOString().split("T")[0];
-    const existingWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
+    let canWithdrawPackage = false;
+    let canWithdrawReferral = false;
+    let canUserDeposit = false;
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setUTCHours(23, 59, 59, 999);
+    const existingPackageWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
         where: {
             alliance_withdrawal_request_member_id: memberId,
             alliance_withdrawal_request_status: {
                 in: ["PENDING", "APPROVED"],
             },
-            AND: [
-                {
-                    alliance_withdrawal_request_date: {
-                        gte: new Date(`${today}T00:00:00Z`), // Start of the day
-                    },
-                },
-                {
-                    alliance_withdrawal_request_date: {
-                        lte: new Date(`${today}T23:59:59Z`), // End of the day
-                    },
-                },
-            ],
+            alliance_withdrawal_request_withdraw_type: "PACKAGE",
+            alliance_withdrawal_request_date: {
+                gte: todayStart, // Start of the day
+                lte: todayEnd, // End of the day
+            },
         },
     });
-    if (existingWithdrawal) {
-        isWithdrawalToday = true;
+    // Check for "REFERRAL" withdrawals
+    const existingReferralWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
+        where: {
+            alliance_withdrawal_request_member_id: memberId,
+            alliance_withdrawal_request_status: {
+                in: ["PENDING", "APPROVED"],
+            },
+            alliance_withdrawal_request_withdraw_type: "REFERRAL",
+            alliance_withdrawal_request_date: {
+                gte: todayStart, // Start of the day
+                lte: todayEnd, // End of the day
+            },
+        },
+    });
+    if (existingPackageWithdrawal !== null) {
+        canWithdrawPackage = true;
     }
-    return { isWithdrawalToday };
+    if (existingReferralWithdrawal !== null) {
+        canWithdrawReferral = true;
+    }
+    const existingDeposit = await prisma.alliance_top_up_request_table.findFirst({
+        where: {
+            alliance_top_up_request_member_id: memberId,
+            alliance_top_up_request_status: "PENDING",
+        },
+        take: 1,
+        orderBy: {
+            alliance_top_up_request_date: "desc",
+        },
+    });
+    if (existingDeposit !== null) {
+        canUserDeposit = true;
+    }
+    return { canWithdrawPackage, canWithdrawReferral, canUserDeposit };
 };
 export const userPatchModel = async (params) => {
     const { memberId, action, role } = params;

@@ -2,7 +2,7 @@ import type { Context, Next } from "hono";
 import { userOptionsPostSchema } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
-import { protectionMerchantAdmin } from "../../utils/protection.js";
+import { protectionMerchantAdminAccounting } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 import { supabaseClient } from "../../utils/supabase.js";
 
@@ -21,7 +21,10 @@ export const userOptionsPostMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse("Unauthorized", 401);
   }
 
-  const response = await protectionMerchantAdmin(user.data.user.id, prisma);
+  const response = await protectionMerchantAdminAccounting(
+    user.data.user.id,
+    prisma
+  );
 
   if (response instanceof Response) {
     return response;

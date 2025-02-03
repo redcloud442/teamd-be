@@ -40,11 +40,11 @@ export const userGetController = async (c: Context) => {
   try {
     const teamMemberProfile = c.get("teamMemberProfile");
 
-    const isWithdrawalToday = await userModelGet({
+    const data = await userModelGet({
       memberId: teamMemberProfile.alliance_member_id,
     });
 
-    return c.json(isWithdrawalToday);
+    return c.json(data, 200);
   } catch (error) {
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }

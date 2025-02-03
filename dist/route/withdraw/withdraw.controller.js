@@ -2,14 +2,10 @@ import { sendErrorResponse } from "../../utils/function.js";
 import { updateWithdrawModel, withdrawHistoryModel, withdrawListPostModel, withdrawModel, } from "./withdraw.model.js";
 export const withdrawPostController = async (c) => {
     try {
-        const { earnings, accountNumber, accountName, amount, bank } = await c.req.json();
+        const params = c.get("params");
         const teamMemberProfile = c.get("teamMemberProfile");
         await withdrawModel({
-            earnings,
-            accountNumber,
-            accountName,
-            amount,
-            bank,
+            ...params,
             teamMemberProfile,
         });
         return c.json({ message: "Withdrawal successful" }, 200);

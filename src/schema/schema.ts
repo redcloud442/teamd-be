@@ -234,7 +234,7 @@ export const merchantBankSchema = z.object({
 //withdraw schema
 
 export const withdrawPostSchema = z.object({
-  earnings: z.string(),
+  earnings: z.enum(["PACKAGE", "REFERRAL"]),
   amount: z
     .string()
     .min(3, "Minimum amount is required atleast 200 pesos")
@@ -257,8 +257,8 @@ export const withdrawHistoryPostSchema = z.object({
   limit: z.number().min(1).max(10),
   search: z.string().optional(),
   columnAccessor: z.string().min(3).optional(),
-  isAscendingSort: z.boolean().optional(),
   userId: z.string().optional(),
+  isAscendingSort: z.boolean().optional(),
 });
 
 export const updateWithdrawSchema = z.object({

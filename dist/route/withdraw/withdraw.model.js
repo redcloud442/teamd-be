@@ -6,24 +6,26 @@ export const withdrawModel = async (params) => {
     const today = new Date().toISOString().slice(0, 10);
     const startDate = new Date(`${today}T00:00:00Z`);
     const endDate = new Date(`${today}T23:59:59Z`);
-    const existingWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setUTCHours(23, 59, 59, 999);
+    // Check for "PACKAGE" withdrawals
+    const existingPackageWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
         where: {
             alliance_withdrawal_request_member_id: teamMemberProfile.alliance_member_id,
             alliance_withdrawal_request_status: {
                 in: ["PENDING", "APPROVED"],
             },
-            AND: [
-                {
-                    alliance_withdrawal_request_date: {
-                        lte: endDate,
-                        gte: startDate,
-                    },
-                },
-            ],
+            alliance_withdrawal_request_withdraw_type: earnings,
+            alliance_withdrawal_request_date: {
+                gte: todayStart, // Start of the day
+                lte: todayEnd, // End of the day
+            },
         },
     });
-    if (existingWithdrawal) {
-        throw new Error("You have already made a withdrawal today. Please try again tomorrow.");
+    if (existingPackageWithdrawal) {
+        throw new Error("You have already made a PACKAGE withdrawal today. Please try again tomorrow.");
     }
     const amountMatch = await prisma.alliance_earnings_table.findUnique({
         where: {
@@ -38,22 +40,32 @@ export const withdrawModel = async (params) => {
     if (!amountMatch || !teamMemberProfile?.alliance_member_is_active) {
         throw new Error("Invalid request.");
     }
-    const { alliance_olympus_earnings, alliance_referral_bounty, alliance_combined_earnings, } = amountMatch;
+    const { alliance_olympus_earnings, alliance_referral_bounty } = amountMatch;
     const amountValue = Math.round(Number(amount) * 100) / 100;
-    const combinedEarnings = Math.round(Number(alliance_combined_earnings) * 100) / 100;
-    if (amountValue > combinedEarnings) {
+    const earningsType = earnings === "PACKAGE"
+        ? "alliance_olympus_earnings"
+        : "alliance_referral_bounty";
+    const earningsWithdrawalType = earnings === "PACKAGE"
+        ? "alliance_withdrawal_request_earnings_amount"
+        : "alliance_withdrawal_request_referral_amount";
+    const earningsValue = Math.round(Number(earningsType) * 100) / 100;
+    if (amountValue > earningsValue) {
         throw new Error("Insufficient balance.");
     }
     let remainingAmount = Number(amount);
-    const olympusDeduction = Math.min(remainingAmount, Number(alliance_olympus_earnings));
-    remainingAmount -= olympusDeduction;
-    const referralDeduction = Math.min(remainingAmount, Number(alliance_referral_bounty));
-    remainingAmount -= referralDeduction;
+    if (earnings === "PACKAGE") {
+        const olympusDeduction = Math.min(remainingAmount, Number(alliance_olympus_earnings));
+        remainingAmount -= olympusDeduction;
+    }
+    if (earnings === "REFERRAL") {
+        const referralDeduction = Math.min(remainingAmount, Number(alliance_referral_bounty));
+        remainingAmount -= referralDeduction;
+    }
     if (remainingAmount > 0) {
         throw new Error("Invalid request.");
     }
-    const finalAmount = calculateFinalAmount(Number(amount), "TOTAL");
-    const fee = calculateFee(Number(amount), "TOTAL");
+    const finalAmount = calculateFinalAmount(Number(amount), earnings);
+    const fee = calculateFee(Number(amount), earnings);
     await prisma.$transaction(async (tx) => {
         const countAllRequests = await tx.$queryRaw `
       SELECT am.alliance_member_id AS "approverId",
@@ -79,11 +91,10 @@ export const withdrawModel = async (params) => {
                 alliance_withdrawal_request_withdraw_amount: finalAmount,
                 alliance_withdrawal_request_bank_name: accountName,
                 alliance_withdrawal_request_status: "PENDING",
+                [earningsWithdrawalType]: finalAmount,
                 alliance_withdrawal_request_member_id: teamMemberProfile.alliance_member_id,
-                alliance_withdrawal_request_earnings_amount: olympusDeduction,
-                alliance_withdrawal_request_referral_amount: referralDeduction,
                 alliance_withdrawal_request_withdraw_type: earnings,
-                alliance_withdrawal_request_approved_by: countAllRequests[0].approverId,
+                alliance_withdrawal_request_approved_by: countAllRequests[0]?.approverId ?? null,
             },
         });
         // Update the earnings
@@ -92,11 +103,8 @@ export const withdrawModel = async (params) => {
                 alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
             },
             data: {
-                alliance_olympus_earnings: {
-                    decrement: olympusDeduction,
-                },
-                alliance_referral_bounty: {
-                    decrement: referralDeduction,
+                [earningsType]: {
+                    decrement: Number(amount),
                 },
                 alliance_combined_earnings: {
                     decrement: Number(amount),
@@ -107,7 +115,7 @@ export const withdrawModel = async (params) => {
             await tx.alliance_transaction_table.create({
                 data: {
                     transaction_amount: finalAmount,
-                    transaction_description: "Withdrawal Pending",
+                    transaction_description: `Withdrawal ${earnings === "PACKAGE" ? "Package" : "Referral"} Ongoing.`,
                     transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
                     transaction_member_id: teamMemberProfile.alliance_member_id,
                 },
@@ -172,7 +180,7 @@ export const updateWithdrawModel = async (params) => {
         if (!existingRequest) {
             throw new Error("Request not found.");
         }
-        if (teamMemberProfile.alliance_member_id ===
+        if (teamMemberProfile.alliance_member_id !==
             existingRequest.alliance_withdrawal_request_approved_by &&
             teamMemberProfile.alliance_member_role === "ACCOUNTING") {
             throw new Error("You are not authorized to update this request.");
@@ -189,16 +197,16 @@ export const updateWithdrawModel = async (params) => {
             },
         });
         if (status === "REJECTED") {
+            const earningsType = updatedRequest.alliance_withdrawal_request_withdraw_type === "PACKAGE"
+                ? "alliance_olympus_earnings"
+                : "alliance_referral_bounty";
             await tx.alliance_earnings_table.update({
                 where: {
                     alliance_earnings_member_id: updatedRequest.alliance_withdrawal_request_member_id,
                 },
                 data: {
-                    alliance_referral_bounty: {
-                        increment: updatedRequest.alliance_withdrawal_request_referral_amount,
-                    },
-                    alliance_olympus_earnings: {
-                        increment: updatedRequest.alliance_withdrawal_request_earnings_amount,
+                    [earningsType]: {
+                        increment: updatedRequest.alliance_withdrawal_request_amount,
                     },
                     alliance_combined_earnings: {
                         increment: updatedRequest.alliance_withdrawal_request_amount,
