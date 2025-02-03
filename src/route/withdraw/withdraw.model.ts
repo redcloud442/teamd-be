@@ -135,9 +135,9 @@ export const withdrawModel = async (params: {
           teamMemberProfile.alliance_member_id,
         alliance_withdrawal_request_earnings_amount: olympusDeduction,
         alliance_withdrawal_request_referral_amount: referralDeduction,
-        alliance_withdrawal_request_withdraw_type: earnings,
         alliance_withdrawal_request_approved_by:
           countAllRequests[0]?.approverId,
+        alliance_withdrawal_request_withdraw_type: "TOTAL",
       },
     });
 
