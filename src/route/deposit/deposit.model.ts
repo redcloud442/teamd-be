@@ -8,7 +8,8 @@ export const depositPostModel = async (params: {
   publicUrl: string;
   teamMemberProfile: alliance_member_table;
 }) => {
-  const { amount, accountName, accountNumber } = params.TopUpFormValues;
+  const { amount, accountName, accountNumber, topUpMode } =
+    params.TopUpFormValues;
 
   const { publicUrl } = params;
 
@@ -18,8 +19,7 @@ export const depositPostModel = async (params: {
 
   const merchantData = await prisma.merchant_table.findFirst({
     where: {
-      merchant_account_name: accountName,
-      merchant_account_number: accountNumber,
+      merchant_id: topUpMode,
     },
     select: {
       merchant_account_name: true,
