@@ -12,11 +12,7 @@ export const dashboardPostModel = async (params: {
       ? new Date(dateFilter.start)
       : (() => {
           const today = new Date();
-          today.setUTCFullYear(
-            today.getUTCFullYear(),
-            today.getUTCMonth(),
-            today.getUTCDate()
-          );
+          today.setDate(today.getDate() + 1);
           today.setUTCHours(0, 0, 0, 0);
           return today;
         })();
@@ -34,11 +30,7 @@ export const dashboardPostModel = async (params: {
         })()
       : (() => {
           const end = new Date();
-          end.setUTCFullYear(
-            end.getUTCFullYear(),
-            end.getUTCMonth(),
-            end.getUTCDate()
-          );
+          end.setDate(end.getDate() + 1);
           end.setUTCHours(23, 59, 59, 999);
           return end;
         })();

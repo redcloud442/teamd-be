@@ -1,3 +1,4 @@
+import { protectionMiddleware } from "@/middleware/protection.middleware.js";
 import { Hono } from "hono";
 import {
   adminController,
@@ -19,6 +20,11 @@ auth.post("/", authMiddleware, loginController);
 
 auth.post("/securedPrime", authMiddleware, adminController);
 
-auth.post("/register", registerUserMiddleware, registerUserController);
+auth.post(
+  "/register",
+  protectionMiddleware,
+  registerUserMiddleware,
+  registerUserController
+);
 
 export default auth;
