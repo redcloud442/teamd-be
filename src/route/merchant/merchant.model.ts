@@ -43,12 +43,6 @@ export const merchantPostModel = async (params: {
   const { accountNumber, accountType, accountName } = params;
 
   const result = await prisma.$transaction(async (tx) => {
-    const merchant = await tx.merchant_table.findFirst({
-      where: { merchant_account_number: accountNumber },
-    });
-
-    if (merchant) throw new Error("Merchant already exists");
-
     return await tx.merchant_table.create({
       data: {
         merchant_account_number: accountNumber,
