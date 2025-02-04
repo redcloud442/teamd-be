@@ -7,3 +7,5 @@ export async function errorHandlerMiddleware(err: Error, c: Context) {
   pinoLogger.error(error.message, error);
   return c.json(error, { status: statusCode as any });
 }
+
+//test
