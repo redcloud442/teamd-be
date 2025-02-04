@@ -27,7 +27,7 @@ enum ReferralType {
 
 model user_table {
   user_id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_date_created     DateTime        @default(now())
+  user_date_created     DateTime        @default(now())  @db.Timestamptz(3)
   user_username         String?
   user_first_name       String?
   user_last_name        String?
@@ -42,7 +42,7 @@ model user_table {
 
 model user_history_log {
   user_history_log_id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_history_log_date_created     DateTime        @default(now())
+  user_history_log_date_created     DateTime        @default(now())  @db.Timestamptz(3)
   user_ip_address                   String
   user_history_user_id              String    @db.Uuid
 
@@ -53,7 +53,7 @@ model user_history_log {
 model alliance_table {
   alliance_id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   alliance_name             String
-  alliance_date_created     DateTime  @default(now())
+  alliance_date_created     DateTime  @default(now())  @db.Timestamptz(3)
 
   alliance_member_table     alliance_member_table[]
   @@schema("alliance_schema")
@@ -62,12 +62,12 @@ model alliance_table {
 model alliance_member_table {
   alliance_member_id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   alliance_member_role            Role      @default(MEMBER)
-  alliance_member_date_created    DateTime  @default(now())
+  alliance_member_date_created    DateTime  @default(now())  @db.Timestamptz(3)
 
   alliance_member_alliance_id     String    @db.Uuid
   alliance_member_user_id         String    @db.Uuid
   alliance_member_restricted      Boolean   @default(false)
-  alliance_member_date_updated    DateTime?
+  alliance_member_date_updated    DateTime?  @db.Timestamptz(3)
   alliance_member_is_active       Boolean   @default(false)
   user_table                      user_table            @relation(fields: [alliance_member_user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
   alliance_table                  alliance_table        @relation(fields: [alliance_member_alliance_id], references: [alliance_id], onDelete: Cascade, onUpdate: Cascade)
@@ -104,7 +104,7 @@ model alliance_referral_link_table {
 
 model alliance_referral_table {
   alliance_referral_id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  alliance_referral_date             DateTime  @default(now())
+  alliance_referral_date             DateTime  @default(now())  @db.Timestamptz(3)
 
   alliance_referral_hierarchy        String?
   alliance_referral_member_id        String    @db.Uuid
@@ -156,7 +156,7 @@ model alliance_earnings_table {
 model alliance_top_up_request_table {
   alliance_top_up_request_id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   alliance_top_up_request_amount       Float     @default(0.0)
-  alliance_top_up_request_date         DateTime  @default(now())
+  alliance_top_up_request_date         DateTime  @default(now())  @db.Timestamptz(3)
   alliance_top_up_request_status       String    @default("PENDING")
   alliance_top_up_request_type         String
   alliance_top_up_request_account      String
@@ -167,7 +167,7 @@ model alliance_top_up_request_table {
 
   alliance_top_up_request_member_id    String    @db.Uuid
   alliance_top_up_request_approved_by  String?   @db.Uuid
-  alliance_top_up_request_date_updated DateTime?
+  alliance_top_up_request_date_updated DateTime?  @db.Timestamptz(3)
 
 
   alliance_member_requestor           alliance_member_table @relation("Requestor", fields: [alliance_top_up_request_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
@@ -187,14 +187,14 @@ model alliance_withdrawal_request_table {
   alliance_withdrawal_request_earnings_amount     Float     @default(0.0)
   alliance_withdrawal_request_bank_name           String?
 
-  alliance_withdrawal_request_date      DateTime  @default(now())
+  alliance_withdrawal_request_date      DateTime  @default(now())  @db.Timestamptz(3)
   alliance_withdrawal_request_status    String    @default("APPROVED")
   alliance_withdrawal_request_account   String    @default("APPROVED")
   alliance_withdrawal_request_type      String
   alliance_withdrawal_request_withdraw_type String?
   alliance_withdrawal_request_member_id String    @db.Uuid
   alliance_withdrawal_request_approved_by  String?   @db.Uuid
-  alliance_withdrawal_request_date_updated DateTime?
+  alliance_withdrawal_request_date_updated DateTime?  @db.Timestamptz(3)
 
   alliance_withdrawal_request_reject_note  String?
 
@@ -238,12 +238,12 @@ model package_member_connection_table {
   package_member_connection_id         String   @id @default(uuid()) @db.Uuid
   package_member_package_id            String   @db.Uuid
   package_member_member_id             String   @db.Uuid
-  package_member_connection_created    DateTime @default(now())
+  package_member_connection_created    DateTime @default(now())  @db.Timestamptz(3)
   package_member_amount                Float    @default(0.0)
   package_amount_earnings              Float    @default(0.0)
   package_member_status                String
   package_member_is_ready_to_claim     Boolean  @default(false)
-  package_member_completion_date       DateTime?
+  package_member_completion_date       DateTime?  @db.Timestamptz(3)
 
   package_table       package_table       @relation(fields: [package_member_package_id], references: [package_id], onDelete: Cascade, onUpdate: Cascade)
   alliance_member_table alliance_member_table @relation(fields: [package_member_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
@@ -261,7 +261,7 @@ model package_earnings_log {
   package_member_connection_id         String   @db.Uuid
   package_member_package_id            String   @db.Uuid
   package_member_member_id             String   @db.Uuid
-  package_member_connection_created    DateTime @default(now())
+  package_member_connection_created    DateTime @default(now())  @db.Timestamptz(3)
   package_member_amount                Float    @default(0.0)
   package_member_amount_earnings       Float    @default(0.0)
   package_member_status                String
@@ -279,7 +279,7 @@ model package_earnings_log {
 
 model package_ally_bounty_log {
   package_ally_bounty_log_id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  package_ally_bounty_log_date_created    DateTime @default(now())
+  package_ally_bounty_log_date_created    DateTime @default(now())  @db.Timestamptz(3)
   package_ally_bounty_member_id           String   @db.Uuid
   package_ally_bounty_percentage          Float    @default(0.0)
   package_ally_bounty_earnings            Float    @default(0.0)
@@ -295,7 +295,7 @@ model package_ally_bounty_log {
 
 model merchant_table {
   merchant_id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  merchant_date_created     DateTime  @default(now())
+  merchant_date_created     DateTime  @default(now())  @db.Timestamptz(3)
   merchant_account_name     String
   merchant_account_number   String
   merchant_account_type     String
@@ -305,7 +305,7 @@ model merchant_table {
 
 model merchant_balance_log {
   merchant_balance_log_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  merchant_balance_log_date DateTime @default(now())
+  merchant_balance_log_date DateTime @default(now())  @db.Timestamptz(3)
   merchant_balance_log_amount Float @default(0.0)
   merchant_balance_log_user String
 
@@ -315,7 +315,7 @@ model merchant_balance_log {
 
 model merchant_member_table {
   merchant_member_id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  merchant_member_date_created     DateTime @default(now())
+  merchant_member_date_created     DateTime @default(now())  @db.Timestamptz(3)
   merchant_member_merchant_id      String   @db.Uuid
   merchant_member_balance          Float    @default(0.0)
 
@@ -331,7 +331,7 @@ model error_table {
   error_stack_trace       String
   error_stack_path        String
   error_function_name     String
-  error_date_created      DateTime     @default(now())
+  error_date_created      DateTime     @default(now())  @db.Timestamptz(3)
 
   @@schema("public")
 }

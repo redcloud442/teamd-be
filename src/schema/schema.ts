@@ -56,7 +56,6 @@ export const depositSchema = z.object({
   topUpMode: z.string().min(1, "Top up mode is required"),
   accountName: z.string().min(1, "Field is required"),
   accountNumber: z.string().min(1, "Field is required"),
-  reference: z.string().min(5, "Field is required").max(5, "Field is required"),
 });
 
 export type DepositFormValues = z.infer<typeof depositSchema>;

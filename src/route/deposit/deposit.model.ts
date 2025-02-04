@@ -8,8 +8,7 @@ export const depositPostModel = async (params: {
   publicUrl: string;
   teamMemberProfile: alliance_member_table;
 }) => {
-  const { amount, accountName, accountNumber, reference } =
-    params.TopUpFormValues;
+  const { amount, accountName, accountNumber } = params.TopUpFormValues;
 
   const { publicUrl } = params;
 
@@ -33,8 +32,21 @@ export const depositPostModel = async (params: {
     throw new Error("Invalid account name or number");
   }
 
-  if (!merchantData) {
-    throw new Error("Invalid account name or number");
+  const existingDeposit = await prisma.alliance_top_up_request_table.findFirst({
+    where: {
+      alliance_top_up_request_member_id:
+        params.teamMemberProfile.alliance_member_id,
+      alliance_top_up_request_status: "PENDING",
+    },
+    take: 1,
+
+    orderBy: {
+      alliance_top_up_request_date: "desc",
+    },
+  });
+
+  if (existingDeposit) {
+    throw new Error("You cannot make a new deposit request.");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -47,7 +59,6 @@ export const depositPostModel = async (params: {
         alliance_top_up_request_attachment: publicUrl,
         alliance_top_up_request_member_id:
           params.teamMemberProfile.alliance_member_id,
-        alliance_top_up_request_reference_number: reference,
       },
     });
     await tx.alliance_transaction_table.create({

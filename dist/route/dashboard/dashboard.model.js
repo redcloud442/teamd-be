@@ -7,7 +7,7 @@ export const dashboardPostModel = async (params) => {
             ? new Date(dateFilter.start)
             : (() => {
                 const today = new Date();
-                today.setDate(today.getDate() + 1);
+                today.setDate(today.getDate());
                 today.setUTCHours(0, 0, 0, 0);
                 return today;
             })();
@@ -20,7 +20,7 @@ export const dashboardPostModel = async (params) => {
             })()
             : (() => {
                 const end = new Date();
-                end.setDate(end.getDate() + 1);
+                end.setDate(end.getDate());
                 end.setUTCHours(23, 59, 59, 999);
                 return end;
             })();
@@ -117,6 +117,7 @@ export const dashboardPostModel = async (params) => {
             earnings: row.earnings || 0,
             withdraw: row.withdraw || 0,
         }));
+        console.log(totalEarnings._sum.alliance_top_up_request_amount);
         return {
             totalEarnings: totalEarnings._sum.alliance_top_up_request_amount || 0,
             totalWithdraw: totalWithdraw._sum.alliance_withdrawal_request_amount || 0,

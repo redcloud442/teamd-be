@@ -41,7 +41,7 @@ export const depositMiddleware = async (c: Context, next: Next) => {
 
   const { TopUpFormValues } = await c.req.json();
 
-  const { amount, topUpMode, accountName, accountNumber, reference } =
+  const { amount, topUpMode, accountName, accountNumber } =
     TopUpFormValues as unknown as {
       amount: number;
       topUpMode: string;
@@ -55,7 +55,6 @@ export const depositMiddleware = async (c: Context, next: Next) => {
     topUpMode,
     accountName,
     accountNumber,
-    reference,
   });
 
   if (!sanitizedData.success) {

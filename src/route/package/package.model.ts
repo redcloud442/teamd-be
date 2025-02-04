@@ -331,6 +331,7 @@ export const claimPackagePostModel = async (params: {
   teamMemberProfile: alliance_member_table;
 }) => {
   const { amount, earnings, packageConnectionId, teamMemberProfile } = params;
+  const currentTimestamp = new Date();
 
   await prisma.$transaction(async (tx) => {
     const packageConnection =
@@ -341,6 +342,25 @@ export const claimPackagePostModel = async (params: {
     if (!packageConnection) {
       throw new Error("Invalid request.");
     }
+
+    const startDate = new Date(
+      packageConnection.package_member_connection_created
+    );
+    const completionDate = packageConnection.package_member_completion_date
+      ? new Date(packageConnection.package_member_completion_date)
+      : null;
+
+    const elapsedTimeMs = Math.max(
+      currentTimestamp.getTime() - startDate.getTime(),
+      0
+    );
+    const totalTimeMs = completionDate
+      ? Math.max(completionDate.getTime() - startDate.getTime(), 0)
+      : 0;
+
+    let percentage =
+      totalTimeMs > 0 ? (elapsedTimeMs / totalTimeMs) * 100 : 100;
+    percentage = Math.min(percentage, 100);
 
     const packageDetails = await tx.package_table.findUnique({
       where: {
@@ -355,7 +375,10 @@ export const claimPackagePostModel = async (params: {
       throw new Error("Invalid request.");
     }
 
-    if (!packageConnection.package_member_is_ready_to_claim) {
+    if (
+      !packageConnection.package_member_is_ready_to_claim ||
+      percentage !== 100
+    ) {
       throw new Error("Invalid request. Package is not ready to claim.");
     }
 

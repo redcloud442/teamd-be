@@ -18,13 +18,12 @@ export const depositMiddleware = async (c, next) => {
         return sendErrorResponse("Too Many Requests", 429);
     }
     const { TopUpFormValues } = await c.req.json();
-    const { amount, topUpMode, accountName, accountNumber, reference } = TopUpFormValues;
+    const { amount, topUpMode, accountName, accountNumber } = TopUpFormValues;
     const sanitizedData = depositSchema.safeParse({
         amount,
         topUpMode,
         accountName,
         accountNumber,
-        reference,
     });
     if (!sanitizedData.success) {
         return sendErrorResponse("Invalid Request", 400);
