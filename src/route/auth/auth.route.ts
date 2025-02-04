@@ -1,5 +1,6 @@
-import { protectionMiddleware } from "@/middleware/protection.middleware.js";
 import { Hono } from "hono";
+import { protectionMiddleware } from "../../middleware/protection.middleware.js";
+
 import {
   adminController,
   loginController,
