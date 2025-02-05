@@ -163,7 +163,10 @@ export const packagePostModel = async (params: {
           return {
             transaction_member_id: ref.referrerId,
             transaction_amount: calculatedEarnings,
-            transaction_description: "Refer & Earn",
+            transaction_description:
+              ref.level === 1
+                ? "Direct Referral"
+                : `Multiple Referral Level ${ref.level}`,
           };
         });
 
