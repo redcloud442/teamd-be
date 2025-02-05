@@ -34,7 +34,14 @@ export const loginCheckSchema = z.object({
 
 export const registerUserSchema = z.object({
   userId: z.string().uuid(),
-  userName: z.string().min(6),
+  userName: z
+    .string()
+    .min(6, "Username must be at least 6 characters long")
+    .max(20, "Username must be at most 50 characters long")
+    .regex(
+      /^[a-zA-Z][a-zA-Z0-9._]*$/,
+      "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
+    ),
   password: z.string().min(6),
   firstName: z.string().min(2),
   lastName: z.string().min(2),
