@@ -10,7 +10,7 @@ export const dashboardPostModel = async (params: {
 
     // Define default dates using PostgreSQL-friendly format
     const startDate = dateFilter.start
-      ? new Date(dateFilter.start).toISOString().split("T")[0] + "T23:59:59Z"
+      ? new Date(dateFilter.start).toISOString().split("T")[0] + "T00:00:00Z"
       : new Date(new Date().setDate(new Date().getDate() + 1))
           .toISOString()
           .split("T")[0] + "T00:00:00Z";
