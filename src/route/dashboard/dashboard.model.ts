@@ -40,6 +40,7 @@ export const dashboardPostModel = async (params: {
       packageEarnings,
       totalActivatedUserByDate,
       totalApprovedWithdrawal,
+      totalApprovedReceipts,
       totalWithdraw,
       bountyEarnings,
       activePackageWithinTheDay,
@@ -74,6 +75,15 @@ export const dashboardPostModel = async (params: {
         where: {
           alliance_withdrawal_request_status: "APPROVED",
           alliance_withdrawal_request_date_updated: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      }),
+      tx.alliance_top_up_request_table.count({
+        where: {
+          alliance_top_up_request_status: "APPROVED",
+          alliance_top_up_request_date_updated: {
             gte: startDate,
             lte: endDate,
           },
@@ -151,8 +161,6 @@ export const dashboardPostModel = async (params: {
       withdraw: row.withdraw || 0,
     }));
 
-    console.log(totalEarnings._sum.alliance_top_up_request_amount);
-
     return {
       totalEarnings: totalEarnings._sum.alliance_top_up_request_amount || 0,
       totalWithdraw: totalWithdraw._sum.alliance_withdrawal_request_amount || 0,
@@ -162,6 +170,7 @@ export const dashboardPostModel = async (params: {
         (packageEarnings._sum.package_member_amount || 0) +
         (packageEarnings._sum.package_amount_earnings || 0),
       totalApprovedWithdrawal,
+      totalApprovedReceipts,
       totalActivatedUserByDate,
       activePackageWithinTheDay,
       chartData,

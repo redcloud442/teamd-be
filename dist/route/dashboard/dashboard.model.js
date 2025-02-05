@@ -24,7 +24,7 @@ export const dashboardPostModel = async (params) => {
                 end.setUTCHours(23, 59, 59, 999);
                 return end;
             })();
-        const [totalEarnings, packageEarnings, totalActivatedUserByDate, totalApprovedWithdrawal, totalWithdraw, bountyEarnings, activePackageWithinTheDay, chartDataRaw,] = await Promise.all([
+        const [totalEarnings, packageEarnings, totalActivatedUserByDate, totalApprovedWithdrawal, totalApprovedReceipts, totalWithdraw, bountyEarnings, activePackageWithinTheDay, chartDataRaw,] = await Promise.all([
             tx.alliance_top_up_request_table.aggregate({
                 _sum: { alliance_top_up_request_amount: true },
                 where: {
@@ -51,6 +51,15 @@ export const dashboardPostModel = async (params) => {
                 where: {
                     alliance_withdrawal_request_status: "APPROVED",
                     alliance_withdrawal_request_date_updated: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                },
+            }),
+            tx.alliance_top_up_request_table.count({
+                where: {
+                    alliance_top_up_request_status: "APPROVED",
+                    alliance_top_up_request_date_updated: {
                         gte: startDate,
                         lte: endDate,
                     },
@@ -117,7 +126,6 @@ export const dashboardPostModel = async (params) => {
             earnings: row.earnings || 0,
             withdraw: row.withdraw || 0,
         }));
-        console.log(totalEarnings._sum.alliance_top_up_request_amount);
         return {
             totalEarnings: totalEarnings._sum.alliance_top_up_request_amount || 0,
             totalWithdraw: totalWithdraw._sum.alliance_withdrawal_request_amount || 0,
@@ -126,6 +134,7 @@ export const dashboardPostModel = async (params) => {
             packageEarnings: (packageEarnings._sum.package_member_amount || 0) +
                 (packageEarnings._sum.package_amount_earnings || 0),
             totalApprovedWithdrawal,
+            totalApprovedReceipts,
             totalActivatedUserByDate,
             activePackageWithinTheDay,
             chartData,

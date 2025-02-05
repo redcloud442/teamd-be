@@ -2,15 +2,14 @@ import { Prisma } from "@prisma/client";
 import {} from "../../schema/schema.js";
 import prisma from "../../utils/prisma.js";
 export const depositPostModel = async (params) => {
-    const { amount, accountName, accountNumber } = params.TopUpFormValues;
+    const { amount, accountName, accountNumber, topUpMode } = params.TopUpFormValues;
     const { publicUrl } = params;
     if (amount.length > 7 || amount.length < 3) {
         throw new Error("Invalid amount");
     }
     const merchantData = await prisma.merchant_table.findFirst({
         where: {
-            merchant_account_name: accountName,
-            merchant_account_number: accountNumber,
+            merchant_id: topUpMode,
         },
         select: {
             merchant_account_name: true,
