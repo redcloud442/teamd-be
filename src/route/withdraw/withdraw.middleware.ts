@@ -41,11 +41,13 @@ export const withdrawPostMiddleware = async (c: Context, next: Next) => {
   const { earnings, accountNumber, accountName, amount, bank } =
     await c.req.json();
 
+  const amountWithoutCommas = amount.replace(/,/g, "");
+
   const validate = withdrawPostSchema.safeParse({
     earnings,
     accountNumber,
     accountName,
-    amount,
+    amount: amountWithoutCommas,
     bank,
   });
 
