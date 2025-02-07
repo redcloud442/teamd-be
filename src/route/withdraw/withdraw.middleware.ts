@@ -50,6 +50,7 @@ export const withdrawPostMiddleware = async (c: Context, next: Next) => {
     amount: amountWithoutCommas,
     bank,
   });
+  
 
   if (!validate.success) {
     return sendErrorResponse(validate.error.message, 400);
