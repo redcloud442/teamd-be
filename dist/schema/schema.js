@@ -183,6 +183,7 @@ export const merchantPostSchema = z.object({
     accountNumber: z.string().min(1),
     accountType: z.string().min(1),
     accountName: z.string().min(1),
+    merchantQrAttachment: z.string().min(1),
 });
 export const merchantPatchSchema = z.object({
     amount: z.number().min(1),
