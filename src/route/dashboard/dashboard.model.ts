@@ -112,7 +112,10 @@ export const dashboardPostModel = async (params: {
       }),
 
       tx.alliance_withdrawal_request_table.aggregate({
-        _sum: { alliance_withdrawal_request_amount: true },
+        _sum: {
+          alliance_withdrawal_request_amount: true,
+          alliance_withdrawal_request_fee: true,
+        },
         where: {
           alliance_withdrawal_request_status: "APPROVED",
           alliance_withdrawal_request_date_updated: {
@@ -165,7 +168,11 @@ export const dashboardPostModel = async (params: {
           SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated) AS date,
                  SUM(COALESCE(alliance_top_up_request_amount, 0)) AS earnings
           FROM alliance_schema.alliance_top_up_request_table
-          WHERE alliance_top_up_request_date_updated BETWEEN ${startDate}::timestamptz AND ${endDate}::timestamptz
+          WHERE alliance_top_up_request_date_updated BETWEEN ${new Date(
+            startDate
+          ).toISOString()}::timestamptz AND ${new Date(
+        endDate
+      ).toISOString()}::timestamptz
           AND alliance_top_up_request_status = 'APPROVED'
           GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated)
         ),
@@ -173,7 +180,11 @@ export const dashboardPostModel = async (params: {
           SELECT DATE_TRUNC('day', alliance_withdrawal_request_date_updated) AS date,
                  SUM(COALESCE(alliance_withdrawal_request_amount, 0) - COALESCE(alliance_withdrawal_request_fee, 0)) AS withdraw
           FROM alliance_schema.alliance_withdrawal_request_table
-          WHERE alliance_withdrawal_request_date_updated BETWEEN ${startDate}::timestamptz AND ${endDate}::timestamptz
+          WHERE alliance_withdrawal_request_date_updated BETWEEN ${new Date(
+            startDate
+          ).toISOString()}::timestamptz AND ${new Date(
+        endDate
+      ).toISOString()}::timestamptz
           AND alliance_withdrawal_request_status = 'APPROVED'
           GROUP BY DATE_TRUNC('day', alliance_withdrawal_request_date_updated)
         )
@@ -203,7 +214,9 @@ export const dashboardPostModel = async (params: {
 
     return {
       totalEarnings: totalEarnings._sum.alliance_top_up_request_amount || 0,
-      totalWithdraw: totalWithdraw._sum.alliance_withdrawal_request_amount || 0,
+      totalWithdraw:
+        (totalWithdraw._sum.alliance_withdrawal_request_amount || 0) -
+        (totalWithdraw._sum.alliance_withdrawal_request_fee || 0),
       directLoot,
       indirectLoot,
       packageEarnings:
