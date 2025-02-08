@@ -132,18 +132,18 @@ export const transactionSchemaPost = z.object({
 });
 //referral schema
 export const directReferralsSchemaPost = z.object({
-    page: z.string().min(1),
-    limit: z.string().min(1).max(10),
+    page: z.number().min(1),
+    limit: z.number().min(1).max(10),
     search: z.string().optional(),
     columnAccessor: z.string().min(3),
-    isAscendingSort: z.string(),
+    isAscendingSort: z.boolean(),
 });
 export const indirectReferralsSchemaPost = z.object({
-    page: z.string().min(1),
-    limit: z.string().min(1).max(10),
+    page: z.number().min(1),
+    limit: z.number().min(1).max(10),
     search: z.string().optional(),
     columnAccessor: z.string().min(3),
-    isAscendingSort: z.string(),
+    isAscendingSort: z.boolean(),
 });
 //packages schema
 export const packagePostSchema = z.object({
