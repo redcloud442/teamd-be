@@ -9,9 +9,9 @@ import route from "./route/route.js";
 const app = new Hono();
 app.use("*", supabaseMiddleware(), cors({
     origin: [
-        "https://primepinas.com",
-        "https://www.primepinas.com",
-        "http://localhost:3000",
+        process.env.NODE_ENV === "development"
+            ? "http://localhost:3000"
+            : "https://primepinas.com",
     ],
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

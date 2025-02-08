@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { getPhilippinesTime } from "../../utils/function.js";
 
 const prisma = new PrismaClient();
 
@@ -8,14 +9,15 @@ export const dashboardPostModel = async (params: {
   return await prisma.$transaction(async (tx) => {
     const { dateFilter } = params;
 
-    // Define default dates using PostgreSQL-friendly format
     const startDate = dateFilter.start
-      ? new Date(dateFilter.start).toISOString().split("T")[0] + "T00:00:00Z"
-      : new Date(new Date()).toISOString().split("T")[0] + "T00:00:00Z";
+      ? new Date(
+          getPhilippinesTime(new Date(dateFilter.start), "start")
+        ).toISOString()
+      : getPhilippinesTime(new Date(), "start");
 
     const endDate = dateFilter.end
-      ? new Date(dateFilter.end).toISOString().split("T")[0] + "T23:59:59Z"
-      : new Date(new Date()).toISOString().split("T")[0] + "T23:59:59Z";
+      ? getPhilippinesTime(new Date(dateFilter.end), "end")
+      : getPhilippinesTime(new Date(), "end");
 
     const [
       totalEarnings,
@@ -32,8 +34,14 @@ export const dashboardPostModel = async (params: {
         _sum: { alliance_top_up_request_amount: true },
         where: {
           alliance_top_up_request_date_updated: {
-            gte: startDate,
-            lte: endDate,
+            gte: getPhilippinesTime(
+              new Date(dateFilter.start || new Date()),
+              "start"
+            ),
+            lte: getPhilippinesTime(
+              new Date(dateFilter.end || new Date()),
+              "end"
+            ),
           },
           alliance_top_up_request_status: "APPROVED",
         },
@@ -43,8 +51,14 @@ export const dashboardPostModel = async (params: {
         _sum: { package_member_amount: true, package_amount_earnings: true },
         where: {
           package_member_connection_created: {
-            gte: startDate,
-            lte: endDate,
+            gte: getPhilippinesTime(
+              new Date(dateFilter.start || new Date()),
+              "start"
+            ),
+            lte: getPhilippinesTime(
+              new Date(dateFilter.end || new Date()),
+              "end"
+            ),
           },
         },
       }),
@@ -53,8 +67,14 @@ export const dashboardPostModel = async (params: {
         where: {
           alliance_member_is_active: true,
           alliance_member_date_updated: {
-            gte: startDate,
-            lte: endDate,
+            gte: getPhilippinesTime(
+              new Date(dateFilter.start || new Date()),
+              "start"
+            ),
+            lte: getPhilippinesTime(
+              new Date(dateFilter.end || new Date()),
+              "end"
+            ),
           },
         },
       }),
@@ -63,8 +83,14 @@ export const dashboardPostModel = async (params: {
         where: {
           alliance_withdrawal_request_status: "APPROVED",
           alliance_withdrawal_request_date_updated: {
-            gte: startDate,
-            lte: endDate,
+            gte: getPhilippinesTime(
+              new Date(dateFilter.start || new Date()),
+              "start"
+            ),
+            lte: getPhilippinesTime(
+              new Date(dateFilter.end || new Date()),
+              "end"
+            ),
           },
         },
       }),
@@ -73,8 +99,14 @@ export const dashboardPostModel = async (params: {
         where: {
           alliance_top_up_request_status: "APPROVED",
           alliance_top_up_request_date_updated: {
-            gte: startDate,
-            lte: endDate,
+            gte: getPhilippinesTime(
+              new Date(dateFilter.start || new Date()),
+              "start"
+            ),
+            lte: getPhilippinesTime(
+              new Date(dateFilter.end || new Date()),
+              "end"
+            ),
           },
         },
       }),
@@ -84,8 +116,14 @@ export const dashboardPostModel = async (params: {
         where: {
           alliance_withdrawal_request_status: "APPROVED",
           alliance_withdrawal_request_date_updated: {
-            gte: startDate,
-            lte: endDate,
+            gte: getPhilippinesTime(
+              new Date(dateFilter.start || new Date()),
+              "start"
+            ),
+            lte: getPhilippinesTime(
+              new Date(dateFilter.end || new Date()),
+              "end"
+            ),
           },
         },
       }),
@@ -95,8 +133,14 @@ export const dashboardPostModel = async (params: {
         _sum: { package_ally_bounty_earnings: true },
         where: {
           package_ally_bounty_log_date_created: {
-            gte: startDate,
-            lte: endDate,
+            gte: getPhilippinesTime(
+              new Date(dateFilter.start || new Date()),
+              "start"
+            ),
+            lte: getPhilippinesTime(
+              new Date(dateFilter.end || new Date()),
+              "end"
+            ),
           },
         },
       }),
@@ -104,8 +148,14 @@ export const dashboardPostModel = async (params: {
       tx.package_member_connection_table.count({
         where: {
           package_member_connection_created: {
-            gte: startDate,
-            lte: endDate,
+            gte: getPhilippinesTime(
+              new Date(dateFilter.start || new Date()),
+              "start"
+            ),
+            lte: getPhilippinesTime(
+              new Date(dateFilter.end || new Date()),
+              "end"
+            ),
           },
         },
       }),
