@@ -168,11 +168,9 @@ model alliance_top_up_request_table {
   alliance_top_up_request_member_id    String    @db.Uuid
   alliance_top_up_request_approved_by  String?   @db.Uuid
   alliance_top_up_request_date_updated DateTime?  @db.Timestamptz(3)
-
+ 
 
   alliance_member_requestor           alliance_member_table @relation("Requestor", fields: [alliance_top_up_request_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
-
-
   alliance_member_approver            alliance_member_table? @relation("Approver", fields: [alliance_top_up_request_approved_by], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@schema("alliance_schema")
@@ -211,8 +209,10 @@ model alliance_transaction_table {
   transaction_details String?
   transaction_amount Float?
   transaction_member_id String @db.Uuid
+  transaction_attachment String?
 
   alliance_member_table alliance_member_table @relation(fields: [transaction_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
 
   @@schema("alliance_schema")
 }

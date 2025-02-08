@@ -49,7 +49,7 @@ export const depositPostModel = async (params) => {
             data: {
                 transaction_amount: Number(amount),
                 transaction_description: "Deposit Pending",
-                transaction_details: `Account Name: ${accountName} | Account Number: ${accountNumber}`,
+                transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
                 transaction_member_id: params.teamMemberProfile.alliance_member_id,
             },
         });
@@ -104,6 +104,9 @@ export const depositPutModel = async (params) => {
                 transaction_details: `Account Name: ${updatedRequest.alliance_top_up_request_name}, Account Number: ${updatedRequest.alliance_top_up_request_account}`,
                 transaction_amount: updatedRequest.alliance_top_up_request_amount,
                 transaction_member_id: updatedRequest.alliance_top_up_request_member_id,
+                transaction_attachment: status === "REJECTED"
+                    ? updatedRequest.alliance_top_up_request_attachment
+                    : null,
             },
         });
         if (status === "APPROVED") {
