@@ -327,7 +327,7 @@ export const packageUpdatePutModel = async (params: {
   return updatedPackage;
 };
 
-export const claimPackagePostModel = async (params: {
+export const dzclaimPackagePostModel = async (params: {
   amount: number;
   earnings: number;
   packageConnectionId: string;

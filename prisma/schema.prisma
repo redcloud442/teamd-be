@@ -85,6 +85,7 @@ model alliance_member_table {
   package_ally_bounty_log package_ally_bounty_log[]
   package_earnings_log package_earnings_log[]
   alliance_transaction_table alliance_transaction_table[]
+  alliance_wheel_table alliance_wheel_table[]
 
   package_ally_bounty_log_from package_ally_bounty_log[] @relation("FromMember")
   @@schema("alliance_schema")
@@ -139,6 +140,7 @@ model alliance_earnings_table {
   // alliance_ally_bounty         Float    @default(0.0)
   // alliance_legion_bounty       Float    @default(0.0)
   alliance_referral_bounty     Float    @default(0.0)
+  alliance_winning_earnings    Float    @default(0.0)
   alliance_combined_earnings  Float    @default(0.0)
   alliance_earnings_member_id  String   @db.Uuid @unique
 
@@ -214,6 +216,23 @@ model alliance_transaction_table {
   alliance_member_table alliance_member_table @relation(fields: [transaction_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
 
 
+  @@schema("alliance_schema")
+}
+
+model alliance_wheel_table {
+  alliance_wheel_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_wheel_date DateTime @default(now())
+  alliance_wheel_member_id String @db.Uuid
+
+  three_referrals_count Boolean @default(false)
+  two_hundred_referrals_amount Boolean @default(false)
+  five_hundred_referrals_amount Boolean @default(false)
+  ten_direct_referrals_count Boolean @default(false)
+  two_thousand_package_plan Boolean @default(false)
+
+  spin_count Int @default(0)
+
+  alliance_member_table alliance_member_table @relation(fields: [alliance_wheel_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
   @@schema("alliance_schema")
 }
 
