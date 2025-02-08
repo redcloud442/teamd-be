@@ -350,7 +350,7 @@ export const depositListPostModel = async (
       new Date(dateFilter.end || new Date()),
       "end"
     );
-    console.log(startDate, endDate);
+
     commonConditions.push(
       Prisma.raw(
         `t.alliance_top_up_request_date_updated::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
