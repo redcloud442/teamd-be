@@ -199,16 +199,28 @@ export const dashboardPostModel = async (params: {
     `,
 
       tx.$queryRaw`
-      SELECT COUNT(DISTINCT pml.package_member_member_id) AS reinvestorsCount
-      FROM packages_schema.package_earnings_log pel
-      INNER JOIN alliance_schema.alliance_member_table am ON pel.package_member_member_id = am.alliance_member_id
-      INNER JOIN packages_schema.package_member_connection_table pml ON pel.package_member_member_id = pml.package_member_member_id
-      WHERE pml.package_member_connection_created 
-      BETWEEN ${new Date(
-        startDate || new Date()
-      ).toISOString()}::timestamptz AND ${new Date(
+          SELECT 
+        pml.package_member_member_id AS memberId,
+        pml.package_member_package_id AS newPackageId,
+        pml.package_member_connection_created AS connectionDate
+    FROM packages_schema.package_member_connection_table pml
+    WHERE pml.package_member_status = 'ACTIVE'
+    AND DATE(pml.package_member_connection_created::timestamptz) BETWEEN ${new Date(
+      startDate || new Date()
+    ).toISOString()}::timestamptz AND ${new Date(
         endDate || new Date()
       ).toISOString()}::timestamptz
+
+    AND EXISTS (
+        SELECT 1 
+        FROM packages_schema.package_earnings_log pel
+        WHERE pel.package_member_member_id = pml.package_member_member_id
+    )
+
+    AND pml.package_member_package_id NOT IN (
+        SELECT pel.package_member_package_id 
+        FROM packages_schema.package_earnings_log pel
+    )
     `,
     ]);
 
