@@ -1,3 +1,4 @@
+import { wheelGetModel } from "../wheel/wheel.model.js";
 import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userListModel, userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userSponsorModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
@@ -25,7 +26,8 @@ export const userGetController = async (c) => {
         const data = await userModelGet({
             memberId: teamMemberProfile.alliance_member_id,
         });
-        return c.json(data, 200);
+        const response = await wheelGetModel({ teamMemberProfile });
+        return c.json({ data, response }, 200);
     }
     catch (error) {
         return c.json({ error: "Internal Server Error" }, { status: 500 });

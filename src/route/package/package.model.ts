@@ -27,6 +27,7 @@ export const packagePostModel = async (params: {
         alliance_referral_bounty: true,
         alliance_olympus_earnings: true,
         alliance_combined_earnings: true,
+        alliance_winning_earnings: true,
       },
     }),
     prisma.alliance_referral_table.findFirst({
@@ -54,6 +55,7 @@ export const packagePostModel = async (params: {
     alliance_olympus_earnings,
     alliance_referral_bounty,
     alliance_combined_earnings,
+    alliance_winning_earnings,
   } = earningsData;
 
   const combinedEarnings = Number(alliance_combined_earnings.toFixed(2));
@@ -67,13 +69,15 @@ export const packagePostModel = async (params: {
     olympusWallet,
     olympusEarnings,
     referralWallet,
+    winningEarnings,
     updatedCombinedWallet,
   } = deductFromWallets(
     requestedAmount,
     combinedEarnings,
     Number(alliance_olympus_wallet),
     Number(alliance_olympus_earnings),
-    Number(alliance_referral_bounty)
+    Number(alliance_referral_bounty),
+    Number(alliance_winning_earnings)
   );
 
   const packagePercentage = new Prisma.Decimal(
@@ -126,6 +130,7 @@ export const packagePostModel = async (params: {
         alliance_olympus_wallet: olympusWallet,
         alliance_olympus_earnings: olympusEarnings,
         alliance_referral_bounty: referralWallet,
+        alliance_winning_earnings: winningEarnings,
       },
     });
 
@@ -327,7 +332,7 @@ export const packageUpdatePutModel = async (params: {
   return updatedPackage;
 };
 
-export const dzclaimPackagePostModel = async (params: {
+export const claimPackagePostModel = async (params: {
   amount: number;
   earnings: number;
   packageConnectionId: string;
@@ -575,7 +580,8 @@ function deductFromWallets(
   combinedWallet: number,
   olympusWallet: number,
   olympusEarnings: number,
-  referralWallet: number
+  referralWallet: number,
+  winningEarnings: number
 ) {
   let remaining = amount;
 
@@ -615,6 +621,16 @@ function deductFromWallets(
     }
   }
 
+  if (remaining > 0) {
+    if (winningEarnings >= remaining) {
+      winningEarnings -= remaining;
+      remaining = 0;
+    } else {
+      remaining -= winningEarnings;
+      winningEarnings = 0;
+    }
+  }
+
   // If any balance remains, throw an error
   if (remaining > 0) {
     throw new Error("Insufficient funds to complete the transaction.");
@@ -625,6 +641,7 @@ function deductFromWallets(
     olympusWallet,
     olympusEarnings,
     referralWallet,
+    winningEarnings,
     updatedCombinedWallet: combinedWallet - amount,
   };
 }

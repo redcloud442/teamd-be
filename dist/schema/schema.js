@@ -196,7 +196,7 @@ export const merchantBankSchema = z.object({
 });
 //withdraw schema
 export const withdrawPostSchema = z.object({
-    earnings: z.enum(["PACKAGE", "REFERRAL"]),
+    earnings: z.enum(["PACKAGE", "REFERRAL", "WINNING"]),
     amount: z
         .string()
         .min(2, "Minimum amount is required atleast 50 pesos")
@@ -260,4 +260,8 @@ export const leaderboardPostSchema = z.object({
 export const userOptionsPostSchema = z.object({
     page: z.number().min(1).max(10),
     limit: z.number().min(1).max(500),
+});
+//wheel schema
+export const wheelPutSchema = z.object({
+    quantity: z.number().min(1).max(100),
 });

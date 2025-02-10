@@ -203,7 +203,7 @@ export const dashboardPostModel = async (params: {
       FROM packages_schema.package_earnings_log pel
       INNER JOIN alliance_schema.alliance_member_table am ON pel.package_member_member_id = am.alliance_member_id
       INNER JOIN packages_schema.package_member_connection_table pml ON pel.package_member_member_id = pml.package_member_member_id
-      WHERE pml.package_member_connection_created 
+      WHERE pml.package_member_connection_created::timestamptz
       BETWEEN ${new Date(
         startDate || new Date()
       ).toISOString()}::timestamptz AND ${new Date(

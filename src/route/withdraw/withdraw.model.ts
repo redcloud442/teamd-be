@@ -50,7 +50,7 @@ export const withdrawModel = async (params: {
 
   if (existingPackageWithdrawal) {
     throw new Error(
-      "You have already made a PACKAGE withdrawal today. Please try again tomorrow."
+      `You have already made a ${existingPackageWithdrawal.alliance_withdrawal_request_withdraw_type} withdrawal today. Please try again tomorrow.`
     );
   }
 
@@ -62,6 +62,7 @@ export const withdrawModel = async (params: {
       alliance_olympus_earnings: true,
       alliance_referral_bounty: true,
       alliance_combined_earnings: true,
+      alliance_winning_earnings: true,
     },
   });
 
@@ -69,19 +70,27 @@ export const withdrawModel = async (params: {
     throw new Error("Invalid request.");
   }
 
-  const { alliance_olympus_earnings, alliance_referral_bounty } = amountMatch;
+  const {
+    alliance_olympus_earnings,
+    alliance_referral_bounty,
+    alliance_winning_earnings,
+  } = amountMatch;
 
   const amountValue = Math.round(Number(amount) * 100) / 100;
 
   const earningsType =
     earnings === "PACKAGE"
       ? "alliance_olympus_earnings"
-      : "alliance_referral_bounty";
+      : earnings === "REFERRAL"
+      ? "alliance_referral_bounty"
+      : "alliance_winning_earnings";
 
   const earningsWithdrawalType =
     earnings === "PACKAGE"
       ? "alliance_withdrawal_request_earnings_amount"
-      : "alliance_withdrawal_request_referral_amount";
+      : earnings === "REFERRAL"
+      ? "alliance_withdrawal_request_referral_amount"
+      : "alliance_withdrawal_request_winning_amount";
 
   const earningsValue = Math.round(Number(earningsType) * 100) / 100;
 
@@ -106,6 +115,14 @@ export const withdrawModel = async (params: {
       Number(alliance_referral_bounty)
     );
     remainingAmount -= referralDeduction;
+  }
+
+  if (earnings === "WINNING") {
+    const winningDeduction = Math.min(
+      remainingAmount,
+      Number(alliance_winning_earnings)
+    );
+    remainingAmount -= winningDeduction;
   }
 
   if (remainingAmount > 0) {
@@ -172,7 +189,11 @@ export const withdrawModel = async (params: {
         data: {
           transaction_amount: finalAmount,
           transaction_description: `Withdrawal ${
-            earnings === "PACKAGE" ? "Package" : "Referral"
+            earnings === "PACKAGE"
+              ? "Package"
+              : earnings === "REFERRAL"
+              ? "Referral"
+              : "Winning"
           } Ongoing.`,
           transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
           transaction_member_id: teamMemberProfile.alliance_member_id,

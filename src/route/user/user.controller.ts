@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { wheelGetModel } from "../wheel/wheel.model.js";
 import {
   userActiveListModel,
   userChangePasswordModel,
@@ -44,7 +45,9 @@ export const userGetController = async (c: Context) => {
       memberId: teamMemberProfile.alliance_member_id,
     });
 
-    return c.json(data, 200);
+    const response = await wheelGetModel({ teamMemberProfile });
+
+    return c.json({ data, response }, 200);
   } catch (error) {
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }

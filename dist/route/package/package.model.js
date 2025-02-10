@@ -21,6 +21,7 @@ export const packagePostModel = async (params) => {
                 alliance_referral_bounty: true,
                 alliance_olympus_earnings: true,
                 alliance_combined_earnings: true,
+                alliance_winning_earnings: true,
             },
         }),
         prisma.alliance_referral_table.findFirst({
@@ -39,13 +40,13 @@ export const packagePostModel = async (params) => {
     if (!earningsData) {
         throw new Error("Earnings record not found.");
     }
-    const { alliance_olympus_wallet, alliance_olympus_earnings, alliance_referral_bounty, alliance_combined_earnings, } = earningsData;
+    const { alliance_olympus_wallet, alliance_olympus_earnings, alliance_referral_bounty, alliance_combined_earnings, alliance_winning_earnings, } = earningsData;
     const combinedEarnings = Number(alliance_combined_earnings.toFixed(2));
     const requestedAmount = Number(amount.toFixed(2));
     if (combinedEarnings < requestedAmount) {
         throw new Error("Insufficient balance in the wallet.");
     }
-    const { olympusWallet, olympusEarnings, referralWallet, updatedCombinedWallet, } = deductFromWallets(requestedAmount, combinedEarnings, Number(alliance_olympus_wallet), Number(alliance_olympus_earnings), Number(alliance_referral_bounty));
+    const { olympusWallet, olympusEarnings, referralWallet, winningEarnings, updatedCombinedWallet, } = deductFromWallets(requestedAmount, combinedEarnings, Number(alliance_olympus_wallet), Number(alliance_olympus_earnings), Number(alliance_referral_bounty), Number(alliance_winning_earnings));
     const packagePercentage = new Prisma.Decimal(Number(packageData.package_percentage)).div(100);
     const packageAmountEarnings = new Prisma.Decimal(requestedAmount).mul(packagePercentage);
     // Generate referral chain with a capped depth
@@ -80,6 +81,7 @@ export const packagePostModel = async (params) => {
                 alliance_olympus_wallet: olympusWallet,
                 alliance_olympus_earnings: olympusEarnings,
                 alliance_referral_bounty: referralWallet,
+                alliance_winning_earnings: winningEarnings,
             },
         });
         if (referralChain.length > 0) {
@@ -397,7 +399,7 @@ function getBonusPercentage(level) {
     };
     return bonusMap[level] || 0;
 }
-function deductFromWallets(amount, combinedWallet, olympusWallet, olympusEarnings, referralWallet) {
+function deductFromWallets(amount, combinedWallet, olympusWallet, olympusEarnings, referralWallet, winningEarnings) {
     let remaining = amount;
     // Validate total funds
     if (combinedWallet < amount) {
@@ -434,6 +436,16 @@ function deductFromWallets(amount, combinedWallet, olympusWallet, olympusEarning
             referralWallet = 0;
         }
     }
+    if (remaining > 0) {
+        if (winningEarnings >= remaining) {
+            winningEarnings -= remaining;
+            remaining = 0;
+        }
+        else {
+            remaining -= winningEarnings;
+            winningEarnings = 0;
+        }
+    }
     // If any balance remains, throw an error
     if (remaining > 0) {
         throw new Error("Insufficient funds to complete the transaction.");
@@ -443,6 +455,7 @@ function deductFromWallets(amount, combinedWallet, olympusWallet, olympusEarning
         olympusWallet,
         olympusEarnings,
         referralWallet,
+        winningEarnings,
         updatedCombinedWallet: combinedWallet - amount,
     };
 }

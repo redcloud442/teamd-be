@@ -1,9 +1,9 @@
-import { directReferralsSchemaPost, indirectReferralsSchemaPost, } from "../../schema/schema.js";
+import { wheelPutSchema } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
-import { protectionAdmin, protectionMemberUser, } from "../../utils/protection.js";
+import { protectionMemberUser } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
-export const referralDirectMiddleware = async (c, next) => {
+export const wheelPostMiddleware = async (c, next) => {
     const user = c.get("user");
     const response = await protectionMemberUser(user.id, prisma);
     if (response instanceof Response) {
@@ -13,26 +13,14 @@ export const referralDirectMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:direct-get`, 50, 60);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-post`, 10, 60);
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }
-    const { page, limit, search, columnAccessor, isAscendingSort } = await c.req.json();
-    const parsedData = directReferralsSchemaPost.parse({
-        page,
-        limit,
-        search,
-        columnAccessor,
-        isAscendingSort,
-    });
-    if (!parsedData) {
-        return sendErrorResponse("Invalid data", 400);
-    }
     c.set("teamMemberProfile", teamMemberProfile);
-    c.set("params", parsedData);
     await next();
 };
-export const referralIndirectMiddleware = async (c, next) => {
+export const wheelGetMiddleware = async (c, next) => {
     const user = c.get("user");
     const response = await protectionMemberUser(user.id, prisma);
     if (response instanceof Response) {
@@ -42,28 +30,16 @@ export const referralIndirectMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:indirect-get`, 50, 60);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-get`, 10, 60);
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }
-    const { page, limit, search, columnAccessor, isAscendingSort } = await c.req.json();
-    const parsedData = indirectReferralsSchemaPost.parse({
-        page,
-        limit,
-        search,
-        columnAccessor,
-        isAscendingSort,
-    });
-    if (!parsedData) {
-        return sendErrorResponse("Invalid request", 400);
-    }
     c.set("teamMemberProfile", teamMemberProfile);
-    c.set("params", parsedData);
     await next();
 };
-export const referralTotalGetMiddleware = async (c, next) => {
+export const wheelPutMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionMemberUser(user.id, prisma);
     if (response instanceof Response) {
         return response;
     }
@@ -71,10 +47,18 @@ export const referralTotalGetMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:total-get`, 100, 60);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-put`, 10, 60);
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }
+    const { quantity } = await c.req.json();
+    const validate = wheelPutSchema.safeParse({
+        quantity,
+    });
+    if (!validate.success) {
+        return sendErrorResponse(validate.error.message, 400);
+    }
     c.set("teamMemberProfile", teamMemberProfile);
+    c.set("params", validate.data);
     await next();
 };
