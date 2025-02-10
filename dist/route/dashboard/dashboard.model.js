@@ -113,18 +113,24 @@ export const dashboardPostModel = async (params) => {
       ORDER BY date;
     `,
             tx.$queryRaw `
-      SELECT 
-        COUNT(DISTINCT pml.package_member_member_id) AS reinvestorsCount
+          SELECT 
+        pml.package_member_member_id AS memberId,
+        pml.package_member_package_id AS newPackageId,
+        pml.package_member_connection_created AS connectionDate
     FROM packages_schema.package_member_connection_table pml
-    INNER JOIN (
-        SELECT 
-            pel.package_member_member_id, 
-            MAX(pel.package_member_conneted_date_claimed) AS latest_claimed_date
+    WHERE pml.package_member_status = 'ACTIVE'
+    AND DATE(pml.package_member_connection_created::timestamptz) BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
+
+    AND EXISTS (
+        SELECT 1 
         FROM packages_schema.package_earnings_log pel
-        GROUP BY pel.package_member_member_id
-    ) latest_earnings ON pml.package_member_member_id = latest_earnings.package_member_member_id
-    WHERE pml.package_member_connection_created > latest_earnings.latest_claimed_date
-    AND DATE(pml.package_member_connection_created)::timestamptz BETWEEN ${new Date(new Date(dateFilter.start || new Date())).toISOString()}::timestamptz AND ${new Date(new Date(dateFilter.end || new Date())).toISOString()}::timestamptz;
+        WHERE pel.package_member_member_id = pml.package_member_member_id
+    )
+
+    AND pml.package_member_package_id NOT IN (
+        SELECT pel.package_member_package_id 
+        FROM packages_schema.package_earnings_log pel
+    )
     `,
         ]);
         const directLoot = bountyEarnings.find((e) => e.package_ally_bounty_type === "DIRECT")?._sum
