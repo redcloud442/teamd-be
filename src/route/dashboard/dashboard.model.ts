@@ -29,7 +29,7 @@ export const dashboardPostModel = async (params: {
       bountyEarnings,
       activePackageWithinTheDay,
       chartDataRaw,
-      reinvestorsCount,
+      data,
     ] = await Promise.all([
       tx.alliance_top_up_request_table.aggregate({
         _sum: { alliance_top_up_request_amount: true },
@@ -199,28 +199,23 @@ export const dashboardPostModel = async (params: {
     `,
 
       tx.$queryRaw`
-          SELECT 
-        pml.package_member_member_id AS memberId,
-        pml.package_member_package_id AS newPackageId,
-        pml.package_member_connection_created AS connectionDate
-    FROM packages_schema.package_member_connection_table pml
-    WHERE pml.package_member_status = 'ACTIVE'
-    AND DATE(pml.package_member_connection_created::timestamptz) BETWEEN ${new Date(
-      startDate || new Date()
-    ).toISOString()}::timestamptz AND ${new Date(
+        SELECT COUNT(DISTINCT pml.package_member_member_id) AS "reinvestorsCount"
+        FROM packages_schema.package_member_connection_table pml
+        WHERE pml.package_member_status = 'ACTIVE'
+          AND DATE(pml.package_member_connection_created::timestamptz) BETWEEN ${new Date(
+            startDate || new Date()
+          ).toISOString()}::timestamptz AND ${new Date(
         endDate || new Date()
       ).toISOString()}::timestamptz
-
-    AND EXISTS (
-        SELECT 1 
-        FROM packages_schema.package_earnings_log pel
-        WHERE pel.package_member_member_id = pml.package_member_member_id
-    )
-
-    AND pml.package_member_package_id NOT IN (
-        SELECT pel.package_member_package_id 
-        FROM packages_schema.package_earnings_log pel
-    )
+          AND EXISTS (
+            SELECT 1 
+            FROM packages_schema.package_earnings_log pel
+            WHERE pel.package_member_member_id = pml.package_member_member_id
+          )
+          AND pml.package_member_package_id NOT IN (
+            SELECT pel.package_member_package_id 
+            FROM packages_schema.package_earnings_log pel
+          )
     `,
     ]);
 
@@ -254,7 +249,7 @@ export const dashboardPostModel = async (params: {
       totalActivatedUserByDate,
       activePackageWithinTheDay,
       chartData,
-      reinvestorsCount: Number(reinvestorsCount),
+      reinvestorsCount: Number((data as any[])[0]?.reinvestorsCount || 0),
     };
   });
 };
