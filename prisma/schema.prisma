@@ -318,6 +318,8 @@ model merchant_table {
   merchant_account_name     String
   merchant_account_number   String
   merchant_account_type     String
+  merchant_qr_attachment    String?
+
 
   @@schema("merchant_schema")
 }

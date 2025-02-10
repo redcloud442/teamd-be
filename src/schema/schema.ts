@@ -229,6 +229,7 @@ export const merchantPostSchema = z.object({
   accountNumber: z.string().min(1),
   accountType: z.string().min(1),
   accountName: z.string().min(1),
+  merchantQrAttachment: z.string().min(1),
 });
 
 export const merchantPatchSchema = z.object({
@@ -248,10 +249,11 @@ export const withdrawPostSchema = z.object({
   earnings: z.enum(["PACKAGE", "REFERRAL"]),
   amount: z
     .string()
-    .min(3, "Minimum amount is required atleast 200 pesos")
-    .refine((amount) => parseInt(amount.replace(/,/g, ""), 10) >= 200, {
-      message: "Amount must be at least 200 pesos",
+    .min(2, "Minimum amount is required atleast 50 pesos")
+    .refine((amount) => parseInt(amount.replace(/,/g, ""), 10) >= 50, {
+      message: "Amount must be at least 50 pesos",
     }),
+
   bank: z.string().min(1, "Please select a bank"),
   accountName: z
     .string()

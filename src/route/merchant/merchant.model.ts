@@ -8,6 +8,7 @@ export const merchantGetModel = async () => {
         merchant_account_number: true,
         merchant_account_type: true,
         merchant_account_name: true,
+        merchant_qr_attachment: true,
       },
     });
 
@@ -39,8 +40,10 @@ export const merchantPostModel = async (params: {
   accountNumber: string;
   accountType: string;
   accountName: string;
+  merchantQrAttachment: string;
 }) => {
-  const { accountNumber, accountType, accountName } = params;
+  const { accountNumber, accountType, accountName, merchantQrAttachment } =
+    params;
 
   const result = await prisma.$transaction(async (tx) => {
     return await tx.merchant_table.create({
@@ -48,6 +51,7 @@ export const merchantPostModel = async (params: {
         merchant_account_number: accountNumber,
         merchant_account_type: accountType,
         merchant_account_name: accountName,
+        merchant_qr_attachment: merchantQrAttachment,
       },
     });
   });

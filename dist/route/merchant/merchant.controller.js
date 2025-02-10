@@ -21,8 +21,13 @@ export const merchantDeleteController = async (c) => {
 };
 export const merchantPostController = async (c) => {
     try {
-        const { accountNumber, accountType, accountName } = await c.req.json();
-        await merchantPostModel({ accountNumber, accountType, accountName });
+        const { accountNumber, accountType, accountName, merchantQrAttachment } = await c.req.json();
+        await merchantPostModel({
+            accountNumber,
+            accountType,
+            accountName,
+            merchantQrAttachment,
+        });
         return c.json({ message: "Merchant Created" });
     }
     catch (error) {

@@ -54,11 +54,12 @@ export const merchantPostMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
-    const { accountNumber, accountType, accountName } = await c.req.json();
+    const { accountNumber, accountType, accountName, merchantQrAttachment } = await c.req.json();
     const validate = await merchantPostSchema.safeParseAsync({
         accountNumber,
         accountType,
         accountName,
+        merchantQrAttachment,
     });
     if (!validate.success) {
         return sendErrorResponse("Invalid Request", 400);
