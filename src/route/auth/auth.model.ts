@@ -213,17 +213,7 @@ export const registerUserModel = async (params: {
         },
       });
 
-      await prisma.user_history_log.create({
-        data: {
-          user_ip_address: ip,
-          user_history_user_id: user.user_id,
-        },
-      }),
-        await handleReferral(
-          tx,
-          referalLink,
-          allianceMember.alliance_member_id
-        );
+      await handleReferral(tx, referalLink, allianceMember.alliance_member_id);
 
       return {
         success: true,
