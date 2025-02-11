@@ -29,7 +29,7 @@ export const dashboardPostModel = async (params: {
       bountyEarnings,
       activePackageWithinTheDay,
       chartDataRaw,
-      reinvestorsCount,
+      data,
     ] = await Promise.all([
       tx.alliance_top_up_request_table.aggregate({
         _sum: { alliance_top_up_request_amount: true },
@@ -167,7 +167,7 @@ export const dashboardPostModel = async (params: {
 
       tx.$queryRaw`
       WITH daily_earnings AS (
-        SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated) AS date,
+        SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
                SUM(COALESCE(alliance_top_up_request_amount, 0)) AS earnings
         FROM alliance_schema.alliance_top_up_request_table
         WHERE alliance_top_up_request_date_updated BETWEEN ${new Date(
@@ -176,10 +176,10 @@ export const dashboardPostModel = async (params: {
         endDate || new Date()
       ).toISOString()}::timestamptz
         AND alliance_top_up_request_status = 'APPROVED'
-        GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated)
+        GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila')
       ),
       daily_withdraw AS (
-        SELECT DATE_TRUNC('day', alliance_withdrawal_request_date_updated) AS date,
+        SELECT DATE_TRUNC('day', alliance_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
                SUM(COALESCE(alliance_withdrawal_request_amount, 0) - COALESCE(alliance_withdrawal_request_fee, 0)) AS withdraw
         FROM alliance_schema.alliance_withdrawal_request_table
         WHERE alliance_withdrawal_request_date_updated BETWEEN ${new Date(
@@ -188,7 +188,7 @@ export const dashboardPostModel = async (params: {
         endDate
       ).toISOString()}::timestamptz
         AND alliance_withdrawal_request_status = 'APPROVED'
-        GROUP BY DATE_TRUNC('day', alliance_withdrawal_request_date_updated)
+        GROUP BY DATE_TRUNC('day', alliance_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila')
       )
       SELECT COALESCE(e.date, w.date) AS date,
              COALESCE(e.earnings, 0) AS earnings,
@@ -199,16 +199,27 @@ export const dashboardPostModel = async (params: {
     `,
 
       tx.$queryRaw`
-      SELECT COUNT(DISTINCT pml.package_member_member_id) AS reinvestorsCount
-      FROM packages_schema.package_earnings_log pel
-      INNER JOIN alliance_schema.alliance_member_table am ON pel.package_member_member_id = am.alliance_member_id
-      INNER JOIN packages_schema.package_member_connection_table pml ON pel.package_member_member_id = pml.package_member_member_id
-      WHERE pml.package_member_connection_created::timestamptz
-      BETWEEN ${new Date(
+      SELECT 
+        COUNT(DISTINCT pml.package_member_member_id) AS "reinvestorsCount",
+        SUM(pml.package_member_amount) AS "totalReinvestmentAmount"
+    FROM packages_schema.package_member_connection_table pml
+    WHERE pml.package_member_status = 'ACTIVE'
+      AND DATE(pml.package_member_connection_created::timestamptz) BETWEEN ${new Date(
         startDate || new Date()
       ).toISOString()}::timestamptz AND ${new Date(
         endDate || new Date()
       ).toISOString()}::timestamptz
+      AND EXISTS (
+        SELECT 1 
+        FROM packages_schema.package_earnings_log pel
+        WHERE pel.package_member_member_id = pml.package_member_member_id
+          AND pel.package_member_connection_date_claimed <= pml.package_member_connection_created 
+      )
+      AND pml.package_member_package_id NOT IN (
+        SELECT pel.package_member_package_id 
+        FROM packages_schema.package_earnings_log pel
+        WHERE pel.package_member_connection_date_claimed < pml.package_member_connection_created
+      )
     `,
     ]);
 
@@ -242,7 +253,10 @@ export const dashboardPostModel = async (params: {
       totalActivatedUserByDate,
       activePackageWithinTheDay,
       chartData,
-      reinvestorsCount: Number(reinvestorsCount),
+      reinvestorsCount: Number((data as any[])[0]?.reinvestorsCount || 0),
+      totalReinvestmentAmount: Number(
+        (data as any[])[0]?.totalReinvestmentAmount || 0
+      ),
     };
   });
 };

@@ -110,7 +110,7 @@ export const adminModel = async (params) => {
     return { success: true };
 };
 export const registerUserModel = async (params) => {
-    const { userId, userName, password, firstName, lastName, referalLink, url } = params;
+    const { userId, userName, password, firstName, lastName, referalLink, url, ip, } = params;
     if (referalLink) {
         const DEFAULT_ALLIANCE_ID = "35f77cd9-636a-41fa-a346-9cb711e7a338";
         return await prisma.$transaction(async (tx) => {

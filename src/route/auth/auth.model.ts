@@ -153,9 +153,18 @@ export const registerUserModel = async (params: {
   lastName: string;
   referalLink: string;
   url: string;
+  ip: string;
 }) => {
-  const { userId, userName, password, firstName, lastName, referalLink, url } =
-    params;
+  const {
+    userId,
+    userName,
+    password,
+    firstName,
+    lastName,
+    referalLink,
+    url,
+    ip,
+  } = params;
 
   if (referalLink) {
     const DEFAULT_ALLIANCE_ID = "35f77cd9-636a-41fa-a346-9cb711e7a338";
@@ -212,6 +221,13 @@ export const registerUserModel = async (params: {
       };
     });
   }
+
+  await prisma.user_history_log.create({
+    data: {
+      user_ip_address: ip,
+      user_history_user_id: userId,
+    },
+  });
 };
 
 async function handleReferral(

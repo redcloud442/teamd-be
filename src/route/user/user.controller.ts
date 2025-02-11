@@ -55,10 +55,10 @@ export const userGetController = async (c: Context) => {
 
 export const userPatchController = async (c: Context) => {
   try {
-    const { action, role } = await c.req.json();
+    const { action, role, type } = await c.req.json();
     const { id } = c.req.param();
 
-    await userPatchModel({ memberId: id, action, role });
+    await userPatchModel({ memberId: id, action, role, type });
 
     return c.json({ message: "User Updated" });
   } catch (error) {

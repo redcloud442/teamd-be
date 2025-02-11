@@ -55,8 +55,9 @@ export const adminController = async (c: Context) => {
 export const registerUserController = async (c: Context) => {
   try {
     const params = c.get("params");
+    const ip = getClientIP(c.req.raw);
 
-    await registerUserModel(params);
+    await registerUserModel({ ...params, ip });
 
     return c.json({ message: "User created" }, 200);
   } catch (error) {

@@ -171,7 +171,7 @@ export const userModelGet = async (params) => {
     };
 };
 export const userPatchModel = async (params) => {
-    const { memberId, action, role } = params;
+    const { memberId, action, role, type } = params;
     if (action === "updateRole") {
         await prisma.alliance_member_table.update({
             where: { alliance_member_id: memberId },
@@ -208,10 +208,18 @@ export const userPatchModel = async (params) => {
         };
     }
     if (action === "banUser") {
-        await prisma.alliance_member_table.update({
-            where: { alliance_member_id: memberId },
-            data: { alliance_member_restricted: true },
-        });
+        if (type === "BAN") {
+            await prisma.alliance_member_table.update({
+                where: { alliance_member_id: memberId },
+                data: { alliance_member_restricted: true },
+            });
+        }
+        else if (type === "UNBAN") {
+            await prisma.alliance_member_table.update({
+                where: { alliance_member_id: memberId },
+                data: { alliance_member_restricted: false },
+            });
+        }
         return {
             success: true,
             message: "User banned successfully.",
