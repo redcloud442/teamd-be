@@ -40,10 +40,12 @@ export const adminController = async (c) => {
 export const registerUserController = async (c) => {
     try {
         const params = c.get("params");
-        await registerUserModel(params);
+        const ip = getClientIP(c.req.raw);
+        await registerUserModel({ ...params, ip });
         return c.json({ message: "User created" }, 200);
     }
     catch (error) {
+        console.log(error);
         return c.json({ message: "Error occurred" }, 500);
     }
 };

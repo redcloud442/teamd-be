@@ -10,7 +10,7 @@ export const dashboardPostModel = async (params) => {
         const endDate = dateFilter.end
             ? getPhilippinesTime(new Date(dateFilter.end), "end")
             : getPhilippinesTime(new Date(), "end");
-        const [totalEarnings, packageEarnings, totalActivatedUserByDate, totalApprovedWithdrawal, totalApprovedReceipts, totalWithdraw, bountyEarnings, activePackageWithinTheDay, chartDataRaw, reinvestorsCount,] = await Promise.all([
+        const [totalEarnings, packageEarnings, totalActivatedUserByDate, totalApprovedWithdrawal, totalApprovedReceipts, totalWithdraw, bountyEarnings, activePackageWithinTheDay, chartDataRaw, data,] = await Promise.all([
             tx.alliance_top_up_request_table.aggregate({
                 _sum: { alliance_top_up_request_amount: true },
                 where: {
@@ -150,7 +150,7 @@ export const dashboardPostModel = async (params) => {
             totalActivatedUserByDate,
             activePackageWithinTheDay,
             chartData,
-            reinvestorsCount: Number(reinvestorsCount),
+            reinvestorsCount: Number(data[0]?.reinvestorsCount || 0),
         };
     });
 };

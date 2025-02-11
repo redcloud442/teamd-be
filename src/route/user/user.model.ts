@@ -106,6 +106,7 @@ export const userModelPost = async (params: { memberId: string }) => {
       alliance_olympus_earnings: true,
       alliance_combined_earnings: true,
       alliance_referral_bounty: true,
+      alliance_winning_earnings: true,
     },
   });
 
@@ -126,6 +127,7 @@ export const userModelGet = async (params: { memberId: string }) => {
 
   let canWithdrawPackage = false;
   let canWithdrawReferral = false;
+  let canWithdrawWinning = false;
   let canUserDeposit = false;
   const todayStart = getPhilippinesTime(new Date(), "start");
 
@@ -163,12 +165,32 @@ export const userModelGet = async (params: { memberId: string }) => {
       },
     });
 
+  const existingWinningWithdrawal =
+    await prisma.alliance_withdrawal_request_table.findFirst({
+      where: {
+        alliance_withdrawal_request_member_id: memberId,
+
+        alliance_withdrawal_request_status: {
+          in: ["PENDING", "APPROVED"],
+        },
+        alliance_withdrawal_request_withdraw_type: "WINNING",
+        alliance_withdrawal_request_date: {
+          gte: getPhilippinesTime(new Date(new Date()), "start"),
+          lte: getPhilippinesTime(new Date(new Date()), "end"),
+        },
+      },
+    });
+
   if (existingPackageWithdrawal !== null) {
     canWithdrawPackage = true;
   }
 
   if (existingReferralWithdrawal !== null) {
     canWithdrawReferral = true;
+  }
+
+  if (existingWinningWithdrawal !== null) {
+    canWithdrawWinning = true;
   }
 
   const existingDeposit = await prisma.alliance_top_up_request_table.findFirst({
@@ -186,15 +208,21 @@ export const userModelGet = async (params: { memberId: string }) => {
     canUserDeposit = true;
   }
 
-  return { canWithdrawPackage, canWithdrawReferral, canUserDeposit };
+  return {
+    canWithdrawPackage,
+    canWithdrawReferral,
+    canWithdrawWinning,
+    canUserDeposit,
+  };
 };
 
 export const userPatchModel = async (params: {
   memberId: string;
   action: string;
   role: Role;
+  type: string;
 }) => {
-  const { memberId, action, role } = params;
+  const { memberId, action, role, type } = params;
 
   if (action === "updateRole") {
     await prisma.alliance_member_table.update({
@@ -237,10 +265,17 @@ export const userPatchModel = async (params: {
   }
 
   if (action === "banUser") {
-    await prisma.alliance_member_table.update({
-      where: { alliance_member_id: memberId },
-      data: { alliance_member_restricted: true },
-    });
+    if (type === "BAN") {
+      await prisma.alliance_member_table.update({
+        where: { alliance_member_id: memberId },
+        data: { alliance_member_restricted: true },
+      });
+    } else if (type === "UNBAN") {
+      await prisma.alliance_member_table.update({
+        where: { alliance_member_id: memberId },
+        data: { alliance_member_restricted: false },
+      });
+    }
 
     return {
       success: true,
