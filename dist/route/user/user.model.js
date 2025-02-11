@@ -80,7 +80,6 @@ export const userModelPost = async (params) => {
             alliance_olympus_earnings: true,
             alliance_combined_earnings: true,
             alliance_referral_bounty: true,
-            alliance_winning_earnings: true,
         },
     });
     const totalEarnings = {

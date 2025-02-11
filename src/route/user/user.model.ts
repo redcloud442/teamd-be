@@ -106,7 +106,6 @@ export const userModelPost = async (params: { memberId: string }) => {
       alliance_olympus_earnings: true,
       alliance_combined_earnings: true,
       alliance_referral_bounty: true,
-      alliance_winning_earnings: true,
     },
   });
 
