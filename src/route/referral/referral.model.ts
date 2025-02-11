@@ -275,7 +275,7 @@ export const referralTotalGetModel = async (params: {
     `;
 
     return {
-      data: result.totalamount,
+      data: result ? result.totalamount : 0,
     };
   });
 };
