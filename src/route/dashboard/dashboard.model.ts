@@ -167,7 +167,7 @@ export const dashboardPostModel = async (params: {
 
       tx.$queryRaw`
       WITH daily_earnings AS (
-        SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated) AS date,
+        SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
                SUM(COALESCE(alliance_top_up_request_amount, 0)) AS earnings
         FROM alliance_schema.alliance_top_up_request_table
         WHERE alliance_top_up_request_date_updated BETWEEN ${new Date(
@@ -176,10 +176,10 @@ export const dashboardPostModel = async (params: {
         endDate || new Date()
       ).toISOString()}::timestamptz
         AND alliance_top_up_request_status = 'APPROVED'
-        GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated)
+        GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila')
       ),
       daily_withdraw AS (
-        SELECT DATE_TRUNC('day', alliance_withdrawal_request_date_updated) AS date,
+        SELECT DATE_TRUNC('day', alliance_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
                SUM(COALESCE(alliance_withdrawal_request_amount, 0) - COALESCE(alliance_withdrawal_request_fee, 0)) AS withdraw
         FROM alliance_schema.alliance_withdrawal_request_table
         WHERE alliance_withdrawal_request_date_updated BETWEEN ${new Date(
@@ -188,7 +188,7 @@ export const dashboardPostModel = async (params: {
         endDate
       ).toISOString()}::timestamptz
         AND alliance_withdrawal_request_status = 'APPROVED'
-        GROUP BY DATE_TRUNC('day', alliance_withdrawal_request_date_updated)
+        GROUP BY DATE_TRUNC('day', alliance_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila')
       )
       SELECT COALESCE(e.date, w.date) AS date,
              COALESCE(e.earnings, 0) AS earnings,
