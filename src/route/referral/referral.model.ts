@@ -232,7 +232,6 @@ export const referralIndirectModelPost = async (params: {
       ${searchCondition}
     GROUP BY 
       pa.package_ally_bounty_from,
-
       ut.user_first_name,
       ut.user_last_name,
       ut.user_username,

@@ -9,7 +9,7 @@ export const packagePostController = async (c) => {
             packageId,
             teamMemberProfile: teamMemberProfile,
         });
-        return c.json({ message: "Package Availed" });
+        return c.json({ message: "Package Created" });
     }
     catch (error) {
         return sendErrorResponse("Internal Server Error", 500);

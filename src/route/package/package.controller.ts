@@ -9,7 +9,6 @@ import {
   packagePostModel,
   packageUpdatePutModel,
 } from "./package.model.js";
-
 export const packagePostController = async (c: Context) => {
   try {
     const { amount, packageId } = await c.req.json();
@@ -22,7 +21,7 @@ export const packagePostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
-    return c.json({ message: "Package Availed" });
+    return c.json({ message: "Package Created" });
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }
