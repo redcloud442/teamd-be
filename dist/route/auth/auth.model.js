@@ -156,6 +156,12 @@ export const registerUserModel = async (params) => {
             };
         });
     }
+    await prisma.user_history_log.create({
+        data: {
+            user_ip_address: ip,
+            user_history_user_id: userId,
+        },
+    });
 };
 async function handleReferral(tx, referalLink, allianceMemberId) {
     const referrerData = await tx.$queryRaw `

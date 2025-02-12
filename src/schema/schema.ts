@@ -307,6 +307,21 @@ export const dashboardPostSchema = z.object({
     .optional(),
 });
 
+export const withdrawHistoryReportPostSchema = z.object({
+  dateFilter: z
+    .object({
+      start: z.string().optional(),
+      end: z.string().optional(),
+    })
+    .optional(),
+});
+
+export const withdrawTotalReportPostSchema = z.object({
+  type: z.enum(["DAILY", "WEEKLY", "MONTHLY"]),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+});
+
 //leaderboard schema
 
 export const leaderboardPostSchema = z.object({

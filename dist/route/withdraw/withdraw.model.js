@@ -319,3 +319,134 @@ export const withdrawListPostModel = async (params) => {
     returnData.totalCount = statusCounts.reduce((sum, item) => sum + BigInt(item.count), BigInt(0));
     return JSON.parse(JSON.stringify(returnData, (key, value) => typeof value === "bigint" ? value.toString() : value));
 };
+export const withdrawHistoryReportPostTotalModel = async (params) => {
+    const { take, skip, type } = params;
+    const intervals = [];
+    let currentEnd = new Date(); // Start with today at 11:59 PM
+    const philippinesOffset = 8 * 60 * 60 * 1000;
+    const adjustedDate = new Date(currentEnd.getTime() + philippinesOffset);
+    adjustedDate.setUTCHours(23, 59, 59, 999);
+    // Adjust the initial end date based on the skip count
+    switch (type) {
+        case "DAILY":
+            currentEnd.setDate(currentEnd.getDate() - skip);
+            break;
+        case "WEEKLY":
+            currentEnd.setDate(currentEnd.getDate() - 7 * skip);
+            break;
+        case "MONTHLY":
+            currentEnd.setMonth(currentEnd.getMonth() - skip);
+            break;
+        default:
+            throw new Error("Invalid type provided");
+    }
+    // Step 2: Calculate intervals based on the type
+    for (let i = 0; i < take; i++) {
+        const intervalEnd = new Date(currentEnd);
+        let intervalStart = new Date(currentEnd);
+        switch (type) {
+            case "DAILY":
+                intervalStart.setDate(intervalEnd.getDate() + 1); // Same day
+                intervalStart.setHours(0, 0, 0, 0); // 12:00 AM
+                break;
+            case "WEEKLY":
+                intervalStart.setDate(intervalEnd.getDate() - 6); // Start of the week
+                intervalStart.setHours(0, 0, 0, 0); // 12:00 AM
+                break;
+            case "MONTHLY":
+                intervalStart.setDate(1); // First day of the month
+                intervalStart.setHours(0, 0, 0, 0); // 12:00 AM
+                break;
+        }
+        intervals.push({
+            start: getPhilippinesTime(intervalStart, "start"),
+            end: getPhilippinesTime(intervalEnd, "end"),
+        });
+        // Move currentEnd to the previous interval
+        switch (type) {
+            case "DAILY":
+                currentEnd.setDate(currentEnd.getDate() - 1);
+                break;
+            case "WEEKLY":
+                currentEnd.setDate(currentEnd.getDate() - 7);
+                break;
+            case "MONTHLY":
+                currentEnd.setMonth(currentEnd.getMonth() - 1);
+                currentEnd.setDate(new Date(currentEnd.getFullYear(), currentEnd.getMonth() + 1, 0).getDate()); // Last day of the month
+                break;
+        }
+        currentEnd.setHours(23, 59, 59, 999); // Set to 11:59 PM
+    }
+    const aggregatedResults = [];
+    // Step 3: Execute queries for each interval
+    for (const interval of intervals) {
+        const reportData = await prisma.$queryRaw `
+    WITH approval_summary AS (
+      SELECT 
+        t.alliance_withdrawal_request_id,
+        CASE 
+          WHEN mr.alliance_member_role = 'ADMIN' THEN 'ADMIN'
+          WHEN mt.alliance_member_role = 'ACCOUNTING' THEN 'ACCOUNTING'
+        END AS approver_role,
+        t.alliance_withdrawal_request_amount - t.alliance_withdrawal_request_fee AS net_approved_amount
+      FROM alliance_schema.alliance_withdrawal_request_table t
+      LEFT JOIN alliance_schema.alliance_member_table mt 
+        ON mt.alliance_member_id = t.alliance_withdrawal_request_approved_by
+        AND mt.alliance_member_role = 'ACCOUNTING'
+      LEFT JOIN alliance_schema.alliance_member_table mr 
+        ON mr.alliance_member_id = t.alliance_withdrawal_request_approved_by
+        AND mr.alliance_member_role = 'ADMIN'
+      WHERE t.alliance_withdrawal_request_date_updated::timestamptz BETWEEN ${interval.start}::timestamptz AND ${interval.end}::timestamptz
+        AND t.alliance_withdrawal_request_status = 'APPROVED'
+    ),
+    role_aggregates AS (
+      SELECT 
+        approver_role,
+        COUNT(*) AS total_approvals,
+        SUM(net_approved_amount) AS total_approved_amount
+      FROM approval_summary
+      GROUP BY approver_role
+    )
+
+    SELECT 
+      ${interval.start}::timestamptz AS interval_start,
+      ${interval.end}::timestamptz AS interval_end,
+      COALESCE((SELECT total_approvals FROM role_aggregates WHERE approver_role = 'ACCOUNTING'), 0) AS total_accounting_approvals,
+      COALESCE((SELECT total_approvals FROM role_aggregates WHERE approver_role = 'ADMIN'), 0) AS total_admin_approvals,
+      COALESCE((SELECT total_approved_amount FROM role_aggregates WHERE approver_role = 'ADMIN'), 0) AS total_admin_approved_amount,
+      COALESCE((SELECT total_approved_amount FROM role_aggregates WHERE approver_role = 'ACCOUNTING'), 0) AS total_accounting_approved_amount,
+      (SELECT SUM(net_approved_amount) FROM approval_summary) AS total_net_approved_amount
+  `;
+        aggregatedResults.push(reportData[0]);
+    }
+    // Step 4: Convert bigints and return the result
+    return JSON.parse(JSON.stringify(aggregatedResults, (key, value) => typeof value === "bigint" ? value.toString() : value));
+};
+export const withdrawHistoryReportPostModel = async (params) => {
+    const { dateFilter } = params;
+    const { startDate, endDate } = dateFilter;
+    const withdrawalData = await prisma.alliance_withdrawal_request_table.aggregate({
+        where: {
+            alliance_withdrawal_request_date: {
+                gte: dateFilter.startDate
+                    ? getPhilippinesTime(new Date(startDate), "start")
+                    : undefined,
+                lte: dateFilter.endDate
+                    ? getPhilippinesTime(new Date(endDate), "end")
+                    : undefined,
+            },
+            alliance_withdrawal_request_status: "APPROVED",
+        },
+        _count: true,
+        _sum: {
+            alliance_withdrawal_request_amount: true,
+            alliance_withdrawal_request_fee: true,
+        },
+    });
+    const returnData = {
+        total_request: withdrawalData._count,
+        total_amount: (withdrawalData._sum.alliance_withdrawal_request_amount || 0) -
+            (withdrawalData._sum.alliance_withdrawal_request_fee || 0),
+    };
+    return returnData;
+};
