@@ -80,6 +80,14 @@ export const depositListPostSchema = z.object({
 export const depositReferencePostSchema = z.object({
     reference: z.string().min(5, "Field is required").max(5, "Field is required"),
 });
+export const depositReportPostSchema = z.object({
+    dateFilter: z
+        .object({
+        month: z.string().optional(),
+        year: z.string().optional(),
+    })
+        .optional(),
+});
 //user schema
 export const userSchemaPut = z.object({
     email: z.string().email(),

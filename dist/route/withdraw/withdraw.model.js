@@ -322,11 +322,9 @@ export const withdrawListPostModel = async (params) => {
 export const withdrawHistoryReportPostTotalModel = async (params) => {
     const { take, skip, type } = params;
     const intervals = [];
-    let currentEnd = new Date(); // Start with today at 11:59 PM
-    const philippinesOffset = 8 * 60 * 60 * 1000;
-    const adjustedDate = new Date(currentEnd.getTime() + philippinesOffset);
-    adjustedDate.setUTCHours(23, 59, 59, 999);
-    // Adjust the initial end date based on the skip count
+    let currentEnd = new Date();
+    currentEnd.setUTCHours(23, 59, 59, 999); // Ensure the end time is 11:59:59.999 PM UTC
+    // Adjust initial end date based on skip count
     switch (type) {
         case "DAILY":
             currentEnd.setDate(currentEnd.getDate() - skip);
@@ -340,22 +338,22 @@ export const withdrawHistoryReportPostTotalModel = async (params) => {
         default:
             throw new Error("Invalid type provided");
     }
-    // Step 2: Calculate intervals based on the type
+    // Step 2: Calculate intervals based on type
     for (let i = 0; i < take; i++) {
         const intervalEnd = new Date(currentEnd);
-        let intervalStart = new Date(currentEnd);
+        const intervalStart = new Date(currentEnd);
         switch (type) {
             case "DAILY":
-                intervalStart.setDate(intervalEnd.getDate() + 1); // Same day
-                intervalStart.setHours(0, 0, 0, 0); // 12:00 AM
+                intervalStart.setDate(intervalEnd.getDate() + 1);
+                intervalStart.setHours(0, 0, 0, 0); // Start at 12:00 AM
                 break;
             case "WEEKLY":
                 intervalStart.setDate(intervalEnd.getDate() - 6); // Start of the week
-                intervalStart.setHours(0, 0, 0, 0); // 12:00 AM
+                intervalStart.setHours(0, 0, 0, 0); // Start at 12:00 AM
                 break;
             case "MONTHLY":
                 intervalStart.setDate(1); // First day of the month
-                intervalStart.setHours(0, 0, 0, 0); // 12:00 AM
+                intervalStart.setHours(0, 0, 0, 0); // Start at 12:00 AM
                 break;
         }
         intervals.push({
@@ -372,10 +370,10 @@ export const withdrawHistoryReportPostTotalModel = async (params) => {
                 break;
             case "MONTHLY":
                 currentEnd.setMonth(currentEnd.getMonth() - 1);
-                currentEnd.setDate(new Date(currentEnd.getFullYear(), currentEnd.getMonth() + 1, 0).getDate()); // Last day of the month
+                currentEnd.setDate(new Date(currentEnd.getFullYear(), currentEnd.getMonth() + 1, 0).getDate()); // Last day of the previous month
                 break;
         }
-        currentEnd.setHours(23, 59, 59, 999); // Set to 11:59 PM
+        currentEnd.setHours(23, 59, 59, 999); // Ensure end is always at 11:59:59.999 PM
     }
     const aggregatedResults = [];
     // Step 3: Execute queries for each interval
