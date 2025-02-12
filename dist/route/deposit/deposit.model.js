@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { endOfDay, parseISO, setHours, setMilliseconds, setMinutes, setSeconds, startOfMonth, } from "date-fns";
 import {} from "../../schema/schema.js";
 import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
@@ -319,4 +320,50 @@ export const depositReferencePostModel = async (params) => {
         },
     });
     return deposit ? true : false;
+};
+export const depositReportPostModel = async (params) => {
+    const { dateFilter } = params;
+    const monthYearString = `${dateFilter.year}-${dateFilter.month}-01`;
+    let startDate = startOfMonth(parseISO(monthYearString));
+    let endDate = endOfDay(new Date());
+    startDate = setHours(startDate, 2);
+    startDate = setMinutes(startDate, 1);
+    startDate = setSeconds(startDate, 0);
+    startDate = setMilliseconds(startDate, 0);
+    const selectedMonth = parseISO(monthYearString);
+    const today = new Date();
+    if (selectedMonth.getMonth() !== today.getMonth() ||
+        selectedMonth.getFullYear() !== today.getFullYear()) {
+        endDate = endOfDay(selectedMonth);
+    }
+    const depositMonthlyReport = await prisma.alliance_top_up_request_table.aggregate({
+        where: {
+            alliance_top_up_request_date_updated: {
+                gte: startDate,
+                lte: endDate,
+            },
+            alliance_top_up_request_status: "APPROVED",
+        },
+        _sum: {
+            alliance_top_up_request_amount: true,
+        },
+        _count: {
+            alliance_top_up_request_id: true,
+        },
+    });
+    const depositDailyIncome = await prisma.$queryRaw `
+    SELECT 
+      TO_CHAR(alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila', 'YYYY-MM-DD') AS date, 
+      SUM(alliance_top_up_request_amount) AS amount
+    FROM alliance_schema.alliance_top_up_request_table
+    WHERE alliance_top_up_request_date_updated BETWEEN ${startDate} AND ${endDate}
+    AND alliance_top_up_request_status = 'APPROVED'
+    GROUP BY date
+    ORDER BY date DESC
+  `;
+    return {
+        monthlyTotal: depositMonthlyReport._sum.alliance_top_up_request_amount || 0,
+        monthlyCount: depositMonthlyReport._count.alliance_top_up_request_id || 0,
+        dailyIncome: depositDailyIncome,
+    };
 };
