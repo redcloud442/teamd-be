@@ -5,8 +5,8 @@ import prisma from "../../utils/prisma.js";
 const prizes = [
   { label: 25, percentage: 5 },
   { label: 50, percentage: 4 },
-  { label: 150, percentage: 2 },
-  { label: 1000, percentage: 1 },
+  { label: 150, percentage: 1.5 },
+  { label: 1000, percentage: 0.5 },
   { label: 10000, percentage: 0.01 },
   { label: "RE-SPIN", percentage: 6 },
   { label: "NO REWARD", percentage: 10 },
@@ -190,7 +190,7 @@ export const wheelGetPackageModel = async (params: {
       }),
     ]);
 
-    if (!dailyTask || dailyTask.two_thousand_package_plan) {
+    if (!dailyTask || dailyTaskCurrentUser?.two_thousand_package_plan) {
       return { wheelLog, dailyTask };
     }
 
@@ -232,9 +232,11 @@ export const wheelGetPackageModel = async (params: {
       }
     }
 
+    console.log(dailyTaskCurrentUser);
+
     if (
-      dailyTask.five_hundred_referrals_amount &&
-      !dailyTask.two_thousand_package_plan
+      dailyTaskCurrentUser?.five_hundred_referrals_amount &&
+      !dailyTaskCurrentUser.two_thousand_package_plan
     ) {
       const packagePlanAmount =
         await tx.package_member_connection_table.aggregate({
@@ -279,7 +281,10 @@ export const wheelGetPackageModel = async (params: {
     if (wheelLog) {
       const updatedWheel = await tx.alliance_wheel_table.update({
         where: {
-          alliance_wheel_id: dailyTask.alliance_wheel_id,
+          alliance_wheel_id:
+            totalIncrement === 25
+              ? dailyTaskCurrentUser?.alliance_wheel_id
+              : dailyTask.alliance_wheel_id,
         },
         data: {
           alliance_wheel_date_updated: currentDate,
@@ -296,7 +301,7 @@ export const wheelGetPackageModel = async (params: {
         },
       });
 
-      return { updatedWheel, wheelLog };
+      return { dailyTask: updatedWheel, wheelLog };
     }
   });
 };
