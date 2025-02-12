@@ -548,126 +548,151 @@ export const withdrawHistoryReportPostTotalModel = async (params: {
   type: string;
 }) => {
   const { take, skip, type } = params;
-  const intervals = [];
-  let currentEnd = new Date();
-  currentEnd.setUTCHours(23, 59, 59, 999); // Ensure the end time is 11:59:59.999 PM UTC
 
-  // Adjust initial end date based on skip count
-  switch (type) {
-    case "DAILY":
-      currentEnd.setDate(currentEnd.getDate() - skip);
-      break;
-    case "WEEKLY":
-      currentEnd.setDate(currentEnd.getDate() - 7 * skip);
-      break;
-    case "MONTHLY":
-      currentEnd.setMonth(currentEnd.getMonth() - skip);
-      break;
-    default:
-      throw new Error("Invalid type provided");
-  }
-
-  // Step 2: Calculate intervals based on type
-  for (let i = 0; i < take; i++) {
-    const intervalEnd = new Date(currentEnd);
-    const intervalStart = new Date(currentEnd);
-
+  // Helper function to adjust the date based on the type and skip count
+  const adjustDate = (date: Date, type: string, skip: number): Date => {
+    const adjustedDate = new Date(date);
     switch (type) {
       case "DAILY":
-        intervalStart.setDate(intervalEnd.getDate() + 1);
-        intervalStart.setHours(0, 0, 0, 0); // Start at 12:00 AM
+        adjustedDate.setDate(adjustedDate.getDate() - skip);
         break;
       case "WEEKLY":
-        intervalStart.setDate(intervalEnd.getDate() - 6); // Start of the week
-        intervalStart.setHours(0, 0, 0, 0); // Start at 12:00 AM
+        adjustedDate.setDate(adjustedDate.getDate() - 7 * skip);
         break;
       case "MONTHLY":
-        intervalStart.setDate(1); // First day of the month
-        intervalStart.setHours(0, 0, 0, 0); // Start at 12:00 AM
+        adjustedDate.setMonth(adjustedDate.getMonth() - skip);
+        adjustedDate.setDate(1); // Set to the first day of the month
         break;
+      default:
+        throw new Error("Invalid type provided");
     }
+    return adjustedDate;
+  };
 
-    intervals.push({
-      start: getPhilippinesTime(intervalStart, "start"),
-      end: getPhilippinesTime(intervalEnd, "end"),
-    });
+  const generateIntervals = (type: string, take: number, currentEnd: Date) => {
+    const intervals = [];
+    for (let i = 0; i < take; i++) {
+      const intervalEnd = new Date(currentEnd);
+      let intervalStart = new Date(currentEnd);
 
-    // Move currentEnd to the previous interval
-    switch (type) {
-      case "DAILY":
-        currentEnd.setDate(currentEnd.getDate() - 1);
-        break;
-      case "WEEKLY":
-        currentEnd.setDate(currentEnd.getDate() - 7);
-        break;
-      case "MONTHLY":
-        currentEnd.setMonth(currentEnd.getMonth() - 1);
-        currentEnd.setDate(
-          new Date(
-            currentEnd.getFullYear(),
-            currentEnd.getMonth() + 1,
-            0
-          ).getDate()
-        ); // Last day of the previous month
-        break;
+      switch (type) {
+        case "DAILY":
+          intervalStart.setDate(intervalStart.getDate() - 1); // Shift back one full day
+          break;
+        case "WEEKLY":
+          intervalStart.setDate(intervalStart.getDate() - 8);
+          break;
+        case "MONTHLY":
+          intervalStart.setMonth(intervalStart.getMonth() - 1);
+          intervalStart.setDate(1);
+          break;
+      }
+
+      intervalStart.setUTCHours(16, 1, 1, 1); // 12:01:01 AM PH Time (UTC+8)
+      intervalEnd.setUTCHours(15, 59, 59, 999); // 11:59:59.999 PM PH Time (UTC+8)
+
+      intervals.push({
+        start: intervalStart.toISOString(),
+        end: intervalEnd.toISOString(),
+      });
+
+      // Move `currentEnd` backward for the next iteration
+      switch (type) {
+        case "DAILY":
+          currentEnd.setDate(currentEnd.getDate() - 1);
+          break;
+        case "WEEKLY":
+          currentEnd.setDate(currentEnd.getDate() - 7);
+          break;
+        case "MONTHLY":
+          currentEnd.setMonth(currentEnd.getMonth() - 1);
+          currentEnd.setDate(1);
+          break;
+      }
+      currentEnd.setUTCHours(15, 59, 59, 999); // Maintain PH Time format
     }
-    currentEnd.setHours(23, 59, 59, 999); // Ensure end is always at 11:59:59.999 PM
-  }
+    return intervals;
+  };
 
-  const aggregatedResults = [];
-
-  // Step 3: Execute queries for each interval
-  for (const interval of intervals) {
+  // Helper function to execute the query for each interval
+  const executeQuery = async (interval: { start: Date; end: Date }) => {
     const reportData: {
-      interval_start: Date;
-      interval_end: Date;
+      interval_start: string;
+      interval_end: string;
       total_accounting_approvals: number;
       total_admin_approvals: number;
       total_admin_approved_amount: number;
       total_accounting_approved_amount: number;
       total_net_approved_amount: number;
     }[] = await prisma.$queryRaw`
-    WITH approval_summary AS (
+      WITH approval_summary AS (
+        SELECT 
+          t.alliance_withdrawal_request_id,
+          CASE 
+            WHEN mr.alliance_member_role = 'ADMIN' THEN 'ADMIN'
+            WHEN mt.alliance_member_role = 'ACCOUNTING' THEN 'ACCOUNTING'
+          END AS approver_role,
+          t.alliance_withdrawal_request_amount - t.alliance_withdrawal_request_fee AS net_approved_amount
+        FROM alliance_schema.alliance_withdrawal_request_table t
+        LEFT JOIN alliance_schema.alliance_member_table mt 
+          ON mt.alliance_member_id = t.alliance_withdrawal_request_approved_by
+          AND mt.alliance_member_role = 'ACCOUNTING'
+        LEFT JOIN alliance_schema.alliance_member_table mr 
+          ON mr.alliance_member_id = t.alliance_withdrawal_request_approved_by
+          AND mr.alliance_member_role = 'ADMIN'
+        WHERE t.alliance_withdrawal_request_date_updated::timestamptz BETWEEN ${interval.start}::timestamptz AND ${interval.end}::timestamptz
+          AND t.alliance_withdrawal_request_status = 'APPROVED'
+      ),
+      role_aggregates AS (
+        SELECT 
+          approver_role,
+          COUNT(*) AS total_approvals,
+          SUM(net_approved_amount) AS total_approved_amount
+        FROM approval_summary
+        GROUP BY approver_role
+      )
+
       SELECT 
-        t.alliance_withdrawal_request_id,
-        CASE 
-          WHEN mr.alliance_member_role = 'ADMIN' THEN 'ADMIN'
-          WHEN mt.alliance_member_role = 'ACCOUNTING' THEN 'ACCOUNTING'
-        END AS approver_role,
-        t.alliance_withdrawal_request_amount - t.alliance_withdrawal_request_fee AS net_approved_amount
-      FROM alliance_schema.alliance_withdrawal_request_table t
-      LEFT JOIN alliance_schema.alliance_member_table mt 
-        ON mt.alliance_member_id = t.alliance_withdrawal_request_approved_by
-        AND mt.alliance_member_role = 'ACCOUNTING'
-      LEFT JOIN alliance_schema.alliance_member_table mr 
-        ON mr.alliance_member_id = t.alliance_withdrawal_request_approved_by
-        AND mr.alliance_member_role = 'ADMIN'
-      WHERE t.alliance_withdrawal_request_date_updated::timestamptz BETWEEN ${interval.start}::timestamptz AND ${interval.end}::timestamptz
-        AND t.alliance_withdrawal_request_status = 'APPROVED'
-    ),
-    role_aggregates AS (
-      SELECT 
-        approver_role,
-        COUNT(*) AS total_approvals,
-        SUM(net_approved_amount) AS total_approved_amount
-      FROM approval_summary
-      GROUP BY approver_role
+        ${interval.start} AS interval_start,
+        ${interval.end} AS interval_end,
+        COALESCE((SELECT total_approvals FROM role_aggregates WHERE approver_role = 'ACCOUNTING'), 0) AS total_accounting_approvals,
+        COALESCE((SELECT total_approvals FROM role_aggregates WHERE approver_role = 'ADMIN'), 0) AS total_admin_approvals,
+        COALESCE((SELECT total_approved_amount FROM role_aggregates WHERE approver_role = 'ADMIN'), 0) AS total_admin_approved_amount,
+        COALESCE((SELECT total_approved_amount FROM role_aggregates WHERE approver_role = 'ACCOUNTING'), 0) AS total_accounting_approved_amount,
+        COALESCE((SELECT SUM(net_approved_amount) FROM approval_summary), 0) AS total_net_approved_amount
+    `;
+
+    return (
+      reportData[0] || {
+        interval_start: interval.start,
+        interval_end: interval.end,
+        total_accounting_approvals: 0,
+        total_admin_approvals: 0,
+        total_admin_approved_amount: 0,
+        total_accounting_approved_amount: 0,
+        total_net_approved_amount: 0,
+      }
+    );
+  };
+
+  // Main logic
+  let currentEnd = new Date();
+  currentEnd.setDate(currentEnd.getDate() + 1);
+  currentEnd.setUTCHours(23, 59, 59, 999); // Set time to 11:59:59.999 PM
+
+  currentEnd = adjustDate(currentEnd, type, skip);
+  const intervals = generateIntervals(type, take, currentEnd);
+  console.log(intervals);
+  const aggregatedResults = await Promise.all(
+    intervals.map((interval) =>
+      executeQuery({
+        start: new Date(interval.start),
+        end: new Date(interval.end),
+      })
     )
+  );
 
-    SELECT 
-      ${interval.start}::timestamptz AS interval_start,
-      ${interval.end}::timestamptz AS interval_end,
-      COALESCE((SELECT total_approvals FROM role_aggregates WHERE approver_role = 'ACCOUNTING'), 0) AS total_accounting_approvals,
-      COALESCE((SELECT total_approvals FROM role_aggregates WHERE approver_role = 'ADMIN'), 0) AS total_admin_approvals,
-      COALESCE((SELECT total_approved_amount FROM role_aggregates WHERE approver_role = 'ADMIN'), 0) AS total_admin_approved_amount,
-      COALESCE((SELECT total_approved_amount FROM role_aggregates WHERE approver_role = 'ACCOUNTING'), 0) AS total_accounting_approved_amount,
-      (SELECT SUM(net_approved_amount) FROM approval_summary) AS total_net_approved_amount
-  `;
-
-    aggregatedResults.push(reportData[0]);
-  }
-
-  // Step 4: Convert bigints and return the result
+  // Convert `bigint` to string
   return JSON.parse(
     JSON.stringify(aggregatedResults, (key, value) =>
       typeof value === "bigint" ? value.toString() : value
