@@ -566,14 +566,9 @@ export const withdrawHistoryReportPostTotalModel = async (params: {
         break;
     }
 
-    // Convert to Philippines Time (UTC+8)
-    const philippinesOffset = 8 * 60 * 60 * 1000;
-    intervalStart.setTime(intervalStart.getTime() + philippinesOffset);
-    intervalEnd.setTime(intervalEnd.getTime() + philippinesOffset);
-
     intervals.push({
-      start: intervalStart.toISOString(),
-      end: intervalEnd.toISOString(),
+      start: getPhilippinesTime(intervalStart, "start"),
+      end: getPhilippinesTime(intervalEnd, "end"),
     });
 
     // Move currentEnd to the previous interval
