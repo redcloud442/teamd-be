@@ -557,7 +557,7 @@ export const withdrawHistoryReportPostTotalModel = async (params: {
 
     switch (type) {
       case "DAILY":
-        intervalStart.setDate(intervalEnd.getDate() + 1); // Same day
+        intervalStart.setDate(intervalEnd.getDate()); // Same day
         intervalStart.setHours(0, 0, 0, 0); // 12:00 AM
         break;
       case "WEEKLY":
