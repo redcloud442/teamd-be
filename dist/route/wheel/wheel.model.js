@@ -1,6 +1,5 @@
 import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
-import { redis } from "../../utils/redis.js";
 const prizes = [
     { label: 25, percentage: 5 },
     { label: 50, percentage: 4 },
@@ -110,163 +109,177 @@ export const wheelPostModel = async (params) => {
     });
     return response;
 };
-export const wheelGetModel = async (params) => {
+export const wheelGetPackageModel = async (params) => {
     const { teamMemberProfile } = params;
-    const cacheKey = `wheel-${teamMemberProfile.alliance_member_id}`;
-    const cachedData = await redis.get(cacheKey);
-    if (cachedData) {
-        return cachedData;
+    const currentDate = new Date();
+    const startOfDay = getPhilippinesTime(currentDate, "start");
+    const endOfDay = getPhilippinesTime(currentDate, "end");
+    const dailyTaskCurrentUser = await prisma.alliance_wheel_table.findFirst({
+        where: {
+            alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
+            alliance_wheel_date: { gte: startOfDay, lte: endOfDay },
+        },
+    });
+    if (dailyTaskCurrentUser?.two_thousand_package_plan) {
+        const wheelLog = await prisma.alliance_wheel_log_table.findFirst({
+            where: { alliance_wheel_member_id: teamMemberProfile.alliance_member_id },
+        });
+        return { wheelLog, dailyTask: dailyTaskCurrentUser };
+    }
+    const sponsor = await prisma.alliance_referral_table.findFirst({
+        where: {
+            alliance_referral_member_id: teamMemberProfile.alliance_member_id,
+        },
+        select: { alliance_referral_from_member_id: true },
+    });
+    if (!sponsor) {
+        throw new Error("Sponsor not found.");
     }
     return await prisma.$transaction(async (tx) => {
-        let wheelLog = await tx.alliance_wheel_log_table.upsert({
+        const [wheelLog, dailyTask] = await Promise.all([
+            tx.alliance_wheel_log_table.findFirst({
+                where: {
+                    alliance_wheel_member_id: sponsor.alliance_referral_from_member_id ?? "",
+                },
+                select: { alliance_wheel_spin_count: true },
+            }),
+            tx.alliance_wheel_table.findFirst({
+                where: {
+                    alliance_wheel_member_id: sponsor.alliance_referral_from_member_id ?? "",
+                    alliance_wheel_date: { gte: startOfDay, lte: endOfDay },
+                },
+                select: {
+                    alliance_wheel_id: true,
+                    alliance_wheel_date_updated: true,
+                    two_thousand_package_plan: true,
+                    three_referrals_count: true,
+                    ten_direct_referrals_count: true,
+                    two_hundred_referrals_amount: true,
+                    five_hundred_referrals_amount: true,
+                },
+                orderBy: { alliance_wheel_date: "desc" },
+                take: 1,
+            }),
+        ]);
+        if (!dailyTask || dailyTask.two_thousand_package_plan) {
+            return { wheelLog, dailyTask };
+        }
+        const updatedGteDate = dailyTask.alliance_wheel_date_updated || startOfDay;
+        const spinIncrements = [];
+        let columnToUpdate = {};
+        if (dailyTask.three_referrals_count &&
+            !dailyTask.two_hundred_referrals_amount) {
+            const referralEarnings200 = await fetchReferralEarnings(tx, sponsor.alliance_referral_from_member_id ?? "", new Date(updatedGteDate), new Date(endOfDay), 200);
+            if (referralEarnings200) {
+                spinIncrements.push(4);
+                columnToUpdate.two_hundred_referrals_amount = true;
+            }
+        }
+        if (dailyTask.two_hundred_referrals_amount &&
+            !dailyTask.five_hundred_referrals_amount) {
+            const referralEarnings500 = await fetchReferralEarnings(tx, sponsor.alliance_referral_from_member_id ?? "", new Date(updatedGteDate), new Date(endOfDay), 500);
+            if (referralEarnings500) {
+                spinIncrements.push(4);
+                columnToUpdate.five_hundred_referrals_amount = true;
+            }
+        }
+        if (dailyTask.five_hundred_referrals_amount &&
+            !dailyTask.two_thousand_package_plan) {
+            const packagePlanAmount = await tx.package_member_connection_table.aggregate({
+                where: {
+                    package_member_member_id: teamMemberProfile.alliance_member_id,
+                    package_member_connection_created: {
+                        gte: updatedGteDate,
+                        lte: endOfDay,
+                    },
+                },
+                _sum: { package_member_amount: true },
+            });
+            if (packagePlanAmount._sum.package_member_amount &&
+                packagePlanAmount._sum.package_member_amount > 2500) {
+                spinIncrements.push(25);
+                columnToUpdate.two_thousand_package_plan = true;
+            }
+        }
+        if (spinIncrements.length === 0) {
+            return { wheelLog, dailyTask };
+        }
+        const totalIncrement = spinIncrements.reduce((sum, increment) => sum + increment, 0);
+        await tx.alliance_wheel_log_table.update({
+            where: {
+                alliance_wheel_member_id: totalIncrement === 25
+                    ? teamMemberProfile.alliance_member_id
+                    : sponsor.alliance_referral_from_member_id ?? "",
+            },
+            data: { alliance_wheel_spin_count: { increment: totalIncrement } },
+        });
+        if (wheelLog) {
+            const updatedWheel = await tx.alliance_wheel_table.update({
+                where: {
+                    alliance_wheel_id: dailyTask.alliance_wheel_id,
+                },
+                data: {
+                    alliance_wheel_date_updated: currentDate,
+                    ...columnToUpdate,
+                },
+                select: {
+                    alliance_wheel_id: true,
+                    alliance_wheel_date_updated: true,
+                    two_thousand_package_plan: true,
+                    three_referrals_count: true,
+                    ten_direct_referrals_count: true,
+                    two_hundred_referrals_amount: true,
+                    five_hundred_referrals_amount: true,
+                },
+            });
+            return { updatedWheel, wheelLog };
+        }
+    });
+};
+export const wheelGetModel = async (params) => {
+    const { teamMemberProfile } = params;
+    const currentDate = new Date();
+    const startOfDay = getPhilippinesTime(currentDate, "start");
+    const endOfDay = getPhilippinesTime(currentDate, "end");
+    return await prisma.$transaction(async (tx) => {
+        let wheelLog = await tx.alliance_wheel_log_table.findFirst({
             where: {
                 alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
-            },
-            update: {},
-            create: {
-                alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
-                alliance_wheel_spin_count: 0,
             },
             select: {
                 alliance_wheel_spin_count: true,
             },
         });
-        const [dailyTask] = await Promise.all([
-            tx.alliance_wheel_table.findFirst({
-                where: {
-                    alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
-                    alliance_wheel_date: {
-                        gte: getPhilippinesTime(new Date(), "start"),
-                        lte: getPhilippinesTime(new Date(), "end"),
-                    },
-                },
-                select: {
-                    alliance_wheel_id: true,
-                    two_thousand_package_plan: true,
-                    three_referrals_count: true,
-                    ten_direct_referrals_count: true,
-                    two_hundred_referrals_amount: true,
-                    five_hundred_referrals_amount: true,
-                },
-                orderBy: {
-                    alliance_wheel_date: "desc",
-                },
-                take: 1,
-            }) ??
-                tx.alliance_wheel_table.create({
-                    data: {
-                        alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
-                    },
-                }),
-        ]);
-        const packagePlanAmount = (await prisma.package_member_connection_table.aggregate({
-            where: {
-                package_member_connection_id: teamMemberProfile.alliance_member_id,
-                package_member_connection_created: {
-                    gte: getPhilippinesTime(new Date(), "start"),
-                    lte: getPhilippinesTime(new Date(), "end"),
-                },
-            },
-            _sum: {
-                package_member_amount: true,
-            },
-        }))._sum?.package_member_amount ?? 0;
-        const spinIncrements = [];
-        if (packagePlanAmount > 2500 && !dailyTask?.two_thousand_package_plan) {
-            await tx.alliance_wheel_table.update({
-                where: {
-                    alliance_wheel_id: dailyTask?.alliance_wheel_id,
-                },
+        if (!wheelLog) {
+            wheelLog = await tx.alliance_wheel_log_table.create({
                 data: {
-                    two_thousand_package_plan: true,
+                    alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
                 },
             });
-            spinIncrements.push(25);
         }
-        // Count referrals for the current day
-        const referralCount = await prisma.alliance_referral_table.count({
+        let dailyTask = await tx.alliance_wheel_table.findFirst({
             where: {
-                alliance_referral_from_member_id: teamMemberProfile.alliance_member_id,
-                alliance_referral_date: {
-                    gte: getPhilippinesTime(new Date(), "start"),
-                    lte: getPhilippinesTime(new Date(), "end"),
+                alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
+                alliance_wheel_date: {
+                    gte: startOfDay,
+                    lte: endOfDay,
                 },
             },
         });
-        if (referralCount > 3 && !dailyTask?.three_referrals_count) {
-            await tx.alliance_wheel_table.update({
-                where: {
-                    alliance_wheel_id: dailyTask?.alliance_wheel_id,
-                },
+        if (!dailyTask) {
+            dailyTask = await tx.alliance_wheel_table.create({
                 data: {
-                    three_referrals_count: true,
-                },
-            });
-            spinIncrements.push(2);
-        }
-        if (referralCount > 10 && !dailyTask?.ten_direct_referrals_count) {
-            await tx.alliance_wheel_table.update({
-                where: {
-                    alliance_wheel_id: dailyTask?.alliance_wheel_id,
-                },
-                data: {
-                    ten_direct_referrals_count: true,
-                },
-            });
-            spinIncrements.push(20);
-        }
-        const referralEarnings = (await prisma.package_ally_bounty_log.aggregate({
-            where: {
-                package_ally_bounty_member_id: teamMemberProfile.alliance_member_id,
-                package_ally_bounty_log_date_created: {
-                    gte: getPhilippinesTime(new Date(), "start"),
-                    lte: getPhilippinesTime(new Date(), "end"),
-                },
-            },
-            _sum: {
-                package_ally_bounty_earnings: true,
-            },
-        }))._sum?.package_ally_bounty_earnings ?? 0;
-        if (referralEarnings > 200 && !dailyTask?.two_hundred_referrals_amount) {
-            await tx.alliance_wheel_table.update({
-                where: {
-                    alliance_wheel_id: dailyTask?.alliance_wheel_id,
-                },
-                data: {
-                    two_hundred_referrals_amount: true,
-                },
-            });
-            spinIncrements.push(4);
-        }
-        if (referralEarnings > 500 && !dailyTask?.five_hundred_referrals_amount) {
-            await tx.alliance_wheel_table.update({
-                where: {
-                    alliance_wheel_id: dailyTask?.alliance_wheel_id,
-                },
-                data: {
-                    five_hundred_referrals_amount: true,
-                },
-            });
-            spinIncrements.push(10);
-        }
-        if (spinIncrements.length > 0) {
-            const totalIncrement = spinIncrements.reduce((sum, increment) => sum + increment, 0);
-            await tx.alliance_wheel_log_table.update({
-                where: {
                     alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
-                },
-                data: {
-                    alliance_wheel_spin_count: {
-                        increment: totalIncrement,
-                    },
+                    alliance_wheel_date: new Date(),
+                    three_referrals_count: false,
+                    two_hundred_referrals_amount: false,
+                    five_hundred_referrals_amount: false,
+                    ten_direct_referrals_count: false,
+                    two_thousand_package_plan: false,
                 },
             });
         }
-        const returnData = {
-            wheelLog,
-            dailyTask,
-        };
-        await redis.set(cacheKey, JSON.stringify(dailyTask));
+        const returnData = { wheelLog, dailyTask };
         return returnData;
     });
 };
@@ -384,3 +397,13 @@ function deductFromWallets(amount, combinedWallet, olympusWallet, olympusEarning
         updatedCombinedWallet: combinedWallet - amount,
     };
 }
+const fetchReferralEarnings = async (tx, memberId, gteDate, lteDate, threshold) => {
+    const earnings = (await tx.package_ally_bounty_log.aggregate({
+        where: {
+            package_ally_bounty_member_id: memberId,
+            package_ally_bounty_log_date_created: { gte: gteDate, lte: lteDate },
+        },
+        _sum: { package_ally_bounty_earnings: true },
+    }))._sum?.package_ally_bounty_earnings ?? 0;
+    return earnings >= threshold;
+};

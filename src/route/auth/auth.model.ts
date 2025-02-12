@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { sendErrorResponse } from "../../utils/function.js";
+import { getPhilippinesTime, sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 
 export const loginModel = async (params: {
@@ -284,4 +284,89 @@ async function handleReferral(
       alliance_referral_hierarchy: newHierarchy,
     },
   });
+
+  const currentDate = new Date();
+  const startOfDay = getPhilippinesTime(currentDate, "start");
+  const endOfDay = getPhilippinesTime(currentDate, "end");
+
+  let wheel = await tx.alliance_wheel_table.findFirst({
+    where: {
+      alliance_wheel_member_id: referrerMemberId,
+      alliance_wheel_date: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+    },
+    select: {
+      alliance_wheel_id: true,
+      alliance_wheel_date_updated: true,
+      three_referrals_count: true,
+      ten_direct_referrals_count: true,
+      five_hundred_referrals_amount: true,
+    },
+  });
+
+  if (!wheel) {
+    wheel = await tx.alliance_wheel_table.create({
+      data: {
+        alliance_wheel_member_id: referrerMemberId,
+        alliance_wheel_date: currentDate,
+      },
+      select: {
+        alliance_wheel_id: true,
+        alliance_wheel_date_updated: true,
+        three_referrals_count: true,
+        ten_direct_referrals_count: true,
+        five_hundred_referrals_amount: true,
+      },
+    });
+  }
+
+  const referralsCount = await tx.alliance_referral_table.count({
+    where: {
+      alliance_referral_from_member_id: referrerMemberId,
+      alliance_referral_date: {
+        gte: wheel.alliance_wheel_date_updated
+          ? wheel.alliance_wheel_date_updated
+          : startOfDay,
+        lte: endOfDay,
+      },
+    },
+  });
+
+  if (referralsCount >= 3 && !wheel.three_referrals_count) {
+    await tx.alliance_wheel_table.update({
+      where: { alliance_wheel_id: wheel.alliance_wheel_id },
+      data: {
+        alliance_wheel_date_updated: currentDate,
+        three_referrals_count: true,
+      },
+    });
+    await tx.alliance_wheel_log_table.update({
+      where: { alliance_wheel_member_id: referrerMemberId },
+      data: {
+        alliance_wheel_spin_count: { increment: 4 },
+      },
+    });
+  }
+
+  if (
+    referralsCount >= 10 &&
+    wheel.five_hundred_referrals_amount &&
+    !wheel.ten_direct_referrals_count
+  ) {
+    await tx.alliance_wheel_table.update({
+      where: { alliance_wheel_id: wheel.alliance_wheel_id },
+      data: {
+        alliance_wheel_date_updated: currentDate,
+        ten_direct_referrals_count: true,
+      },
+    });
+    await tx.alliance_wheel_log_table.update({
+      where: { alliance_wheel_member_id: referrerMemberId },
+      data: {
+        alliance_wheel_spin_count: { increment: 10 },
+      },
+    });
+  }
 }

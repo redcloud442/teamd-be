@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { sendErrorResponse } from "../../utils/function.js";
+import { wheelGetPackageModel } from "../wheel/wheel.model.js";
 import {
   claimPackagePostModel,
   packageCreatePostModel,
@@ -9,7 +10,6 @@ import {
   packagePostModel,
   packageUpdatePutModel,
 } from "./package.model.js";
-
 export const packagePostController = async (c: Context) => {
   try {
     const { amount, packageId } = await c.req.json();
@@ -22,8 +22,11 @@ export const packagePostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
-    return c.json({ message: "Package Availed" });
+    const data = await wheelGetPackageModel({ teamMemberProfile });
+
+    return c.json(data, 200);
   } catch (error) {
+    console.log(error);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };

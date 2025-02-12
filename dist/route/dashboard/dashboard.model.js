@@ -10,11 +10,7 @@ export const dashboardPostModel = async (params) => {
         const endDate = dateFilter.end
             ? getPhilippinesTime(new Date(dateFilter.end), "end")
             : getPhilippinesTime(new Date(), "end");
-<<<<<<< HEAD
-        const [totalEarnings, packageEarnings, totalActivatedUserByDate, totalApprovedWithdrawal, totalApprovedReceipts, totalWithdraw, bountyEarnings, activePackageWithinTheDay, chartDataRaw, reinvestorsCount,] = await Promise.all([
-=======
         const [totalEarnings, packageEarnings, totalActivatedUserByDate, totalApprovedWithdrawal, totalApprovedReceipts, totalWithdraw, bountyEarnings, activePackageWithinTheDay, chartDataRaw, data,] = await Promise.all([
->>>>>>> 334b80ff1be7cdd503b31097e0bc1721c02828d0
             tx.alliance_top_up_request_table.aggregate({
                 _sum: { alliance_top_up_request_amount: true },
                 where: {
@@ -94,35 +90,20 @@ export const dashboardPostModel = async (params) => {
             }),
             tx.$queryRaw `
       WITH daily_earnings AS (
-<<<<<<< HEAD
-        SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated) AS date,
-=======
         SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
->>>>>>> 334b80ff1be7cdd503b31097e0bc1721c02828d0
                SUM(COALESCE(alliance_top_up_request_amount, 0)) AS earnings
         FROM alliance_schema.alliance_top_up_request_table
         WHERE alliance_top_up_request_date_updated BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
         AND alliance_top_up_request_status = 'APPROVED'
-<<<<<<< HEAD
-        GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated)
-      ),
-      daily_withdraw AS (
-        SELECT DATE_TRUNC('day', alliance_withdrawal_request_date_updated) AS date,
-=======
         GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila')
       ),
       daily_withdraw AS (
         SELECT DATE_TRUNC('day', alliance_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
->>>>>>> 334b80ff1be7cdd503b31097e0bc1721c02828d0
                SUM(COALESCE(alliance_withdrawal_request_amount, 0) - COALESCE(alliance_withdrawal_request_fee, 0)) AS withdraw
         FROM alliance_schema.alliance_withdrawal_request_table
         WHERE alliance_withdrawal_request_date_updated BETWEEN ${new Date(startDate).toISOString()}::timestamptz AND ${new Date(endDate).toISOString()}::timestamptz
         AND alliance_withdrawal_request_status = 'APPROVED'
-<<<<<<< HEAD
-        GROUP BY DATE_TRUNC('day', alliance_withdrawal_request_date_updated)
-=======
         GROUP BY DATE_TRUNC('day', alliance_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila')
->>>>>>> 334b80ff1be7cdd503b31097e0bc1721c02828d0
       )
       SELECT COALESCE(e.date, w.date) AS date,
              COALESCE(e.earnings, 0) AS earnings,
@@ -132,14 +113,6 @@ export const dashboardPostModel = async (params) => {
       ORDER BY date;
     `,
             tx.$queryRaw `
-<<<<<<< HEAD
-      SELECT COUNT(DISTINCT pml.package_member_member_id) AS reinvestorsCount
-      FROM packages_schema.package_earnings_log pel
-      INNER JOIN alliance_schema.alliance_member_table am ON pel.package_member_member_id = am.alliance_member_id
-      INNER JOIN packages_schema.package_member_connection_table pml ON pel.package_member_member_id = pml.package_member_member_id
-      WHERE pml.package_member_connection_created::timestamptz
-      BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
-=======
       SELECT 
         COUNT(DISTINCT pml.package_member_member_id) AS "reinvestorsCount",
         SUM(pml.package_member_amount) AS "totalReinvestmentAmount"
@@ -157,7 +130,6 @@ export const dashboardPostModel = async (params) => {
         FROM packages_schema.package_earnings_log pel
         WHERE pel.package_member_connection_date_claimed < pml.package_member_connection_created
       )
->>>>>>> 334b80ff1be7cdd503b31097e0bc1721c02828d0
     `,
         ]);
         const directLoot = bountyEarnings.find((e) => e.package_ally_bounty_type === "DIRECT")?._sum
@@ -182,12 +154,8 @@ export const dashboardPostModel = async (params) => {
             totalActivatedUserByDate,
             activePackageWithinTheDay,
             chartData,
-<<<<<<< HEAD
-            reinvestorsCount: Number(reinvestorsCount),
-=======
             reinvestorsCount: Number(data[0]?.reinvestorsCount || 0),
             totalReinvestmentAmount: Number(data[0]?.totalReinvestmentAmount || 0),
->>>>>>> 334b80ff1be7cdd503b31097e0bc1721c02828d0
         };
     });
 };

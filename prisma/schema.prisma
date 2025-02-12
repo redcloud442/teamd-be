@@ -225,7 +225,7 @@ model alliance_transaction_table {
 
 model alliance_wheel_table {
   alliance_wheel_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  alliance_wheel_date DateTime @default(now())
+  alliance_wheel_date DateTime @default(now()) @db.Timestamptz(3)
   alliance_wheel_member_id String @db.Uuid
 
   three_referrals_count Boolean @default(false)
@@ -234,16 +234,25 @@ model alliance_wheel_table {
   ten_direct_referrals_count Boolean @default(false)
   two_thousand_package_plan Boolean @default(false)
 
+  alliance_wheel_date_updated DateTime? @db.Timestamptz(3)
+
   alliance_member_table alliance_member_table @relation(fields: [alliance_wheel_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Composite unique constraint on date and member_id
+  @@unique([alliance_wheel_date, alliance_wheel_member_id])
+
   @@schema("alliance_schema")
 }
+
 
 model alliance_wheel_log_table {
   alliance_wheel_log_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   alliance_wheel_spin_count Int @default(0)
-  alliance_wheel_member_id String @db.Uuid @unique
+  alliance_wheel_member_id String @db.Uuid 
 
   alliance_member_table alliance_member_table @relation(fields: [alliance_wheel_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([alliance_wheel_member_id])
   @@schema("alliance_schema")
 }
 
@@ -264,7 +273,7 @@ model package_table {
 }
 
 model package_member_connection_table {
-  package_member_connection_id         String   @id @default(uuid()) @db.Uuid
+  package_member_connection_id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   package_member_package_id            String   @db.Uuid
   package_member_member_id             String   @db.Uuid
   package_member_connection_created    DateTime @default(now())  @db.Timestamptz(3)
@@ -294,6 +303,7 @@ model package_earnings_log {
   package_member_amount                Float    @default(0.0)
   package_member_amount_earnings       Float    @default(0.0)
   package_member_status                String
+  package_member_connection_date_claimed DateTime @default(now()) @db.Timestamptz(3)
 
   package_table                       package_table       @relation(fields: [package_member_package_id], references: [package_id], onDelete: Cascade, onUpdate: Cascade)
   alliance_member_table               alliance_member_table @relation(fields: [package_member_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
