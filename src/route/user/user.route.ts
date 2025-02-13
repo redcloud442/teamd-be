@@ -5,6 +5,7 @@ import {
   userGenerateLinkController,
   userGetController,
   userListController,
+  userListReinvestedController,
   userPatchController,
   userPostController,
   userProfilePutController,
@@ -17,6 +18,7 @@ import {
   userGenerateLinkMiddleware,
   userGetMiddleware,
   userListMiddleware,
+  userListReinvestedMiddleware,
   userPatchMiddleware,
   userPostMiddleware,
   userProfilePutMiddleware,
@@ -46,6 +48,12 @@ user.post(
   "/generate-link",
   userGenerateLinkMiddleware,
   userGenerateLinkController
+);
+
+user.post(
+  "/list/reinvested",
+  userListReinvestedMiddleware,
+  userListReinvestedController
 );
 
 user.post("/sponsor", userSponsorMiddleware, userSponsorController);
