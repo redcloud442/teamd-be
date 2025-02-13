@@ -199,27 +199,30 @@ export const dashboardPostModel = async (params: {
     `,
 
       tx.$queryRaw`
-      SELECT 
+        SELECT 
         COUNT(DISTINCT pml.package_member_member_id) AS "reinvestorsCount",
         SUM(pml.package_member_amount) AS "totalReinvestmentAmount"
     FROM packages_schema.package_member_connection_table pml
     WHERE pml.package_member_status = 'ACTIVE'
-      AND DATE(pml.package_member_connection_created::timestamptz) BETWEEN ${new Date(
-        startDate || new Date()
-      ).toISOString()}::timestamptz AND ${new Date(
+        AND pml.package_member_connection_created
+        BETWEEN ${new Date(
+          startDate || new Date()
+        ).toISOString()}::timestamptz AND ${new Date(
         endDate || new Date()
       ).toISOString()}::timestamptz
-      AND EXISTS (
-        SELECT 1 
-        FROM packages_schema.package_earnings_log pel
-        WHERE pel.package_member_member_id = pml.package_member_member_id
-          AND pel.package_member_connection_date_claimed <= pml.package_member_connection_created 
-      )
-      AND pml.package_member_package_id NOT IN (
-        SELECT pel.package_member_package_id 
-        FROM packages_schema.package_earnings_log pel
-        WHERE pel.package_member_connection_date_claimed < pml.package_member_connection_created
-      )
+          AND (
+                pml.package_member_connection_created > (
+                    SELECT MAX(past_pml.package_member_connection_created)
+                    FROM packages_schema.package_member_connection_table past_pml
+                    WHERE past_pml.package_member_member_id = pml.package_member_member_id
+                )
+                OR EXISTS (
+                    SELECT 1 
+                    FROM packages_schema.package_member_connection_table past_pml
+                    WHERE past_pml.package_member_member_id = pml.package_member_member_id
+                      AND past_pml.package_member_status = 'ENDED'
+                )
+            )
     `,
     ]);
 
