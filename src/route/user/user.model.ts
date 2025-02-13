@@ -560,3 +560,124 @@ export const userChangePasswordModel = async (params: {
     });
   });
 };
+
+export const userListReinvestedModel = async (params: {
+  dateFilter: {
+    start: string;
+    end: string;
+  };
+  take: number;
+  skip: number;
+}) => {
+  const { dateFilter, take, skip } = params;
+
+  const offset = (skip - 1) * take;
+
+  const startDate = dateFilter.start
+    ? new Date(
+        getPhilippinesTime(new Date(dateFilter.start), "start")
+      ).toISOString()
+    : getPhilippinesTime(new Date(), "start");
+
+  const endDate = dateFilter.end
+    ? getPhilippinesTime(new Date(dateFilter.end), "end")
+    : getPhilippinesTime(new Date(), "end");
+
+  const data: {
+    package_member_member_id: string;
+    package_member_amount: number;
+    package_member_connection_created: Date;
+    package_member_status: string;
+    user_username: string;
+    user_first_name: string;
+    user_last_name: string;
+  }[] = await prisma.$queryRaw`
+        SELECT 
+          pml.package_member_member_id,
+          pml.package_member_amount,
+          pml.package_member_connection_created,
+          pml.package_member_status,
+          u.user_username,
+          u.user_first_name,
+          u.user_last_name
+      FROM packages_schema.package_member_connection_table pml
+      JOIN packages_schema.package_earnings_log pol
+          ON pol.package_member_member_id = pml.package_member_member_id
+      JOIN alliance_schema.alliance_member_table am 
+          ON am.alliance_member_id = pml.package_member_member_id
+      JOIN user_schema.user_table u 
+          ON u.user_id = am.alliance_member_user_id
+      WHERE pml.package_member_status = 'ACTIVE' AND pml.package_member_connection_created::timestamptz
+          BETWEEN ${new Date(
+            startDate || new Date()
+          ).toISOString()}::timestamptz AND ${new Date(
+    endDate || new Date()
+  ).toISOString()}::timestamptz
+  AND (
+        pol.package_member_connection_date_claimed > (
+            SELECT MAX(past_pml.package_member_connection_created)
+            FROM packages_schema.package_member_connection_table past_pml
+            WHERE past_pml.package_member_member_id = pml.package_member_member_id
+        )
+        OR EXISTS (
+            SELECT 1 
+            FROM packages_schema.package_member_connection_table past_pml
+            WHERE past_pml.package_member_member_id = pml.package_member_member_id
+              AND past_pml.package_member_status = 'ENDED'
+        )
+    )
+      GROUP BY 
+          pml.package_member_member_id, 
+          pml.package_member_amount, 
+          pml.package_member_connection_created, 
+          pml.package_member_status,
+          u.user_username, 
+          u.user_first_name, 
+          u.user_last_name
+      ORDER BY pml.package_member_connection_created DESC
+      LIMIT ${take}
+      OFFSET ${offset}
+`;
+  const totalCount: { count: number }[] = await prisma.$queryRaw`
+      SELECT COUNT(*)::INTEGER AS count
+      FROM (
+          SELECT 
+              pml.package_member_member_id
+          FROM packages_schema.package_member_connection_table pml
+          JOIN alliance_schema.alliance_member_table am 
+              ON am.alliance_member_id = pml.package_member_member_id
+          JOIN user_schema.user_table u 
+              ON u.user_id = am.alliance_member_user_id
+          WHERE pml.package_member_status = 'ACTIVE'
+            AND pml.package_member_connection_created::timestamptz
+          BETWEEN ${new Date(
+            startDate || new Date()
+          ).toISOString()}::timestamptz AND ${new Date(
+    endDate || new Date()
+  ).toISOString()}::timestamptz
+            AND (
+                pml.package_member_connection_created > (
+                    SELECT MAX(past_pml.package_member_connection_created)
+                    FROM packages_schema.package_member_connection_table past_pml
+                    WHERE past_pml.package_member_member_id = pml.package_member_member_id
+                )
+                OR EXISTS (
+                    SELECT 1 
+                    FROM packages_schema.package_member_connection_table past_pml
+                    WHERE past_pml.package_member_member_id = pml.package_member_member_id
+                      AND past_pml.package_member_status = 'ENDED'
+                )
+            )
+          GROUP BY 
+            pml.package_member_member_id, 
+            pml.package_member_amount, 
+            pml.package_member_connection_created, 
+            pml.package_member_status,
+            u.user_username, 
+            u.user_first_name, 
+            u.user_last_name
+      ) AS total_count
+  `;
+
+  return { data, totalCount: Number(totalCount[0]?.count ?? 0) };
+};

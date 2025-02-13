@@ -2,6 +2,7 @@ import type { Context, Next } from "hono";
 import {
   userChangePasswordSchema,
   userGenerateLinkSchema,
+  userListReinvestedSchema,
   userListSchema,
   userProfileSchemaPatch,
   userSchemaPatch,
@@ -434,6 +435,48 @@ export const userChangePasswordMiddleware = async (c: Context, next: Next) => {
   }
 
   c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", validate.data);
+
+  await next();
+};
+
+export const userListReinvestedMiddleware = async (c: Context, next: Next) => {
+  const user = c.get("user");
+
+  const response = await protectionAdmin(user.id, prisma);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-list-reinvested`,
+    50,
+    60
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
+
+  const { dateFilter, take, skip } = await c.req.json();
+
+  const validate = userListReinvestedSchema.safeParse({
+    dateFilter,
+    take,
+    skip,
+  });
+
+  if (!validate.success) {
+    return sendErrorResponse("Invalid Request", 400);
+  }
+
   c.set("params", validate.data);
 
   await next();

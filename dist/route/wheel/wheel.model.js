@@ -1,29 +1,25 @@
 import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 const prizes = [
-    { label: 25, percentage: 5 },
-    { label: 50, percentage: 4 },
-    { label: 150, percentage: 2 },
-    { label: 1000, percentage: 1 },
-    { label: 10000, percentage: 0.01 },
-    { label: "RE-SPIN", percentage: 6 },
-    { label: "NO REWARD", percentage: 10 },
+    { label: 25, percentage: 15 }, // Common
+    { label: 50, percentage: 12 },
+    { label: 150, percentage: 5 },
+    { label: 1000, percentage: 1.9 }, // Slightly lower
+    { label: 10000, percentage: 0.1 }, // Very rare
+    { label: "RE-SPIN", percentage: 25 },
+    { label: "NO REWARD", percentage: 41 }, // Adjusted to make sum 100
 ];
 function getRandomPrize() {
     const totalPercentage = prizes.reduce((sum, prize) => sum + prize.percentage, 0);
-    const normalizedPrizes = prizes.map((prize) => ({
-        ...prize,
-        normalizedPercentage: prize.percentage / totalPercentage,
-    }));
-    const random = Math.random();
     let cumulativeProbability = 0;
-    for (const prize of normalizedPrizes) {
-        cumulativeProbability += prize.normalizedPercentage;
+    const random = Math.random() * totalPercentage; // Scale random number to total percentage
+    for (const prize of prizes) {
+        cumulativeProbability += prize.percentage;
         if (random <= cumulativeProbability) {
             return prize;
         }
     }
-    return normalizedPrizes[normalizedPrizes.length - 1];
+    return prizes[prizes.length - 1]; // Fallback
 }
 export const wheelPostModel = async (params) => {
     const { teamMemberProfile } = params;
@@ -161,7 +157,7 @@ export const wheelGetPackageModel = async (params) => {
                 take: 1,
             }),
         ]);
-        if (!dailyTask || dailyTask.two_thousand_package_plan) {
+        if (!dailyTask || dailyTaskCurrentUser?.two_thousand_package_plan) {
             return { wheelLog, dailyTask };
         }
         const updatedGteDate = dailyTask.alliance_wheel_date_updated || startOfDay;
@@ -183,8 +179,9 @@ export const wheelGetPackageModel = async (params) => {
                 columnToUpdate.five_hundred_referrals_amount = true;
             }
         }
-        if (dailyTask.five_hundred_referrals_amount &&
-            !dailyTask.two_thousand_package_plan) {
+        console.log(dailyTaskCurrentUser);
+        if (dailyTaskCurrentUser?.five_hundred_referrals_amount &&
+            !dailyTaskCurrentUser.two_thousand_package_plan) {
             const packagePlanAmount = await tx.package_member_connection_table.aggregate({
                 where: {
                     package_member_member_id: teamMemberProfile.alliance_member_id,
@@ -216,7 +213,9 @@ export const wheelGetPackageModel = async (params) => {
         if (wheelLog) {
             const updatedWheel = await tx.alliance_wheel_table.update({
                 where: {
-                    alliance_wheel_id: dailyTask.alliance_wheel_id,
+                    alliance_wheel_id: totalIncrement === 25
+                        ? dailyTaskCurrentUser?.alliance_wheel_id
+                        : dailyTask.alliance_wheel_id,
                 },
                 data: {
                     alliance_wheel_date_updated: currentDate,
@@ -232,7 +231,7 @@ export const wheelGetPackageModel = async (params) => {
                     five_hundred_referrals_amount: true,
                 },
             });
-            return { updatedWheel, wheelLog };
+            return { dailyTask: updatedWheel, wheelLog };
         }
     });
 };

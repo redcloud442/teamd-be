@@ -5,6 +5,7 @@ import {
   userChangePasswordModel,
   userGenerateLinkModel,
   userListModel,
+  userListReinvestedModel,
   userModelGet,
   userModelPost,
   userModelPut,
@@ -136,6 +137,18 @@ export const userChangePasswordController = async (c: Context) => {
     await userChangePasswordModel(params);
 
     return c.json({ message: "Password Updated" });
+  } catch (error) {
+    return c.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+};
+
+export const userListReinvestedController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const data = await userListReinvestedModel(params);
+
+    return c.json(data, 200);
   } catch (error) {
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }

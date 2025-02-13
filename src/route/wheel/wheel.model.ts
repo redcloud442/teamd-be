@@ -3,13 +3,13 @@ import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 
 const prizes = [
-  { label: 25, percentage: 5 },
-  { label: 50, percentage: 4 },
-  { label: 150, percentage: 1.5 },
-  { label: 1000, percentage: 0.5 },
-  { label: 10000, percentage: 0.01 },
-  { label: "RE-SPIN", percentage: 6 },
-  { label: "NO REWARD", percentage: 10 },
+  { label: 25, percentage: 15 }, // Common
+  { label: 50, percentage: 12 },
+  { label: 150, percentage: 5 },
+  { label: 1000, percentage: 1.9 }, // Slightly lower
+  { label: 10000, percentage: 0.1 }, // Very rare
+  { label: "RE-SPIN", percentage: 25 },
+  { label: "NO REWARD", percentage: 41 }, // Adjusted to make sum 100
 ];
 
 function getRandomPrize() {
@@ -18,22 +18,17 @@ function getRandomPrize() {
     0
   );
 
-  const normalizedPrizes = prizes.map((prize) => ({
-    ...prize,
-    normalizedPercentage: prize.percentage / totalPercentage,
-  }));
-
-  const random = Math.random();
-
   let cumulativeProbability = 0;
-  for (const prize of normalizedPrizes) {
-    cumulativeProbability += prize.normalizedPercentage;
+  const random = Math.random() * totalPercentage; // Scale random number to total percentage
+
+  for (const prize of prizes) {
+    cumulativeProbability += prize.percentage;
     if (random <= cumulativeProbability) {
       return prize;
     }
   }
 
-  return normalizedPrizes[normalizedPrizes.length - 1];
+  return prizes[prizes.length - 1]; // Fallback
 }
 
 export const wheelPostModel = async (params: {

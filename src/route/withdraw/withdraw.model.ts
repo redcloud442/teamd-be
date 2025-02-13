@@ -682,7 +682,7 @@ export const withdrawHistoryReportPostTotalModel = async (params: {
 
   currentEnd = adjustDate(currentEnd, type, skip);
   const intervals = generateIntervals(type, take, currentEnd);
-  console.log(intervals);
+
   const aggregatedResults = await Promise.all(
     intervals.map((interval) =>
       executeQuery({
@@ -692,7 +692,6 @@ export const withdrawHistoryReportPostTotalModel = async (params: {
     )
   );
 
-  // Convert `bigint` to string
   return JSON.parse(
     JSON.stringify(aggregatedResults, (key, value) =>
       typeof value === "bigint" ? value.toString() : value

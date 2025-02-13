@@ -29,7 +29,7 @@ withdraw.post(
 withdraw.post(
   "/report",
   withdrawHistoryReportPostMiddleware,
-  withdrawHistoryReportPostController
+  withdrawHistoryReportPostController 
 );
 
 withdraw.post(

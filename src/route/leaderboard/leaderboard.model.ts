@@ -26,13 +26,11 @@ export const leaderboardPostModel = async (params: {
     }[]
   >`
     SELECT
-
       package_ally_bounty_member_id,
       SUM(package_ally_bounty_earnings) AS totalamount,
       COUNT(DISTINCT package_ally_bounty_from) AS totalreferral
     FROM packages_schema.package_ally_bounty_log
     WHERE package_ally_bounty_type = ${leaderBoardType}
-
     GROUP BY package_ally_bounty_member_id
     ORDER BY totalAmount DESC
     LIMIT ${limit} OFFSET ${offset}

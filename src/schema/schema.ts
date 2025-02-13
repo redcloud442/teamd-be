@@ -168,6 +168,15 @@ export const userActiveListSchema = z.object({
   isAscendingSort: z.boolean(),
 });
 
+export const userListReinvestedSchema = z.object({
+  dateFilter: z.object({
+    start: z.string().optional().nullable(),
+    end: z.string().optional().nullable(),
+  }),
+  take: z.number().min(1).max(10),
+  skip: z.number().min(1),
+});
+
 //transaction schema
 
 export const transactionSchemaPost = z.object({
