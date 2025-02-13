@@ -75,7 +75,6 @@ export const depositReportPostController = async (c) => {
         return c.json(data, { status: 200 });
     }
     catch (e) {
-        console.log(e);
         return c.json({ message: "Internal Server Error" }, { status: 500 });
     }
 };

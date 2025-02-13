@@ -435,7 +435,6 @@ export const withdrawHistoryReportPostTotalModel = async (params) => {
     currentEnd.setUTCHours(23, 59, 59, 999); // Set time to 11:59:59.999 PM
     currentEnd = adjustDate(currentEnd, type, skip);
     const intervals = generateIntervals(type, take, currentEnd);
-    console.log(intervals);
     const aggregatedResults = await Promise.all(intervals.map((interval) => executeQuery({
         start: new Date(interval.start),
         end: new Date(interval.end),
