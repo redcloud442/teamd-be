@@ -36,6 +36,7 @@ export const loginGetController = async (c: Context) => {
 
     return c.json({ message: "User does not exist" }, 200);
   } catch (error) {
+    console.log(error);
     return c.json({ message: "Error occurred" }, 500);
   }
 };

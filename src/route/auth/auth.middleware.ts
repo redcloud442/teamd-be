@@ -76,7 +76,7 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
   const ip = getClientIP(c.req.raw);
 
-  const { userName, password, firstName, lastName, referalLink, url } =
+  const { userName, password, firstName, lastName, referalLink, url, botField } =
     await c.req.json();
 
   const parsed = registerUserSchema.safeParse({
@@ -87,6 +87,7 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
     lastName,
     referalLink,
     url,
+    botField
   });
 
   if (!parsed.success) {

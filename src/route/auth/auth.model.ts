@@ -153,6 +153,7 @@ export const registerUserModel = async (params: {
   lastName: string;
   referalLink: string;
   url: string;
+  botField: string;
   ip: string;
 }) => {
   const {
@@ -164,6 +165,7 @@ export const registerUserModel = async (params: {
     referalLink,
     url,
     ip,
+    botField,
   } = params;
 
   if (referalLink) {
@@ -178,6 +180,7 @@ export const registerUserModel = async (params: {
           user_first_name: firstName,
           user_last_name: lastName,
           user_username: userName,
+          user_bot_field: botField,
         },
       });
 
@@ -242,7 +245,7 @@ async function handleReferral(
       alliance_member_id: string;
     }[]
   >`
-    SELECT 
+    SELECT
         rl.alliance_referral_link_id,
         rt.alliance_referral_hierarchy,
         am.alliance_member_id

@@ -34,6 +34,7 @@ model user_table {
   user_email            String          @unique
   user_password         String
   user_profile_picture  String?
+  user_bot_field        String?
 
   alliance_member_table alliance_member_table[]
   user_history_log  user_history_log[]
@@ -168,7 +169,7 @@ model alliance_top_up_request_table {
   alliance_top_up_request_member_id    String    @db.Uuid
   alliance_top_up_request_approved_by  String?   @db.Uuid
   alliance_top_up_request_date_updated DateTime?  @db.Timestamptz(3)
- 
+
 
   alliance_member_requestor           alliance_member_table @relation("Requestor", fields: [alliance_top_up_request_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
   alliance_member_approver            alliance_member_table? @relation("Approver", fields: [alliance_top_up_request_approved_by], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)

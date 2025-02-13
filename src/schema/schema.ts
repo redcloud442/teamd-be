@@ -47,6 +47,7 @@ export const registerUserSchema = z.object({
   lastName: z.string().min(2),
   referalLink: z.string().min(2),
   url: z.string().min(2),
+  botField: z.string().optional(),
 });
 
 //for deposit
