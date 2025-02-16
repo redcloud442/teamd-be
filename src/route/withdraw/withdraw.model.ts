@@ -108,10 +108,6 @@ export const withdrawModel = async (params: {
     remainingAmount -= referralDeduction;
   }
 
-  if (remainingAmount > 0) {
-    throw new Error("Invalid request.");
-  }
-
   const finalAmount = calculateFinalAmount(Number(amount), earnings);
   const fee = calculateFee(Number(amount), earnings);
 
