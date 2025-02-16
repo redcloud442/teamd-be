@@ -154,30 +154,32 @@ export const withdrawModel = async (params: {
     });
 
     // Update the earnings
-    await tx.alliance_earnings_table.update({
-      where: {
-        alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
-      },
+    await tx.$executeRaw(
+      Prisma.sql`
+        UPDATE alliance_schema.alliance_earnings_table
+        SET 
+          ${Prisma.raw(earningsType)} = GREATEST(0, ${Prisma.raw(
+        earningsType
+      )} - ${Math.trunc(Number(amount) * 100) / 100}),
+          alliance_combined_earnings = GREATEST(0, alliance_combined_earnings - ${
+            Math.trunc(Number(amount) * 100) / 100
+          })
+        WHERE alliance_earnings_member_id = ${
+          teamMemberProfile.alliance_member_id
+        }::uuid;
+      `
+    );
+    // Log the transaction
+    await tx.alliance_transaction_table.create({
       data: {
-        [earningsType]: {
-          decrement: Number(amount),
-        },
-        alliance_combined_earnings: {
-          decrement: Number(amount),
-        },
+        transaction_amount: finalAmount,
+        transaction_description: `Withdrawal ${
+          earnings === "PACKAGE" ? "Package" : "Referral"
+        } Ongoing.`,
+        transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
+        transaction_member_id: teamMemberProfile.alliance_member_id,
       },
-    }),
-      // Log the transaction
-      await tx.alliance_transaction_table.create({
-        data: {
-          transaction_amount: finalAmount,
-          transaction_description: `Withdrawal ${
-            earnings === "PACKAGE" ? "Package" : "Referral"
-          } Ongoing.`,
-          transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
-          transaction_member_id: teamMemberProfile.alliance_member_id,
-        },
-      });
+    });
   });
 };
 
