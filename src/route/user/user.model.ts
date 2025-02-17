@@ -606,25 +606,12 @@ export const userListReinvestedModel = async (params: {
           ON am.alliance_member_id = pml.package_member_member_id
       JOIN user_schema.user_table u 
           ON u.user_id = am.alliance_member_user_id
-      WHERE pml.package_member_status = 'ACTIVE' AND pml.package_member_connection_created::timestamptz
+      WHERE pml.package_member_is_reinvestment = true AND pml.package_member_connection_created::timestamptz
           BETWEEN ${new Date(
             startDate || new Date()
           ).toISOString()}::timestamptz AND ${new Date(
     endDate || new Date()
   ).toISOString()}::timestamptz
-  AND (
-        pol.package_member_connection_date_claimed > (
-            SELECT MAX(past_pml.package_member_connection_created)
-            FROM packages_schema.package_member_connection_table past_pml
-            WHERE past_pml.package_member_member_id = pml.package_member_member_id
-        )
-        OR EXISTS (
-            SELECT 1 
-            FROM packages_schema.package_member_connection_table past_pml
-            WHERE past_pml.package_member_member_id = pml.package_member_member_id
-              AND past_pml.package_member_status = 'ENDED'
-        )
-    )
       GROUP BY 
           pml.package_member_member_id, 
           pml.package_member_amount, 
@@ -644,31 +631,18 @@ export const userListReinvestedModel = async (params: {
               pml.package_member_member_id
           FROM packages_schema.package_member_connection_table pml
           JOIN packages_schema.package_earnings_log pol
-              ON pol.package_member_member_id = pml.package_member_member_id
+          ON pol.package_member_member_id = pml.package_member_member_id
           JOIN alliance_schema.alliance_member_table am 
               ON am.alliance_member_id = pml.package_member_member_id
           JOIN user_schema.user_table u 
               ON u.user_id = am.alliance_member_user_id
-          WHERE pml.package_member_status = 'ACTIVE'
+          WHERE pml.package_member_is_reinvestment = true
             AND pml.package_member_connection_created::timestamptz
           BETWEEN ${new Date(
             startDate || new Date()
           ).toISOString()}::timestamptz AND ${new Date(
     endDate || new Date()
   ).toISOString()}::timestamptz
-  AND (
-        pol.package_member_connection_date_claimed > (
-            SELECT MAX(past_pml.package_member_connection_created)
-            FROM packages_schema.package_member_connection_table past_pml
-            WHERE past_pml.package_member_member_id = pml.package_member_member_id
-        )
-        OR EXISTS (
-            SELECT 1 
-            FROM packages_schema.package_member_connection_table past_pml
-            WHERE past_pml.package_member_member_id = pml.package_member_member_id
-              AND past_pml.package_member_status = 'ENDED'
-        )
-    )
           GROUP BY 
             pml.package_member_member_id, 
             pml.package_member_amount, 

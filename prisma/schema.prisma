@@ -245,6 +245,7 @@ model package_member_connection_table {
   package_member_status                String
   package_member_is_ready_to_claim     Boolean  @default(false)
   package_member_completion_date       DateTime?  @db.Timestamptz(3)
+  package_member_is_reinvestment        Boolean  @default(false)
 
   package_table       package_table       @relation(fields: [package_member_package_id], references: [package_id], onDelete: Cascade, onUpdate: Cascade)
   alliance_member_table alliance_member_table @relation(fields: [package_member_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)

@@ -42,7 +42,7 @@ export const withdrawModel = async (params) => {
     const earningsWithdrawalType = earnings === "PACKAGE"
         ? "alliance_withdrawal_request_earnings_amount"
         : "alliance_withdrawal_request_referral_amount";
-    const earningsValue = Math.round(Number(earningsType) * 100) / 100;
+    const earningsValue = Math.round(Number(amountMatch[earningsType]) * 100) / 100;
     if (amountValue > earningsValue) {
         throw new Error("Insufficient balance.");
     }
@@ -54,9 +54,6 @@ export const withdrawModel = async (params) => {
     if (earnings === "REFERRAL") {
         const referralDeduction = Math.min(remainingAmount, Number(alliance_referral_bounty));
         remainingAmount -= referralDeduction;
-    }
-    if (remainingAmount > 0) {
-        throw new Error("Invalid request.");
     }
     const finalAmount = calculateFinalAmount(Number(amount), earnings);
     const fee = calculateFee(Number(amount), earnings);
