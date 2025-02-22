@@ -355,3 +355,18 @@ export const userOptionsPostSchema = z.object({
   page: z.number().min(1).max(10),
   limit: z.number().min(1).max(500),
 });
+
+//testimonial schema
+
+export const testimonialPostSchema = z.object({
+  url: z.array(z.string().min(1)),
+});
+
+export const testimonialGetSchema = z.object({
+  take: z.string().min(1).max(15),
+  skip: z.string().min(1),
+});
+
+export const testimonialPutSchema = z.object({
+  id: z.string().uuid(),
+});

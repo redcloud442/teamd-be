@@ -9,6 +9,7 @@ import merchant from "./merchant/merchant.route.js";
 import options from "./options/options.route.js";
 import packages from "./package/package.route.js";
 import referral from "./referral/referral.route.js";
+import testimonial from "./testimonial/testimonial.route.js";
 import transaction from "./transaction/transaction.route.js";
 import user from "./user/user.route.js";
 import withdraw from "./withdraw/withdraw.route.js";
@@ -60,6 +61,10 @@ app.route("/leaderboard", leaderboard);
 //options route
 app.use("/options/*", protectionMiddleware);
 app.route("/options", options);
+
+//testimonial route
+app.use("/testimonial/*", protectionMiddleware);
+app.route("/testimonial", testimonial);
 
 app.get("/", (c) => c.text("This is the api endpoint"));
 

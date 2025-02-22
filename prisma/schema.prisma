@@ -218,6 +218,15 @@ model alliance_transaction_table {
   @@schema("alliance_schema")
 }
 
+model alliance_testimonial_table {
+  alliance_testimonial_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_testimonial_date_created DateTime @default(now())
+  alliance_testimonial_url String
+  alliance_testimonial_is_hidden Boolean
+
+  @@schema("alliance_schema")
+}
+
 
 model package_table {
   package_id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
