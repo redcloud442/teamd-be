@@ -506,7 +506,7 @@ export const userActiveListModel = async (params: {
     LEFT JOIN alliance_schema.alliance_earnings_table ae
       ON ae.alliance_earnings_member_id = am.alliance_member_id
     WHERE 
-      ae.alliance_combined_earnings > 0
+      ae.alliance_olympus_wallet > 0
       ${searchCondition}
       ${orderBy}
     LIMIT ${limit}
@@ -522,7 +522,7 @@ export const userActiveListModel = async (params: {
     LEFT JOIN alliance_schema.alliance_earnings_table ae
       ON ae.alliance_earnings_member_id = am.alliance_member_id
       WHERE 
-      ae.alliance_combined_earnings > 0
+      ae.alliance_olympus_wallet > 0
       ${searchCondition}
     `;
 
