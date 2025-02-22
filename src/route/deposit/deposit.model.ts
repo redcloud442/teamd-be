@@ -354,15 +354,11 @@ export const depositListPostModel = async (
   }
 
   if (dateFilter?.start && dateFilter?.end) {
-    const startDate = getPhilippinesTime(
-      new Date(dateFilter.start || new Date()),
-      "start"
-    );
+    const dateStart = new Date(dateFilter.start);
+    dateStart.setDate(dateStart.getDate() - 1);
+    const startDate = getPhilippinesTime(new Date(dateStart), "start");
 
-    const endDate = getPhilippinesTime(
-      new Date(dateFilter.end || new Date()),
-      "end"
-    );
+    const endDate = getPhilippinesTime(new Date(dateStart), "end");
 
     commonConditions.push(
       Prisma.raw(
