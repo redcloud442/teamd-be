@@ -22,11 +22,11 @@ export const testimonialPostMiddleware = async (c, next) => {
     }
     const { url } = await c.req.json();
     //test
-    const validate = testimonialPostSchema.safeParse({ url });
+    const validate = testimonialPostSchema.safeParse(url);
     if (!validate.success) {
         return sendErrorResponse(validate.error.message, 400);
     }
-    c.set("params", validate.data.url);
+    c.set("params", validate.data);
     await next();
 };
 export const testimonialGetMiddleware = async (c, next) => {

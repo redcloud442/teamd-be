@@ -2,14 +2,15 @@ import prisma from "../../utils/prisma.js";
 export const testimonialModelPost = async (url) => {
     await prisma.alliance_testimonial_table.createMany({
         data: url.map((url) => ({
-            alliance_testimonial_url: url,
+            alliance_testimonial_url: url.videoUrl,
+            alliance_testimonial_thumbnail: url.posterUrl,
             alliance_testimonial_is_hidden: false,
         })),
     });
     const data = await prisma.alliance_testimonial_table.findMany({
         where: {
             alliance_testimonial_url: {
-                in: url,
+                in: url.map((url) => url.videoUrl),
             },
         },
     });
@@ -24,6 +25,7 @@ export const testimonialModelGet = async (params) => {
         },
         select: {
             alliance_testimonial_url: true,
+            alliance_testimonial_thumbnail: true,
             alliance_testimonial_id: true,
         },
         orderBy: {

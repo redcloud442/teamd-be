@@ -292,9 +292,10 @@ export const userOptionsPostSchema = z.object({
     limit: z.number().min(1).max(500),
 });
 //testimonial schema
-export const testimonialPostSchema = z.object({
-    url: z.array(z.string().min(1)),
-});
+export const testimonialPostSchema = z.array(z.object({
+    videoUrl: z.string().min(1),
+    posterUrl: z.string().min(1),
+}));
 export const testimonialGetSchema = z.object({
     take: z.string().min(1).max(15),
     skip: z.string().min(1),
