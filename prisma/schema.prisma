@@ -108,7 +108,7 @@ model alliance_referral_table {
   alliance_referral_date             DateTime  @default(now())  @db.Timestamptz(3)
 
   alliance_referral_hierarchy        String?
-  alliance_referral_member_id        String    @db.Uuid
+  alliance_referral_member_id        String    @db.Uuid  @unique
   alliance_referral_link_id          String    @db.Uuid
   alliance_referral_from_member_id   String?   @db.Uuid
 

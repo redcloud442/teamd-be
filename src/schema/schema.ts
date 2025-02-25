@@ -178,6 +178,10 @@ export const userListReinvestedSchema = z.object({
   skip: z.number().min(1),
 });
 
+export const userTreeSchema = z.object({
+  memberId: z.string().uuid(),
+});
+
 //transaction schema
 
 export const transactionSchemaPost = z.object({

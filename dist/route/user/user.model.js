@@ -2,6 +2,7 @@ import { Prisma, } from "@prisma/client";
 import { getPhilippinesTime } from "../../utils/function.js";
 import bcryptjs from "bcryptjs";
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
 import { supabaseClient } from "../../utils/supabase.js";
 export const userModelPut = async (params) => {
     const { userId, email, password } = params;
@@ -497,4 +498,55 @@ export const userListReinvestedModel = async (params) => {
       ) AS total_count
   `;
     return { data, totalCount: Number(totalCount[0]?.count ?? 0) };
+};
+export const userTreeModel = async (params) => {
+    const { memberId } = params;
+    const cacheKey = `referral-tree-${memberId}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
+    const userTree = await prisma.alliance_referral_table.findUnique({
+        where: { alliance_referral_member_id: memberId },
+        select: {
+            alliance_referral_hierarchy: true,
+        },
+    });
+    if (!userTree || !userTree.alliance_referral_hierarchy) {
+        return { success: false, error: "User not found" };
+    }
+    const rawHierarchy = userTree.alliance_referral_hierarchy.split(".");
+    const orderedHierarchy = [
+        memberId,
+        ...rawHierarchy.filter((id) => id !== memberId).reverse(),
+    ];
+    // Fetch user data from alliance_member_table
+    const userTreeData = await prisma.alliance_member_table.findMany({
+        where: { alliance_member_id: { in: orderedHierarchy } },
+        select: {
+            alliance_member_id: true,
+            user_table: {
+                select: {
+                    user_username: true,
+                    user_id: true,
+                },
+            },
+        },
+    });
+    const formattedUserTreeData = orderedHierarchy
+        .map((id) => {
+        const user = userTreeData.find((user) => user.alliance_member_id === id);
+        return user
+            ? {
+                alliance_member_id: user.alliance_member_id,
+                user_id: user.user_table.user_id,
+                user_username: user.user_table.user_username,
+            }
+            : null;
+    })
+        .filter(Boolean);
+    await redis.set(cacheKey, JSON.stringify(formattedUserTreeData), {
+        ex: 60 * 60 * 24 * 30,
+    });
+    return formattedUserTreeData;
 };
