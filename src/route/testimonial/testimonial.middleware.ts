@@ -31,7 +31,7 @@ export const testimonialPostMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:testimonial-post`,
     100,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -74,7 +74,7 @@ export const testimonialGetMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:testimonial-get`,
     100,
-    60
+    "1m"
   );
 
   if (!isAllowed) {

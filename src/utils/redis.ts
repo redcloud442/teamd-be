@@ -1,3 +1,4 @@
+import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
 export const redis = new Redis({
@@ -5,31 +6,24 @@ export const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN || "'default-redis-token'",
 });
 
-export default redis;
-
-const rateLimitCache = new Map();
-
 /**
- * Rate Limiting Function
- * @param {string} key - Unique rate limit key (e.g., `rate-limit:user-123:action`)
- * @param {number} limit - Max number of requests allowed
- * @param {number} ttl - Time window in seconds
+ * Rate Limit Function with Dynamic Time Window
+ * @param {string} identifier - Unique user key (IP, User ID, etc.)
+ * @param {number} maxRequests - Maximum allowed requests
+ * @param {string} timeWindow - Time duration (e.g., "10 s", "1 m", "5 m", "1 h")
  * @returns {boolean} - `true` if request is allowed, `false` if rate limit exceeded
  */
-export async function rateLimit(key: string, limit: number, ttl: number) {
-  if (rateLimitCache.has(key)) {
-    const cachedCount = rateLimitCache.get(key);
-    if (cachedCount >= limit) return false;
-  }
+export async function rateLimit(
+  identifier: string,
+  maxRequests: number,
+  timeWindow: "10s" | "1m" | "5m" | "1h"
+) {
+  const ratelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(maxRequests, `${timeWindow}`),
+  });
 
-  const currentCount = await redis.incr(key);
+  const { success } = await ratelimit.limit(identifier);
 
-  if (currentCount === 1) {
-    await redis.expire(key, ttl);
-  }
-
-  rateLimitCache.set(key, currentCount);
-  setTimeout(() => rateLimitCache.delete(key), ttl * 1000);
-
-  return currentCount <= limit;
+  return success;
 }

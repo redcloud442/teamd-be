@@ -38,7 +38,7 @@ export const userPutMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-put`,
     100,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -74,7 +74,7 @@ export const userPostMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-post`,
     100,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -110,7 +110,7 @@ export const userGetMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-get`,
     100,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -140,7 +140,7 @@ export const userPatchMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-patch`,
     100,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -180,7 +180,7 @@ export const userSponsorMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-sponsor`,
     50,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -218,7 +218,7 @@ export const userProfilePutMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-profile-update`,
     50,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -261,7 +261,7 @@ export const userGenerateLinkMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-generate-link`,
     100,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -301,7 +301,7 @@ export const userListMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-list`,
     100,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -358,7 +358,7 @@ export const userActiveListMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-active-list`,
     100,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -415,7 +415,7 @@ export const userChangePasswordMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-profile-update`,
     50,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -459,7 +459,7 @@ export const userListReinvestedMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-list-reinvested`,
     50,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -501,7 +501,7 @@ export const userTreeMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-tree`,
     50,
-    60
+    "1m"
   );
 
   if (!isAllowed) {

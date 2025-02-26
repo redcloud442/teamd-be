@@ -34,7 +34,7 @@ export const depositMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-post`,
     10,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -87,7 +87,7 @@ export const depositPutMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}`,
     50,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -132,7 +132,7 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-history-get`,
     50,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -188,7 +188,7 @@ export const depositListPostMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-list-get`,
     50,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -247,7 +247,7 @@ export const depositReferenceMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-reference-get`,
     5,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
@@ -288,7 +288,7 @@ export const depositReportPostMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-list-get`,
     50,
-    60
+    "1m"
   );
 
   if (!isAllowed) {
