@@ -16,7 +16,13 @@ export async function rateLimit(identifier, maxRequests, timeWindow) {
         redis: redis,
         limiter: Ratelimit.slidingWindow(maxRequests, `${timeWindow}`),
         enableProtection: true,
+        analytics: true,
     });
-    const { success } = await ratelimit.limit(identifier);
+    const { success, pending } = await ratelimit.limit(identifier, {
+        ip: "ip-address",
+        userAgent: "user-agent",
+        country: "country",
+    });
+    await pending;
     return success;
 }
