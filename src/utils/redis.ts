@@ -1,34 +1,47 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+// Initialize Redis once
 export const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL || "https://default.redis.url'",
   token: process.env.UPSTASH_REDIS_REST_TOKEN || "'default-redis-token'",
 });
 
+// Initialize Ratelimit once and reuse it
+const ratelimit = new Ratelimit({
+  redis: redis as any,
+  limiter: Ratelimit.slidingWindow(10, "10s"), // Default values (change as needed)
+  enableProtection: true,
+  analytics: true,
+});
+
+let denyList: Set<string> = new Set();
+let lastDenyListFetch = 0; // Timestamp of last fetch
+
 /**
- * Rate Limit Function with Dynamic Time Window
+ * Rate Limit Function with Country Blocking
  * @param {string} identifier - Unique user key (IP, User ID, etc.)
- * @param {number} maxRequests - Maximum allowed requests
- * @param {string} timeWindow - Time duration (e.g., "10 s", "1 m", "5 m", "1 h")
- * @returns {boolean} - `true` if request is allowed, `false` if rate limit exceeded
+ * @param {string} country - Country of the incoming request
+ * @returns {boolean} - `true` if request is allowed, `false` if blocked
  */
-export async function rateLimit(
-  identifier: string,
-  maxRequests: number,
-  timeWindow: "10s" | "1m" | "5m" | "1h"
-) {
-  const ratelimit = new Ratelimit({
-    redis: redis as any,
-    limiter: Ratelimit.slidingWindow(maxRequests, `${timeWindow}`),
-    enableProtection: true,
-    analytics: true,
-  });
+export async function rateLimit(identifier: string, country: string) {
+  const now = Date.now();
+
+  if (now - lastDenyListFetch > 600000) {
+    const countries = await redis.smembers(
+      "@upstash/ratelimit:denyList:country"
+    );
+    console.log(countries);
+    denyList = new Set(countries);
+    lastDenyListFetch = now;
+  }
+
+  if (denyList.has(country)) {
+    return false;
+  }
 
   const { success, pending } = await ratelimit.limit(identifier, {
-    ip: "ip-address",
-    userAgent: "user-agent",
-    country: "country",
+    country,
   });
 
   await pending;
