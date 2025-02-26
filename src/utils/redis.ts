@@ -8,12 +8,6 @@ export const redis = new Redis({
 });
 
 // Initialize Ratelimit once and reuse it
-const ratelimit = new Ratelimit({
-  redis: redis as any,
-  limiter: Ratelimit.slidingWindow(10, "10s"), // Default values (change as needed)
-  enableProtection: true,
-  analytics: true,
-});
 
 let denyList: Set<string> = new Set();
 let lastDenyListFetch = 0; // Timestamp of last fetch
@@ -24,24 +18,34 @@ let lastDenyListFetch = 0; // Timestamp of last fetch
  * @param {string} country - Country of the incoming request
  * @returns {boolean} - `true` if request is allowed, `false` if blocked
  */
-export async function rateLimit(identifier: string, country: string) {
+export async function rateLimit(
+  identifier: string,
+  maxRequests: number,
+  timeWindow: "10s" | "1m" | "1h" | "1d"
+) {
   const now = Date.now();
+
+  const ratelimit = new Ratelimit({
+    redis: redis as any,
+    limiter: Ratelimit.slidingWindow(maxRequests, `${timeWindow}`),
+    enableProtection: true,
+    analytics: true,
+  });
 
   if (now - lastDenyListFetch > 600000) {
     const countries = await redis.smembers(
       "@upstash/ratelimit:denyList:country"
     );
-    console.log(countries);
+
     denyList = new Set(countries);
     lastDenyListFetch = now;
   }
 
-  if (denyList.has(country)) {
+  if (denyList.has(identifier)) {
     return false;
   }
-
   const { success, pending } = await ratelimit.limit(identifier, {
-    country,
+    country: Array.from(denyList).join(","),
   });
 
   await pending;
