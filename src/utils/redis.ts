@@ -19,8 +19,9 @@ export async function rateLimit(
   timeWindow: "10s" | "1m" | "5m" | "1h"
 ) {
   const ratelimit = new Ratelimit({
-    redis,
+    redis: redis as any,
     limiter: Ratelimit.slidingWindow(maxRequests, `${timeWindow}`),
+    enableProtection: true,
   });
 
   const { success } = await ratelimit.limit(identifier);

@@ -13,8 +13,9 @@ export const redis = new Redis({
  */
 export async function rateLimit(identifier, maxRequests, timeWindow) {
     const ratelimit = new Ratelimit({
-        redis,
+        redis: redis,
         limiter: Ratelimit.slidingWindow(maxRequests, `${timeWindow}`),
+        enableProtection: true,
     });
     const { success } = await ratelimit.limit(identifier);
     return success;
