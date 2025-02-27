@@ -1,6 +1,7 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import type { Context } from "hono";
+import { getClientIP } from "./function.js";
 
 export const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL || "https://default.redis.url'",
@@ -32,14 +33,8 @@ export async function rateLimit(
     userAgent: context.req.raw.headers.get("user-agent") || "",
     country: context.req.raw.headers.get("cf-ipcountry") || "",
   });
-
-  const country =
-    context.req.raw.headers.get("cf-ipcountry") ||
-    context.req.raw.headers.get("x-forwarded-for")?.split(",")[0] ||
-    context.req.raw.headers.get("remote-addr") ||
-    "UNKNOWN";
-
-  console.log(country);
+  const ip = getClientIP(context.req.raw);
+  console.log(ip);
   await pending;
 
   return success;
