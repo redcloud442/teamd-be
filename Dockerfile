@@ -1,5 +1,6 @@
 # Base stage with Bun
-FROM oven/bun:1.1.7-alpine AS base
+FROM oven/bun:distroless AS base
+
 
 # Build stage to install dependencies and build the app
 FROM base AS builder
