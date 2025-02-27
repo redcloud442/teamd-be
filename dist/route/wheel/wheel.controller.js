@@ -1,5 +1,5 @@
 import { sendErrorResponse } from "../../utils/function.js";
-import { wheelGetModel, wheelPostModel, wheelPutModel } from "./wheel.model.js";
+import { wheelGetModel, wheelPostModel, wheelPutModel, wheelPutSettingsModel, } from "./wheel.model.js";
 export const wheelPostController = async (c) => {
     try {
         const teamMemberProfile = c.get("teamMemberProfile");
@@ -28,6 +28,16 @@ export const wheelPutController = async (c) => {
             teamMemberProfile,
             quantity: params.quantity,
         });
+        return c.json(response, 200);
+    }
+    catch (error) {
+        return sendErrorResponse("Internal server error", 500);
+    }
+};
+export const wheelPutSettingsController = async (c) => {
+    try {
+        const params = c.get("params");
+        const response = await wheelPutSettingsModel({ params });
         return c.json(response, 200);
     }
     catch (error) {

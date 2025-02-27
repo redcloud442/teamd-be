@@ -1,28 +1,24 @@
-import type { alliance_member_table } from "@prisma/client";
+import type { alliance_member_table, Prisma } from "@prisma/client";
 import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 
-const prizes = [
-  { label: 25, percentage: 15 }, // Common
-  { label: 50, percentage: 12 },
-  { label: 150, percentage: 5 },
-  { label: 1000, percentage: 1.9 }, // Slightly lower
-  { label: 10000, percentage: 0.1 }, // Very rare
-  { label: "RE-SPIN", percentage: 25 },
-  { label: "NO REWARD", percentage: 41 }, // Adjusted to make sum 100
-];
+async function getRandomPrize(tx: Prisma.TransactionClient) {
+  const prizes = await tx.alliance_wheel_settings_table.findMany({
+    orderBy: {
+      alliance_wheel_settings_percentage: "desc",
+    },
+  });
 
-function getRandomPrize() {
   const totalPercentage = prizes.reduce(
-    (sum, prize) => sum + prize.percentage,
+    (sum, prize) => sum + prize.alliance_wheel_settings_percentage,
     0
   );
 
   let cumulativeProbability = 0;
-  const random = Math.random() * totalPercentage; // Scale random number to total percentage
+  const random = Math.random() * totalPercentage;
 
   for (const prize of prizes) {
-    cumulativeProbability += prize.percentage;
+    cumulativeProbability += prize.alliance_wheel_settings_percentage;
     if (random <= cumulativeProbability) {
       return prize;
     }
@@ -68,10 +64,10 @@ export const wheelPostModel = async (params: {
       throw new Error("You have no spins left");
     }
 
-    const winningPrize = getRandomPrize();
+    const winningPrize = await getRandomPrize(tx);
 
-    if (winningPrize.label === "RE-SPIN") {
-    } else if (winningPrize.label === "NO REWARD") {
+    if (winningPrize.alliance_wheel_settings_label === "RE-SPIN") {
+    } else if (winningPrize.alliance_wheel_settings_label === "NO REWARD") {
       await tx.alliance_wheel_log_table.update({
         where: { alliance_wheel_log_id: wheelLog!.alliance_wheel_log_id },
         data: {
@@ -87,10 +83,10 @@ export const wheelPostModel = async (params: {
         },
         data: {
           alliance_winning_earnings: {
-            increment: Number(winningPrize.label),
+            increment: Number(winningPrize.alliance_wheel_settings_label),
           },
           alliance_combined_earnings: {
-            increment: Number(winningPrize.label),
+            increment: Number(winningPrize.alliance_wheel_settings_label),
           },
         },
       });
@@ -105,7 +101,9 @@ export const wheelPostModel = async (params: {
       await tx.alliance_transaction_table.create({
         data: {
           transaction_member_id: teamMemberProfile.alliance_member_id,
-          transaction_amount: Number(winningPrize.label),
+          transaction_amount: Number(
+            winningPrize.alliance_wheel_settings_label
+          ),
           transaction_date: new Date(),
           transaction_details: "",
           transaction_description: "Prime Wheel Earnings",
@@ -114,7 +112,7 @@ export const wheelPostModel = async (params: {
     }
 
     return {
-      prize: winningPrize.label,
+      prize: winningPrize.alliance_wheel_settings_label,
       count: wheelLog?.alliance_wheel_spin_count,
     };
   });
@@ -226,8 +224,6 @@ export const wheelGetPackageModel = async (params: {
         columnToUpdate.five_hundred_referrals_amount = true;
       }
     }
-
-    console.log(dailyTaskCurrentUser);
 
     if (
       dailyTaskCurrentUser?.five_hundred_referrals_amount &&
@@ -437,8 +433,54 @@ export const wheelPutModel = async (params: {
       },
     });
 
+    await tx.alliance_transaction_table.create({
+      data: {
+        transaction_member_id: teamMemberProfile.alliance_member_id,
+        transaction_amount: requestedAmount,
+        transaction_details: `Wheel Purchase: ${quantity} spins`,
+        transaction_description: "Wheel Purchase",
+      },
+    });
+
     return {
       message: "Wheel updated successfully.",
+    };
+  });
+
+  return response;
+};
+
+export const wheelPutSettingsModel = async (params: {
+  params: {
+    percentage: number;
+    label: string;
+    id: string;
+    color: string;
+  };
+}) => {
+  const { percentage, label, color, id } = params.params;
+
+  const response = await prisma.$transaction(async (tx) => {
+    const wheelSettings = await tx.alliance_wheel_settings_table.update({
+      where: {
+        alliance_wheel_settings_id: id,
+      },
+      data: {
+        alliance_wheel_settings_percentage: percentage,
+        alliance_wheel_settings_label: label,
+        alliance_wheel_settings_color: color,
+      },
+      select: {
+        alliance_wheel_settings_percentage: true,
+        alliance_wheel_settings_label: true,
+        alliance_wheel_settings_color: true,
+        alliance_wheel_settings_date: true,
+        alliance_wheel_settings_id: true,
+      },
+    });
+
+    return {
+      wheelSettings,
     };
   });
 

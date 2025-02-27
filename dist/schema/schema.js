@@ -298,6 +298,12 @@ export const userOptionsPostSchema = z.object({
 export const wheelPutSchema = z.object({
     quantity: z.number().min(1).max(100),
 });
+export const wheelPutSettingsSchema = z.object({
+    id: z.string().uuid(),
+    percentage: z.number().min(1).max(100),
+    label: z.string().min(1),
+    color: z.string().min(1),
+});
 //testimonial schema
 export const testimonialPostSchema = z.array(z.object({
     videoUrl: z.string().min(1),

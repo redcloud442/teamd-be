@@ -224,6 +224,15 @@ model alliance_transaction_table {
   @@schema("alliance_schema")
 }
 
+model alliance_wheel_settings_table {
+  alliance_wheel_settings_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_wheel_settings_date DateTime @default(now())
+  alliance_wheel_settings_percentage Float
+  alliance_wheel_settings_label String
+  alliance_wheel_settings_color String
+  @@schema("alliance_schema")
+}
+
 model alliance_testimonial_table {
   alliance_testimonial_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   alliance_testimonial_date_created DateTime @default(now())
