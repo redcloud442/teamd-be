@@ -1,5 +1,5 @@
-import { redis } from "@/utils/redis.js";
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
 export const transactionModelGet = async (params) => {
     const { teamMemberProfile, limit, page } = params;
     const cacheKey = `transaction-${teamMemberProfile.alliance_member_id}-${limit}-${page}`;
@@ -36,11 +36,8 @@ export const transactionModelGet = async (params) => {
             transaction_date: "desc",
         },
     });
-    await redis.set(cacheKey, JSON.stringify({
-        totalTransactions,
-        transactionHistory,
-    }), {
-        ex: 300,
+    await redis.set(cacheKey, JSON.stringify({ totalTransactions, transactionHistory }), {
+        ex: 60 * 60 * 24 * 30,
     });
     return {
         totalTransactions,
