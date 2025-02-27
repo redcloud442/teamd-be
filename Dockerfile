@@ -1,14 +1,21 @@
-# Base stage with Bun
-FROM oven/bun:distroless AS base
+# Base stage with Alpine + Bun (manual installation)
+FROM node:20-alpine AS base
 
+# Install Bun manually
+RUN apk add --no-cache curl bash && \
+    curl -fsSL https://bun.sh/install | bash && \
+    mv /root/.bun/bin/bun /usr/local/bin/
+
+# Verify Bun installation
+RUN bun --version
 
 # Build stage to install dependencies and build the app
 FROM base AS builder
 WORKDIR /app
 
 # Copy package files for dependency installation
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+COPY package.json bun.lock ./  
+RUN bun install --frozen-lockfile  
 
 # Copy the rest of the application files
 COPY tsconfig.json ./  
@@ -23,7 +30,7 @@ RUN bun prisma generate
 RUN bun run build  
 
 # Remove development dependencies
-RUN bun install --production --frozen-lockfile
+RUN bun install --production --frozen-lockfile  
 
 # Final stage to set up the runtime environment
 FROM base AS runner
@@ -60,4 +67,3 @@ ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Default command to start the app
 CMD ["bun", "/app/dist/index.js"]
-
