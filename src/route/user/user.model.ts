@@ -657,6 +657,7 @@ export const userListReinvestedModel = async (params: {
 
   return { data, totalCount: Number(totalCount[0]?.count ?? 0) };
 };
+
 export const userTreeModel = async (params: { memberId: string }) => {
   const { memberId } = params;
 
