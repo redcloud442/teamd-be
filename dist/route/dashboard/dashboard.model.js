@@ -112,30 +112,21 @@ export const dashboardPostModel = async (params) => {
       FULL OUTER JOIN daily_withdraw w ON e.date = w.date
       ORDER BY date;
     `,
-            tx.$queryRaw `
- SELECT 
-    COUNT(DISTINCT pml.package_member_member_id) AS "reinvestorsCount",
-    SUM(pml.package_member_amount) AS "totalReinvestmentAmount"
-FROM packages_schema.package_member_connection_table pml
-JOIN packages_schema.package_earnings_log pol
-    ON pol.package_member_member_id = pml.package_member_member_id
-WHERE pml.package_member_status = 'ACTIVE'
-    AND pml.package_member_connection_created
-    BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
-      AND (
-        pol.package_member_connection_date_claimed > (
-            SELECT MAX(past_pml.package_member_connection_created)
-            FROM packages_schema.package_member_connection_table past_pml
-            WHERE past_pml.package_member_member_id = pml.package_member_member_id
-        )
-        OR EXISTS (
-            SELECT 1 
-            FROM packages_schema.package_member_connection_table past_pml
-            WHERE past_pml.package_member_member_id = pml.package_member_member_id
-              AND past_pml.package_member_status = 'ENDED'
-        )
-    )
-    `,
+            tx.package_member_connection_table.aggregate({
+                _sum: {
+                    package_member_amount: true,
+                },
+                _count: {
+                    package_member_member_id: true,
+                },
+                where: {
+                    package_member_is_reinvestment: true,
+                    package_member_connection_created: {
+                        gte: getPhilippinesTime(new Date(dateFilter.start || new Date()), "start"),
+                        lte: getPhilippinesTime(new Date(dateFilter.end || new Date()), "end"),
+                    },
+                },
+            }),
         ]);
         const directLoot = bountyEarnings.find((e) => e.package_ally_bounty_type === "DIRECT")?._sum
             .package_ally_bounty_earnings || 0;
@@ -159,8 +150,8 @@ WHERE pml.package_member_status = 'ACTIVE'
             totalActivatedUserByDate,
             activePackageWithinTheDay,
             chartData,
-            reinvestorsCount: Number(data[0]?.reinvestorsCount || 0),
-            totalReinvestmentAmount: Number(data[0]?.totalReinvestmentAmount || 0),
+            reinvestorsCount: Number(data?._count.package_member_member_id || 0),
+            totalReinvestmentAmount: Number(data?._sum.package_member_amount || 0),
         };
     });
 };

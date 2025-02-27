@@ -46,7 +46,7 @@ export const packagePostModel = async (params) => {
     if (combinedEarnings < requestedAmount) {
         throw new Error("Insufficient balance in the wallet.");
     }
-    const { olympusWallet, olympusEarnings, referralWallet, winningEarnings, updatedCombinedWallet, } = deductFromWallets(requestedAmount, combinedEarnings, Number(alliance_olympus_wallet), Number(alliance_olympus_earnings), Number(alliance_referral_bounty), Number(alliance_winning_earnings));
+    const { olympusWallet, olympusEarnings, referralWallet, winningEarnings, updatedCombinedWallet, isReinvestment, } = deductFromWallets(requestedAmount, combinedEarnings, Number(alliance_olympus_wallet), Number(alliance_olympus_earnings), Number(alliance_referral_bounty), Number(alliance_winning_earnings));
     const packagePercentage = new Prisma.Decimal(Number(packageData.package_percentage)).div(100);
     const packageAmountEarnings = new Prisma.Decimal(requestedAmount).mul(packagePercentage);
     // Generate referral chain with a capped depth
@@ -63,6 +63,7 @@ export const packagePostModel = async (params) => {
                 package_amount_earnings: Number(packageAmountEarnings.toFixed(2)),
                 package_member_status: "ACTIVE",
                 package_member_completion_date: new Date(Date.now() + packageData.packages_days * 24 * 60 * 60 * 1000),
+                package_member_is_reinvestment: isReinvestment,
             },
         });
         await tx.alliance_transaction_table.create({
@@ -401,6 +402,7 @@ function getBonusPercentage(level) {
 }
 function deductFromWallets(amount, combinedWallet, olympusWallet, olympusEarnings, referralWallet, winningEarnings) {
     let remaining = amount;
+    let isReinvestment = false;
     // Validate total funds
     if (combinedWallet < amount) {
         throw new Error("Insufficient balance in combined wallet.");
@@ -417,10 +419,12 @@ function deductFromWallets(amount, combinedWallet, olympusWallet, olympusEarning
     // Deduct from Olympus Earnings next
     if (remaining > 0) {
         if (olympusEarnings >= remaining) {
+            isReinvestment = true;
             olympusEarnings -= remaining;
             remaining = 0;
         }
         else {
+            isReinvestment = true;
             remaining -= olympusEarnings;
             olympusEarnings = 0;
         }
@@ -457,5 +461,6 @@ function deductFromWallets(amount, combinedWallet, olympusWallet, olympusEarning
         referralWallet,
         winningEarnings,
         updatedCombinedWallet: combinedWallet - amount,
+        isReinvestment,
     };
 }

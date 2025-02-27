@@ -13,7 +13,7 @@ export const wheelPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-post`, 10, 60);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-post`, 10, "1m");
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }
@@ -30,7 +30,7 @@ export const wheelGetMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-get`, 10, 60);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-get`, 10, "1m");
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }
@@ -47,7 +47,7 @@ export const wheelPutMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-put`, 10, 60);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-put`, 10, "1m");
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }

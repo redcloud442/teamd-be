@@ -92,7 +92,8 @@ export const withdrawModel = async (params: {
       ? "alliance_withdrawal_request_referral_amount"
       : "alliance_withdrawal_request_winning_amount";
 
-  const earningsValue = Math.round(Number(earningsType) * 100) / 100;
+  const earningsValue =
+    Math.round(Number(amountMatch[earningsType]) * 100) / 100;
 
   if (amountValue > earningsValue) {
     throw new Error("Insufficient balance.");
@@ -123,10 +124,6 @@ export const withdrawModel = async (params: {
       Number(alliance_winning_earnings)
     );
     remainingAmount -= winningDeduction;
-  }
-
-  if (remainingAmount > 0) {
-    throw new Error("Invalid request.");
   }
 
   const finalAmount = calculateFinalAmount(Number(amount), earnings);
@@ -171,34 +168,36 @@ export const withdrawModel = async (params: {
     });
 
     // Update the earnings
-    await tx.alliance_earnings_table.update({
-      where: {
-        alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
-      },
+    await tx.$executeRaw(
+      Prisma.sql`
+        UPDATE alliance_schema.alliance_earnings_table
+        SET 
+          ${Prisma.raw(earningsType)} = GREATEST(0, ${Prisma.raw(
+        earningsType
+      )} - ${Math.trunc(Number(amount) * 100) / 100}),
+          alliance_combined_earnings = GREATEST(0, alliance_combined_earnings - ${
+            Math.trunc(Number(amount) * 100) / 100
+          })
+        WHERE alliance_earnings_member_id = ${
+          teamMemberProfile.alliance_member_id
+        }::uuid;
+      `
+    );
+    // Log the transaction
+    await tx.alliance_transaction_table.create({
       data: {
-        [earningsType]: {
-          decrement: Number(amount),
-        },
-        alliance_combined_earnings: {
-          decrement: Number(amount),
-        },
+        transaction_amount: finalAmount,
+        transaction_description: `Withdrawal ${
+          earnings === "PACKAGE"
+            ? "Package"
+            : earnings === "REFERRAL"
+            ? "Referral"
+            : "Winning"
+        } Ongoing.`,
+        transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
+        transaction_member_id: teamMemberProfile.alliance_member_id,
       },
-    }),
-      // Log the transaction
-      await tx.alliance_transaction_table.create({
-        data: {
-          transaction_amount: finalAmount,
-          transaction_description: `Withdrawal ${
-            earnings === "PACKAGE"
-              ? "Package"
-              : earnings === "REFERRAL"
-              ? "Referral"
-              : "Winning"
-          } Ongoing.`,
-          transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
-          transaction_member_id: teamMemberProfile.alliance_member_id,
-        },
-      });
+    });
   });
 };
 
@@ -424,19 +423,17 @@ export const withdrawListPostModel = async (params: {
   }
 
   if (dateFilter?.start && dateFilter?.end) {
-    const startDate = getPhilippinesTime(
-      new Date(dateFilter.start || new Date()),
-      "start"
-    );
+    const startDate =
+      new Date(dateFilter.start || new Date()).toISOString().split("T")[0] +
+      " 00:00:00.000";
 
-    const endDate = getPhilippinesTime(
-      new Date(dateFilter.end || new Date()),
-      "end"
-    );
+    const endDate =
+      new Date(dateFilter.end || new Date()).toISOString().split("T")[0] +
+      " 23:59:59.999";
 
     commonConditions.push(
       Prisma.raw(
-        `t.alliance_withdrawal_request_date_updated::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
+        `t.alliance_withdrawal_request_date_updated::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
       )
     );
   }

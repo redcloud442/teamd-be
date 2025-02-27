@@ -9,6 +9,7 @@ import type { UserRequestdata } from "../../utils/types.js";
 
 import bcryptjs from "bcryptjs";
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
 import { supabaseClient } from "../../utils/supabase.js";
 
 export const userModelPut = async (params: {
@@ -507,7 +508,7 @@ export const userActiveListModel = async (params: {
     LEFT JOIN alliance_schema.alliance_earnings_table ae
       ON ae.alliance_earnings_member_id = am.alliance_member_id
     WHERE 
-      ae.alliance_combined_earnings > 0
+      ae.alliance_olympus_wallet > 0
       ${searchCondition}
       ${orderBy}
     LIMIT ${limit}
@@ -523,7 +524,7 @@ export const userActiveListModel = async (params: {
     LEFT JOIN alliance_schema.alliance_earnings_table ae
       ON ae.alliance_earnings_member_id = am.alliance_member_id
       WHERE 
-      ae.alliance_combined_earnings > 0
+      ae.alliance_olympus_wallet > 0
       ${searchCondition}
     `;
 
@@ -607,25 +608,12 @@ export const userListReinvestedModel = async (params: {
           ON am.alliance_member_id = pml.package_member_member_id
       JOIN user_schema.user_table u 
           ON u.user_id = am.alliance_member_user_id
-      WHERE pml.package_member_status = 'ACTIVE' AND pml.package_member_connection_created::timestamptz
+      WHERE pml.package_member_is_reinvestment = true AND pml.package_member_connection_created::timestamptz
           BETWEEN ${new Date(
             startDate || new Date()
           ).toISOString()}::timestamptz AND ${new Date(
     endDate || new Date()
   ).toISOString()}::timestamptz
-  AND (
-        pol.package_member_connection_date_claimed > (
-            SELECT MAX(past_pml.package_member_connection_created)
-            FROM packages_schema.package_member_connection_table past_pml
-            WHERE past_pml.package_member_member_id = pml.package_member_member_id
-        )
-        OR EXISTS (
-            SELECT 1 
-            FROM packages_schema.package_member_connection_table past_pml
-            WHERE past_pml.package_member_member_id = pml.package_member_member_id
-              AND past_pml.package_member_status = 'ENDED'
-        )
-    )
       GROUP BY 
           pml.package_member_member_id, 
           pml.package_member_amount, 
@@ -644,30 +632,19 @@ export const userListReinvestedModel = async (params: {
           SELECT 
               pml.package_member_member_id
           FROM packages_schema.package_member_connection_table pml
+          JOIN packages_schema.package_earnings_log pol
+          ON pol.package_member_member_id = pml.package_member_member_id
           JOIN alliance_schema.alliance_member_table am 
               ON am.alliance_member_id = pml.package_member_member_id
           JOIN user_schema.user_table u 
               ON u.user_id = am.alliance_member_user_id
-          WHERE pml.package_member_status = 'ACTIVE'
+          WHERE pml.package_member_is_reinvestment = true
             AND pml.package_member_connection_created::timestamptz
           BETWEEN ${new Date(
             startDate || new Date()
           ).toISOString()}::timestamptz AND ${new Date(
     endDate || new Date()
   ).toISOString()}::timestamptz
-            AND (
-                pml.package_member_connection_created > (
-                    SELECT MAX(past_pml.package_member_connection_created)
-                    FROM packages_schema.package_member_connection_table past_pml
-                    WHERE past_pml.package_member_member_id = pml.package_member_member_id
-                )
-                OR EXISTS (
-                    SELECT 1 
-                    FROM packages_schema.package_member_connection_table past_pml
-                    WHERE past_pml.package_member_member_id = pml.package_member_member_id
-                      AND past_pml.package_member_status = 'ENDED'
-                )
-            )
           GROUP BY 
             pml.package_member_member_id, 
             pml.package_member_amount, 
@@ -680,4 +657,66 @@ export const userListReinvestedModel = async (params: {
   `;
 
   return { data, totalCount: Number(totalCount[0]?.count ?? 0) };
+};
+export const userTreeModel = async (params: { memberId: string }) => {
+  const { memberId } = params;
+
+  const cacheKey = `referral-tree-${memberId}`;
+
+  const cachedData = await redis.get(cacheKey);
+
+  if (cachedData) {
+    return cachedData;
+  }
+
+  const userTree = await prisma.alliance_referral_table.findUnique({
+    where: { alliance_referral_member_id: memberId },
+    select: {
+      alliance_referral_hierarchy: true,
+    },
+  });
+
+  if (!userTree || !userTree.alliance_referral_hierarchy) {
+    return { success: false, error: "User not found" };
+  }
+
+  const rawHierarchy = userTree.alliance_referral_hierarchy.split(".");
+
+  const orderedHierarchy = [
+    memberId,
+    ...rawHierarchy.filter((id) => id !== memberId).reverse(),
+  ];
+
+  // Fetch user data from alliance_member_table
+  const userTreeData = await prisma.alliance_member_table.findMany({
+    where: { alliance_member_id: { in: orderedHierarchy } },
+    select: {
+      alliance_member_id: true,
+      user_table: {
+        select: {
+          user_username: true,
+          user_id: true,
+        },
+      },
+    },
+  });
+
+  const formattedUserTreeData = orderedHierarchy
+    .map((id) => {
+      const user = userTreeData.find((user) => user.alliance_member_id === id);
+      return user
+        ? {
+            alliance_member_id: user.alliance_member_id,
+            user_id: user.user_table.user_id,
+            user_username: user.user_table.user_username,
+          }
+        : null;
+    })
+    .filter(Boolean);
+
+  await redis.set(cacheKey, JSON.stringify(formattedUserTreeData), {
+    ex: 60 * 60 * 24 * 30,
+  });
+
+  return formattedUserTreeData;
 };

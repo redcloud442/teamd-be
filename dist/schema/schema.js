@@ -32,6 +32,7 @@ export const registerUserSchema = z.object({
     lastName: z.string().min(2),
     referalLink: z.string().min(2),
     url: z.string().min(2),
+    botField: z.string().optional(),
 });
 //for deposit
 export const depositSchema = z.object({
@@ -140,6 +141,9 @@ export const userListReinvestedSchema = z.object({
     }),
     take: z.number().min(1).max(10),
     skip: z.number().min(1),
+});
+export const userTreeSchema = z.object({
+    memberId: z.string().uuid(),
 });
 //transaction schema
 export const transactionSchemaPost = z.object({
@@ -293,4 +297,16 @@ export const userOptionsPostSchema = z.object({
 //wheel schema
 export const wheelPutSchema = z.object({
     quantity: z.number().min(1).max(100),
+});
+//testimonial schema
+export const testimonialPostSchema = z.array(z.object({
+    videoUrl: z.string().min(1),
+    posterUrl: z.string().min(1),
+}));
+export const testimonialGetSchema = z.object({
+    take: z.string().min(1).max(15),
+    skip: z.string().min(1),
+});
+export const testimonialPutSchema = z.object({
+    id: z.string().uuid(),
 });

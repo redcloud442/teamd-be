@@ -1,5 +1,5 @@
 import { wheelGetModel } from "../wheel/wheel.model.js";
-import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userListModel, userListReinvestedModel, userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userSponsorModel, } from "./user.model.js";
+import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userListModel, userListReinvestedModel, userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userSponsorModel, userTreeModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
         const { email, password, userId } = await c.req.json();
@@ -110,6 +110,16 @@ export const userListReinvestedController = async (c) => {
     try {
         const params = c.get("params");
         const data = await userListReinvestedModel(params);
+        return c.json(data, 200);
+    }
+    catch (error) {
+        return c.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+};
+export const userTreeController = async (c) => {
+    try {
+        const params = c.get("params");
+        const data = await userTreeModel(params);
         return c.json(data, 200);
     }
     catch (error) {

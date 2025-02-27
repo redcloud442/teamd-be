@@ -11,6 +11,7 @@ import {
   userProfilePutController,
   userPutController,
   userSponsorController,
+  userTreeController,
 } from "./user.controller.js";
 import {
   userActiveListMiddleware,
@@ -24,6 +25,7 @@ import {
   userProfilePutMiddleware,
   userPutMiddleware,
   userSponsorMiddleware,
+  userTreeMiddleware,
 } from "./user.middleware.js";
 
 const user = new Hono();
@@ -37,6 +39,8 @@ user.get("/", userGetMiddleware, userGetController);
 user.patch("/:id", userPatchMiddleware, userPatchController);
 
 user.put("/:id", userProfilePutMiddleware, userProfilePutController);
+
+user.get("/:id/tree", userTreeMiddleware, userTreeController);
 
 user.put(
   "/:id/change-password",

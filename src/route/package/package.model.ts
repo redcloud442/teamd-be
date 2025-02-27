@@ -71,6 +71,7 @@ export const packagePostModel = async (params: {
     referralWallet,
     winningEarnings,
     updatedCombinedWallet,
+    isReinvestment,
   } = deductFromWallets(
     requestedAmount,
     combinedEarnings,
@@ -110,6 +111,7 @@ export const packagePostModel = async (params: {
         package_member_completion_date: new Date(
           Date.now() + packageData.packages_days * 24 * 60 * 60 * 1000
         ),
+        package_member_is_reinvestment: isReinvestment,
       },
     });
 
@@ -584,6 +586,7 @@ function deductFromWallets(
   winningEarnings: number
 ) {
   let remaining = amount;
+  let isReinvestment = false;
 
   // Validate total funds
   if (combinedWallet < amount) {
@@ -602,9 +605,11 @@ function deductFromWallets(
   // Deduct from Olympus Earnings next
   if (remaining > 0) {
     if (olympusEarnings >= remaining) {
+      isReinvestment = true;
       olympusEarnings -= remaining;
       remaining = 0;
     } else {
+      isReinvestment = true;
       remaining -= olympusEarnings;
       olympusEarnings = 0;
     }
@@ -643,5 +648,6 @@ function deductFromWallets(
     referralWallet,
     winningEarnings,
     updatedCombinedWallet: combinedWallet - amount,
+    isReinvestment,
   };
 }

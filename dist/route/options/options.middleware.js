@@ -13,7 +13,7 @@ export const userOptionsPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:user-options-post`, 100, 60);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:user-options-post`, 100, "1m");
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }

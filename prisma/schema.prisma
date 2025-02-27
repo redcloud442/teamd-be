@@ -34,6 +34,7 @@ model user_table {
   user_email            String          @unique
   user_password         String
   user_profile_picture  String?
+  user_bot_field        String?
 
   alliance_member_table alliance_member_table[]
   user_history_log  user_history_log[]
@@ -109,7 +110,7 @@ model alliance_referral_table {
   alliance_referral_date             DateTime  @default(now())  @db.Timestamptz(3)
 
   alliance_referral_hierarchy        String?
-  alliance_referral_member_id        String    @db.Uuid
+  alliance_referral_member_id        String    @db.Uuid  @unique
   alliance_referral_link_id          String    @db.Uuid
   alliance_referral_from_member_id   String?   @db.Uuid
 
@@ -173,7 +174,7 @@ model alliance_top_up_request_table {
   alliance_top_up_request_member_id    String    @db.Uuid
   alliance_top_up_request_approved_by  String?   @db.Uuid
   alliance_top_up_request_date_updated DateTime?  @db.Timestamptz(3)
- 
+
 
   alliance_member_requestor           alliance_member_table @relation("Requestor", fields: [alliance_top_up_request_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
   alliance_member_approver            alliance_member_table? @relation("Approver", fields: [alliance_top_up_request_approved_by], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
@@ -219,6 +220,16 @@ model alliance_transaction_table {
 
   alliance_member_table alliance_member_table @relation(fields: [transaction_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
 
+
+  @@schema("alliance_schema")
+}
+
+model alliance_testimonial_table {
+  alliance_testimonial_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_testimonial_date_created DateTime @default(now())
+  alliance_testimonial_url String
+  alliance_testimonial_thumbnail String?
+  alliance_testimonial_is_hidden Boolean
 
   @@schema("alliance_schema")
 }
@@ -282,6 +293,7 @@ model package_member_connection_table {
   package_member_status                String
   package_member_is_ready_to_claim     Boolean  @default(false)
   package_member_completion_date       DateTime?  @db.Timestamptz(3)
+  package_member_is_reinvestment        Boolean  @default(false)
 
   package_table       package_table       @relation(fields: [package_member_package_id], references: [package_id], onDelete: Cascade, onUpdate: Cascade)
   alliance_member_table alliance_member_table @relation(fields: [package_member_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
