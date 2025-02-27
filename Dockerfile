@@ -1,9 +1,6 @@
 # Base stage with Bun
 FROM oven/bun:1.1.7-alpine AS base
 
-# Add compatibility libraries for Alpine
-RUN apk add --no-cache gcompat
-
 # Build stage to install dependencies and build the app
 FROM base AS builder
 WORKDIR /app
