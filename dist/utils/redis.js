@@ -1,37 +1,27 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-// Initialize Redis once
 export const redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL || "https://default.redis.url'",
     token: process.env.UPSTASH_REDIS_REST_TOKEN || "'default-redis-token'",
 });
-// Initialize Ratelimit once and reuse it
-let denyList = new Set();
-let lastDenyListFetch = 0; // Timestamp of last fetch
 /**
- * Rate Limit Function with Country Blocking
+ * Rate Limit Function with Dynamic Time Window
  * @param {string} identifier - Unique user key (IP, User ID, etc.)
- * @param {string} country - Country of the incoming request
- * @returns {boolean} - `true` if request is allowed, `false` if blocked
+ * @param {number} maxRequests - Maximum allowed requests
+ * @param {string} timeWindow - Time duration (e.g., "10 s", "1 m", "5 m", "1 h")
+ * @returns {boolean} - `true` if request is allowed, `false` if rate limit exceeded
  */
-export async function rateLimit(identifier, maxRequests, timeWindow) {
-    const now = Date.now();
+export async function rateLimit(identifier, maxRequests, timeWindow, context) {
     const ratelimit = new Ratelimit({
         redis: redis,
         limiter: Ratelimit.slidingWindow(maxRequests, `${timeWindow}`),
         enableProtection: true,
         analytics: true,
     });
-    if (now - lastDenyListFetch > 600000) {
-        const countries = await redis.smembers("@upstash/ratelimit:denyList:country");
-        denyList = new Set(countries);
-        lastDenyListFetch = now;
-    }
-    if (denyList.has(identifier)) {
-        return false;
-    }
     const { success, pending } = await ratelimit.limit(identifier, {
-        country: Array.from(denyList).join(","),
+        ip: context.req.raw.headers.get("cf-connecting-ip") || "",
+        userAgent: context.req.raw.headers.get("user-agent") || "",
+        country: context.req.raw.headers.get("cf-ipcountry") || "",
     });
     await pending;
     return success;

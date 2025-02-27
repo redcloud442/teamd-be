@@ -7,11 +7,13 @@ export const transactionPostController = async (c: Context) => {
     const { limit, page } = await c.req.json();
     const teamMemberProfile = c.get("teamMemberProfile");
 
-    const { totalTransactions, transactionHistory } = await transactionModelGet(
-      { limit, page, teamMemberProfile }
-    );
+    const data = await transactionModelGet({
+      limit,
+      page,
+      teamMemberProfile,
+    });
 
-    return c.json({ totalTransactions, transactionHistory });
+    return c.json(data, 200);
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }

@@ -27,7 +27,8 @@ export const transactionPostMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:transaction-post`,
     100,
-    "1m"
+    "1m",
+    c
   );
 
   if (!isAllowed) {
