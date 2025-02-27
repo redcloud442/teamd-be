@@ -1,6 +1,6 @@
-import { redis } from "@/utils/redis.js";
 import type { alliance_member_table } from "@prisma/client";
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
 
 export const transactionModelGet = async (params: {
   teamMemberProfile: alliance_member_table;
