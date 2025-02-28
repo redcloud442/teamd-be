@@ -12,7 +12,13 @@ const app = new Hono();
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3000", "https://primepinas.com"],
+    origin: [
+      `${
+        process.env.NODE_ENV === "development"
+          ? "http://localhost:3000"
+          : "https://primepinas.com"
+      }`,
+    ],
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
@@ -61,7 +67,3 @@ export default {
   port: envConfig.PORT || 9000, // Use 9000 if env variable is missing
   fetch: app.fetch, // Bun automatically calls this
 };
-
-console.log(
-  `🚀 Server is running on http://localhost:${envConfig.PORT || 9000}`
-);

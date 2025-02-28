@@ -89,16 +89,21 @@ export const packagePostModel = async (params: {
     packagePercentage
   );
 
-  // Generate referral chain with a capped depth
   const referralChain = generateReferralChain(
     referralData?.alliance_referral_hierarchy ?? null,
     teamMemberProfile.alliance_member_id,
-    100 // Cap the depth to 100 levels
+    100
   );
+
+  let count = 0;
 
   let bountyLogs: Prisma.package_ally_bounty_logCreateManyInput[] = [];
 
   let transactionLogs: Prisma.alliance_transaction_tableCreateManyInput[] = [];
+
+  if (requestedAmount % 5000 === 0) {
+    count = requestedAmount / 5000;
+  }
 
   const connectionData = await prisma.$transaction(async (tx) => {
     const connectionData = await tx.package_member_connection_table.create({
@@ -122,6 +127,17 @@ export const packagePostModel = async (params: {
         transaction_description: `Package Enrolled: ${packageData.package_name}`,
       },
     });
+
+    if (count > 0) {
+      await tx.alliance_wheel_log_table.update({
+        where: {
+          alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
+        },
+        data: {
+          alliance_wheel_spin_count: count,
+        },
+      });
+    }
 
     await tx.alliance_earnings_table.update({
       where: {
@@ -148,7 +164,6 @@ export const packagePostModel = async (params: {
         const batch = limitedReferralChain.slice(i, i + batchSize);
 
         bountyLogs = batch.map((ref) => {
-          // Calculate earnings based on ref.percentage and round to the nearest integer
           const calculatedEarnings =
             (Number(amount) * Number(ref.percentage)) / 100;
 

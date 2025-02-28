@@ -134,7 +134,6 @@ model dashboard_earnings_summary {
   @@schema("alliance_schema")
 }
 
-
 model alliance_earnings_table {
   alliance_earnings_id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   alliance_olympus_wallet      Float    @default(0.0)
@@ -248,11 +247,11 @@ model alliance_wheel_table {
   alliance_wheel_date DateTime @default(now()) @db.Timestamptz(3)
   alliance_wheel_member_id String @db.Uuid
 
-  three_referrals_count Boolean @default(false)
-  two_hundred_referrals_amount Boolean @default(false)
-  five_hundred_referrals_amount Boolean @default(false)
-  ten_direct_referrals_count Boolean @default(false)
-  two_thousand_package_plan Boolean @default(false)
+  three_referrals Boolean @default(false)
+  ten_referrals Boolean @default(false)
+  twenty_five_referrals Boolean @default(false)
+  fifty_referrals Boolean @default(false)
+  one_hundred_referrals Boolean @default(false)
 
   alliance_wheel_date_updated DateTime? @db.Timestamptz(3)
 
@@ -268,11 +267,10 @@ model alliance_wheel_table {
 model alliance_wheel_log_table {
   alliance_wheel_log_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   alliance_wheel_spin_count Int @default(0)
-  alliance_wheel_member_id String @db.Uuid 
+  alliance_wheel_member_id String @db.Uuid  @unique
 
   alliance_member_table alliance_member_table @relation(fields: [alliance_wheel_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([alliance_wheel_member_id])
   @@schema("alliance_schema")
 }
 

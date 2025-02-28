@@ -120,183 +120,6 @@ export const wheelPostModel = async (params: {
   return response;
 };
 
-export const wheelGetPackageModel = async (params: {
-  teamMemberProfile: alliance_member_table;
-}) => {
-  const { teamMemberProfile } = params;
-
-  const currentDate = new Date();
-  const startOfDay = getPhilippinesTime(currentDate, "start");
-  const endOfDay = getPhilippinesTime(currentDate, "end");
-
-  const dailyTaskCurrentUser = await prisma.alliance_wheel_table.findFirst({
-    where: {
-      alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
-      alliance_wheel_date: { gte: startOfDay, lte: endOfDay },
-    },
-  });
-
-  if (dailyTaskCurrentUser?.two_thousand_package_plan) {
-    const wheelLog = await prisma.alliance_wheel_log_table.findFirst({
-      where: { alliance_wheel_member_id: teamMemberProfile.alliance_member_id },
-    });
-    return { wheelLog, dailyTask: dailyTaskCurrentUser };
-  }
-
-  const sponsor = await prisma.alliance_referral_table.findFirst({
-    where: {
-      alliance_referral_member_id: teamMemberProfile.alliance_member_id,
-    },
-    select: { alliance_referral_from_member_id: true },
-  });
-
-  if (!sponsor) {
-    throw new Error("Sponsor not found.");
-  }
-
-  return await prisma.$transaction(async (tx) => {
-    const [wheelLog, dailyTask] = await Promise.all([
-      tx.alliance_wheel_log_table.findFirst({
-        where: {
-          alliance_wheel_member_id:
-            sponsor.alliance_referral_from_member_id ?? "",
-        },
-        select: { alliance_wheel_spin_count: true },
-      }),
-      tx.alliance_wheel_table.findFirst({
-        where: {
-          alliance_wheel_member_id:
-            sponsor.alliance_referral_from_member_id ?? "",
-          alliance_wheel_date: { gte: startOfDay, lte: endOfDay },
-        },
-        select: {
-          alliance_wheel_id: true,
-          alliance_wheel_date_updated: true,
-          two_thousand_package_plan: true,
-          three_referrals_count: true,
-          ten_direct_referrals_count: true,
-          two_hundred_referrals_amount: true,
-          five_hundred_referrals_amount: true,
-        },
-        orderBy: { alliance_wheel_date: "desc" },
-        take: 1,
-      }),
-    ]);
-
-    if (!dailyTask || dailyTaskCurrentUser?.two_thousand_package_plan) {
-      return { wheelLog, dailyTask };
-    }
-
-    const updatedGteDate = dailyTask.alliance_wheel_date_updated || startOfDay;
-    const spinIncrements: number[] = [];
-    let columnToUpdate: Record<string, boolean> = {};
-
-    if (
-      dailyTask.three_referrals_count &&
-      !dailyTask.two_hundred_referrals_amount
-    ) {
-      const referralEarnings200 = await fetchReferralEarnings(
-        tx,
-        sponsor.alliance_referral_from_member_id ?? "",
-        new Date(updatedGteDate),
-        new Date(endOfDay),
-        200
-      );
-      if (referralEarnings200) {
-        spinIncrements.push(4);
-        columnToUpdate.two_hundred_referrals_amount = true;
-      }
-    }
-
-    if (
-      dailyTask.two_hundred_referrals_amount &&
-      !dailyTask.five_hundred_referrals_amount
-    ) {
-      const referralEarnings500 = await fetchReferralEarnings(
-        tx,
-        sponsor.alliance_referral_from_member_id ?? "",
-        new Date(updatedGteDate),
-        new Date(endOfDay),
-        500
-      );
-      if (referralEarnings500) {
-        spinIncrements.push(4);
-        columnToUpdate.five_hundred_referrals_amount = true;
-      }
-    }
-
-    if (
-      dailyTaskCurrentUser?.five_hundred_referrals_amount &&
-      !dailyTaskCurrentUser.two_thousand_package_plan
-    ) {
-      const packagePlanAmount =
-        await tx.package_member_connection_table.aggregate({
-          where: {
-            package_member_member_id: teamMemberProfile.alliance_member_id,
-            package_member_connection_created: {
-              gte: updatedGteDate,
-              lte: endOfDay,
-            },
-          },
-          _sum: { package_member_amount: true },
-        });
-
-      if (
-        packagePlanAmount._sum.package_member_amount &&
-        packagePlanAmount._sum.package_member_amount > 2500
-      ) {
-        spinIncrements.push(25);
-        columnToUpdate.two_thousand_package_plan = true;
-      }
-    }
-
-    if (spinIncrements.length === 0) {
-      return { wheelLog, dailyTask };
-    }
-
-    const totalIncrement = spinIncrements.reduce(
-      (sum, increment) => sum + increment,
-      0
-    );
-
-    await tx.alliance_wheel_log_table.update({
-      where: {
-        alliance_wheel_member_id:
-          totalIncrement === 25
-            ? teamMemberProfile.alliance_member_id
-            : sponsor.alliance_referral_from_member_id ?? "",
-      },
-      data: { alliance_wheel_spin_count: { increment: totalIncrement } },
-    });
-
-    if (wheelLog) {
-      const updatedWheel = await tx.alliance_wheel_table.update({
-        where: {
-          alliance_wheel_id:
-            totalIncrement === 25
-              ? dailyTaskCurrentUser?.alliance_wheel_id
-              : dailyTask.alliance_wheel_id,
-        },
-        data: {
-          alliance_wheel_date_updated: currentDate,
-          ...columnToUpdate,
-        },
-        select: {
-          alliance_wheel_id: true,
-          alliance_wheel_date_updated: true,
-          two_thousand_package_plan: true,
-          three_referrals_count: true,
-          ten_direct_referrals_count: true,
-          two_hundred_referrals_amount: true,
-          five_hundred_referrals_amount: true,
-        },
-      });
-
-      return { dailyTask: updatedWheel, wheelLog };
-    }
-  });
-};
-
 export const wheelGetModel = async (params: {
   teamMemberProfile: alliance_member_table;
 }) => {
@@ -339,11 +162,11 @@ export const wheelGetModel = async (params: {
         data: {
           alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
           alliance_wheel_date: new Date(),
-          three_referrals_count: false,
-          two_hundred_referrals_amount: false,
-          five_hundred_referrals_amount: false,
-          ten_direct_referrals_count: false,
-          two_thousand_package_plan: false,
+          three_referrals: false,
+          ten_referrals: false,
+          twenty_five_referrals: false,
+          fifty_referrals: false,
+          one_hundred_referrals: false,
         },
       });
     }
@@ -557,24 +380,3 @@ function deductFromWallets(
     updatedCombinedWallet: combinedWallet - amount,
   };
 }
-
-const fetchReferralEarnings = async (
-  tx: any,
-  memberId: string,
-  gteDate: Date,
-  lteDate: Date,
-  threshold: number
-): Promise<boolean> => {
-  const earnings =
-    (
-      await tx.package_ally_bounty_log.aggregate({
-        where: {
-          package_ally_bounty_member_id: memberId,
-          package_ally_bounty_log_date_created: { gte: gteDate, lte: lteDate },
-        },
-        _sum: { package_ally_bounty_earnings: true },
-      })
-    )._sum?.package_ally_bounty_earnings ?? 0;
-
-  return earnings >= threshold;
-};
