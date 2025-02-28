@@ -1,12 +1,6 @@
 import prisma from "../../utils/prisma.js";
-import { redis } from "../../utils/redis.js";
 export const transactionModelGet = async (params) => {
     const { teamMemberProfile, limit, page } = params;
-    const cacheKey = `transaction-${teamMemberProfile.alliance_member_id}-${limit}-${page}`;
-    const cachedData = await redis.get(cacheKey);
-    if (cachedData) {
-        return cachedData;
-    }
     const safeLimit = Math.min(Math.max(Number(limit), 1), 100);
     const safePage = Math.max(Number(page), 1);
     const totalTransactions = await prisma.alliance_transaction_table.count({
@@ -35,9 +29,6 @@ export const transactionModelGet = async (params) => {
         orderBy: {
             transaction_date: "desc",
         },
-    });
-    await redis.set(cacheKey, JSON.stringify({ totalTransactions, transactionHistory }), {
-        ex: 60 * 60 * 24 * 30,
     });
     return {
         totalTransactions,
