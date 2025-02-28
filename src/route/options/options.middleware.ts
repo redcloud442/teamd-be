@@ -23,7 +23,8 @@ export const userOptionsPostMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile.alliance_member_id}:user-options-post`,
     100,
-    "1m"
+    "1m",
+    c
   );
 
   if (!isAllowed) {
