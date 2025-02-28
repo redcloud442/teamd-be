@@ -33,13 +33,6 @@ export async function rateLimit(
     country: context.req.raw.headers.get("cf-ipcountry") || "",
   });
 
-  const country =
-    context.req.raw.headers.get("cf-ipcountry") ||
-    context.req.raw.headers.get("x-forwarded-for")?.split(",")[0] ||
-    context.req.raw.headers.get("remote-addr") ||
-    "UNKNOWN";
-
-  console.log(country);
   await pending;
 
   return success;
