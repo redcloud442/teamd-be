@@ -1,11 +1,12 @@
 import { Hono } from "hono";
-import { userActiveListController, userChangePasswordController, userGenerateLinkController, userGetController, userListController, userListReinvestedController, userPatchController, userPostController, userProfilePutController, userPutController, userSponsorController, userTreeController, } from "./user.controller.js";
-import { userActiveListMiddleware, userChangePasswordMiddleware, userGenerateLinkMiddleware, userGetMiddleware, userListMiddleware, userListReinvestedMiddleware, userPatchMiddleware, userPostMiddleware, userProfilePutMiddleware, userPutMiddleware, userSponsorMiddleware, userTreeMiddleware, } from "./user.middleware.js";
+import { userActiveListController, userChangePasswordController, userGenerateLinkController, userGetController, userGetSearchController, userListController, userListReinvestedController, userPatchController, userPostController, userProfilePutController, userPutController, userSponsorController, userTreeController, } from "./user.controller.js";
+import { userActiveListMiddleware, userChangePasswordMiddleware, userGenerateLinkMiddleware, userGetMiddleware, userGetSearchMiddleware, userListMiddleware, userListReinvestedMiddleware, userPatchMiddleware, userPostMiddleware, userProfilePutMiddleware, userPutMiddleware, userSponsorMiddleware, userTreeMiddleware, } from "./user.middleware.js";
 const user = new Hono();
 user.post("/", userPostMiddleware, userPostController);
 user.put("/", userPutMiddleware, userPutController);
 user.get("/", userGetMiddleware, userGetController);
 user.patch("/:id", userPatchMiddleware, userPatchController);
+user.get("/search", userGetSearchMiddleware, userGetSearchController);
 user.put("/:id", userProfilePutMiddleware, userProfilePutController);
 user.get("/:id/tree", userTreeMiddleware, userTreeController);
 user.put("/:id/change-password", userChangePasswordMiddleware, userChangePasswordController);

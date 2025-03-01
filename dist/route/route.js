@@ -51,5 +51,32 @@ app.route("/options", options);
 //testimonial route
 app.use("/testimonial/*", protectionMiddleware);
 app.route("/testimonial", testimonial);
-app.get("/", (c) => c.text("This is the api endpoint"));
+app.get("/", (c) => {
+    return c.html(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>API Status</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                padding: 50px;
+              }
+              .status {
+                font-size: 20px;
+                color: green;
+              }
+            </style>
+        </head>
+        <body>
+            <h1>API Status</h1>
+            <p class="status">✅ API Routes is working perfectly!</p>
+            <p>Current Time: ${new Date().toLocaleString()}</p>
+        </body>
+        </html>
+      `);
+});
 export default app;

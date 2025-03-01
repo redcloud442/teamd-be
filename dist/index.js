@@ -16,7 +16,32 @@ app.use("*", cors({
 }), supabaseMiddleware());
 app.use(logger()); // Logger should be before error handling
 app.get("/", (c) => {
-    return c.text("API endpoint is working!");
+    return c.html(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>API Status</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                padding: 50px;
+              }
+              .status {
+                font-size: 20px;
+                color: green;
+              }
+            </style>
+        </head>
+        <body>
+            <h1>API Status</h1>
+            <p class="status">✅ API is working perfectly!</p>
+            <p>Current Time: ${new Date().toLocaleString()}</p>
+        </body>
+        </html>
+      `);
 });
 app.route("/api/v1", route);
 app.onError(errorHandlerMiddleware);
@@ -25,4 +50,3 @@ export default {
     port: envConfig.PORT || 9000, // Use 9000 if env variable is missing
     fetch: app.fetch, // Bun automatically calls this
 };
-console.log(`🚀 Server is running on http://localhost:${envConfig.PORT || 9000}`);
