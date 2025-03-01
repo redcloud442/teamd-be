@@ -91,6 +91,9 @@ model alliance_member_table {
 
   package_ally_bounty_log_from package_ally_bounty_log[] @relation("FromMember")
   @@schema("alliance_schema")
+
+  @@index([alliance_member_alliance_id], name: "idx_alliance_member_alliance_id")
+  @@index([alliance_member_user_id], name: "idx_alliance_member_user_id")
 }
 
 model alliance_referral_link_table {
@@ -103,6 +106,7 @@ model alliance_referral_link_table {
   alliance_referral_table            alliance_referral_table[]
 
   @@schema("alliance_schema")
+  @@index([alliance_referral_link_member_id], name: "idx_alliance_referral_link_member_id")
 }
 
 model alliance_referral_table {
@@ -119,6 +123,9 @@ model alliance_referral_table {
   alliance_referral_from_table      alliance_member_table? @relation(fields: [alliance_referral_from_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@schema("alliance_schema")
+
+  @@index([alliance_referral_member_id], name: "idx_alliance_referral_member_id")
+  @@index([alliance_referral_from_member_id], name: "idx_alliance_referral_from_member_id")
 }
 
 model dashboard_earnings_summary {
@@ -179,6 +186,10 @@ model alliance_top_up_request_table {
   alliance_member_approver            alliance_member_table? @relation("Approver", fields: [alliance_top_up_request_approved_by], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@schema("alliance_schema")
+
+  @@index([alliance_top_up_request_member_id], name: "idx_alliance_top_up_request_member_id")
+  @@index([alliance_top_up_request_approved_by], name: "idx_alliance_top_up_request_approved_by")
+  @@index([alliance_top_up_request_status], name: "idx_alliance_top_up_request_status")
 }
 
 model alliance_withdrawal_request_table {
@@ -206,6 +217,10 @@ model alliance_withdrawal_request_table {
   alliance_member_approver            alliance_member_table? @relation("WithdrawalApprover", fields: [alliance_withdrawal_request_approved_by], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade, map: "withdrawal_request_approver_fkey")
 
   @@schema("alliance_schema")
+
+  @@index([alliance_withdrawal_request_member_id], name: "idx_alliance_withdrawal_request_member_id")
+  @@index([alliance_withdrawal_request_approved_by], name: "idx_alliance_withdrawal_request_approved_by")
+  @@index([alliance_withdrawal_request_status], name: "idx_alliance_withdrawal_request_status")
 }
 
 model alliance_transaction_table {
@@ -221,6 +236,7 @@ model alliance_transaction_table {
 
 
   @@schema("alliance_schema")
+  @@index([transaction_member_id], name: "idx_alliance_transaction_member_id")
 }
 
 model alliance_wheel_settings_table {
@@ -229,6 +245,7 @@ model alliance_wheel_settings_table {
   alliance_wheel_settings_percentage Float
   alliance_wheel_settings_label String
   alliance_wheel_settings_color String
+
   @@schema("alliance_schema")
 }
 
@@ -261,6 +278,8 @@ model alliance_wheel_table {
   @@unique([alliance_wheel_date, alliance_wheel_member_id])
 
   @@schema("alliance_schema")
+
+  @@index([alliance_wheel_member_id], name: "idx_alliance_wheel_member_id")
 }
 
 
@@ -272,6 +291,8 @@ model alliance_wheel_log_table {
   alliance_member_table alliance_member_table @relation(fields: [alliance_wheel_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@schema("alliance_schema")
+
+  @@index([alliance_wheel_member_id], name: "idx_alliance_wheel_log_member_id")
 }
 
 model package_table {
@@ -307,10 +328,9 @@ model package_member_connection_table {
   package_ally_bounty_log package_ally_bounty_log[]
   package_earnings_log package_earnings_log[]
   @@schema("packages_schema")
+  
   @@index([package_member_package_id], name: "idx_package_member_package_id")
   @@index([package_member_member_id], name: "idx_package_member_member_id")
-  @@index([package_member_amount], name: "idx_package_member_amount")
-  @@index([package_amount_earnings], name: "idx_package_amount_earnings")
 }
 
 model package_earnings_log {
@@ -329,8 +349,10 @@ model package_earnings_log {
   package_member_connection_table     package_member_connection_table @relation(fields: [package_member_connection_id], references: [package_member_connection_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@schema("packages_schema")
+
   @@index([package_member_package_id], name: "idx_package_earnings_package_id")
   @@index([package_member_member_id], name: "idx_package_earnings_member_id")
+  @@index([package_member_connection_id], name: "idx_package_earnings_connection_id")
 
 }
 
@@ -349,6 +371,10 @@ model package_ally_bounty_log {
   package_member_connection_table package_member_connection_table @relation(fields: [package_ally_bounty_connection_id], references: [package_member_connection_id], onDelete: Cascade, onUpdate: Cascade)
   alliance_member_table_from alliance_member_table? @relation("FromMember",fields: [package_ally_bounty_from], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
   @@schema("packages_schema")
+
+  @@index([package_ally_bounty_member_id], name: "idx_package_ally_bounty_member_id")
+  @@index([package_ally_bounty_connection_id], name: "idx_package_ally_bounty_connection_id")
+  @@index([package_ally_bounty_from], name: "idx_package_ally_bounty_from")
 }
 
 model merchant_table {
@@ -358,7 +384,6 @@ model merchant_table {
   merchant_account_number   String
   merchant_account_type     String
   merchant_qr_attachment    String?
-
 
   @@schema("merchant_schema")
 }
