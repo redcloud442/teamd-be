@@ -61,7 +61,3 @@ export default {
   port: envConfig.PORT || 9000, // Use 9000 if env variable is missing
   fetch: app.fetch, // Bun automatically calls this
 };
-
-console.log(
-  `🚀 Server is running on http://localhost:${envConfig.PORT || 9000}`
-);

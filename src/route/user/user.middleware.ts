@@ -2,6 +2,7 @@ import type { Context, Next } from "hono";
 import {
   userChangePasswordSchema,
   userGenerateLinkSchema,
+  userGetSearchSchema,
   userListReinvestedSchema,
   userListSchema,
   userProfileSchemaPatch,
@@ -524,6 +525,47 @@ export const userTreeMiddleware = async (c: Context, next: Next) => {
 
   const validate = userTreeSchema.safeParse({
     memberId: id,
+  });
+
+  if (!validate.success) {
+    return sendErrorResponse("Invalid Request", 400);
+  }
+
+  c.set("params", validate.data);
+
+  await next();
+};
+
+export const userGetSearchMiddleware = async (c: Context, next: Next) => {
+  const user = c.get("user");
+
+  const response = await protectionAdmin(user.id, prisma);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.alliance_member_id}:user-get-search`,
+    50,
+    "1m",
+    c
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
+
+  const { search } = c.req.query();
+
+  const validate = userGetSearchSchema.safeParse({
+    userName: search,
   });
 
   if (!validate.success) {
