@@ -47,7 +47,7 @@ export const packagePostModel = async (params: {
   const combinedEarnings = Number(alliance_combined_earnings.toFixed(2));
   const requestedAmount = Number(amount.toFixed(2));
 
-  if (combinedEarnings < requestedAmount) {
+  if (requestedAmount > combinedEarnings) {
     throw new Error("Insufficient balance in the wallet.");
   }
 
@@ -97,6 +97,9 @@ export const packagePostModel = async (params: {
           Date.now() + packageData.packages_days * 24 * 60 * 60 * 1000
         ),
         package_member_is_reinvestment: isReinvestment,
+      },
+      select: {
+        package_member_connection_id: true,
       },
     });
 
