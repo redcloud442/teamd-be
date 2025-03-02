@@ -4,6 +4,7 @@ import {
   userChangePasswordController,
   userGenerateLinkController,
   userGetController,
+  userGetSearchController,
   userListController,
   userListReinvestedController,
   userPatchController,
@@ -18,6 +19,7 @@ import {
   userChangePasswordMiddleware,
   userGenerateLinkMiddleware,
   userGetMiddleware,
+  userGetSearchMiddleware,
   userListMiddleware,
   userListReinvestedMiddleware,
   userPatchMiddleware,
@@ -37,6 +39,8 @@ user.put("/", userPutMiddleware, userPutController);
 user.get("/", userGetMiddleware, userGetController);
 
 user.patch("/:id", userPatchMiddleware, userPatchController);
+
+user.get("/search", userGetSearchMiddleware, userGetSearchController);
 
 user.put("/:id", userProfilePutMiddleware, userProfilePutController);
 

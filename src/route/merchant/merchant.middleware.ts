@@ -117,7 +117,6 @@ export const merchantPostMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!validate.success) {
-    console.log(validate.error);
     return sendErrorResponse("Invalid Request", 400);
   }
 

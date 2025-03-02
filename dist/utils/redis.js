@@ -15,7 +15,7 @@ export const redis = new Redis({
  * @param {string} timeWindow - Time duration (e.g., "10 s", "1 m", "5 m", "1 h")
  * @returns {boolean} - `true` if request is allowed, `false` if rate limit exceeded
  */
-export async function rateLimit(identifier, maxRequests, timeWindow) {
+export async function rateLimit(identifier, maxRequests, timeWindow, context) {
   const ratelimit = new Ratelimit({
     redis: redis,
     limiter: Ratelimit.slidingWindow(maxRequests, `${timeWindow}`),
@@ -23,16 +23,10 @@ export async function rateLimit(identifier, maxRequests, timeWindow) {
     analytics: true,
   });
   const { success, pending } = await ratelimit.limit(identifier, {
-    ip: "ip-address",
-    userAgent: "user-agent",
-    country: "country",
+    ip: context.req.raw.headers.get("cf-connecting-ip") || "",
+    userAgent: context.req.raw.headers.get("user-agent") || "",
+    country: context.req.raw.headers.get("cf-ipcountry") || "",
   });
-  const country =
-    context.req.raw.headers.get("cf-ipcountry") ||
-    context.req.raw.headers.get("x-forwarded-for")?.split(",")[0] ||
-    context.req.raw.headers.get("remote-addr") ||
-    "UNKNOWN";
-  console.log(country);
   await pending;
   return success;
 }

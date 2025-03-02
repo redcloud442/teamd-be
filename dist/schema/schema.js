@@ -145,6 +145,13 @@ export const userListReinvestedSchema = z.object({
 export const userTreeSchema = z.object({
     memberId: z.string().uuid(),
 });
+export const userGetSearchSchema = z.object({
+    userName: z
+        .string()
+        .min(6, "Username must be at least 6 characters long")
+        .max(20, "Username must be at most 20 characters long")
+        .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+});
 //transaction schema
 export const transactionSchemaPost = z.object({
     limit: z.number().min(1).max(10),
@@ -203,7 +210,7 @@ export const merchantPostSchema = z.object({
     accountNumber: z.string().min(1),
     accountType: z.string().min(1),
     accountName: z.string().min(1),
-    merchantQrAttachment: z.string().min(1),
+    merchantQrAttachment: z.string().optional(),
 });
 export const merchantPatchSchema = z.object({
     amount: z.number().min(1),

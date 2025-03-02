@@ -1,12 +1,14 @@
+import { getPhilippinesTime } from "@/utils/function.js";
 import { Prisma, type alliance_member_table } from "@prisma/client";
 import {
   endOfDay,
+  endOfMonth,
   parseISO,
+  setDate,
   setHours,
   setMilliseconds,
   setMinutes,
   setSeconds,
-  startOfMonth,
 } from "date-fns";
 import { type DepositFormValues } from "../../schema/schema.js";
 import prisma from "../../utils/prisma.js";
@@ -502,34 +504,39 @@ export const depositReportPostModel = async (params: {
   const { dateFilter } = params;
 
   const monthYearString = `${dateFilter.year}-${dateFilter.month}-01`;
-  let startDate = startOfMonth(parseISO(monthYearString));
-  let endDate = endOfDay(new Date());
 
-  startDate = setHours(startDate, 2);
-  startDate = setMinutes(startDate, 1);
+  let startDate = parseISO(monthYearString);
+
+  startDate = setHours(startDate, 0);
+  startDate = setMinutes(startDate, 0);
   startDate = setSeconds(startDate, 0);
   startDate = setMilliseconds(startDate, 0);
-
+  let endDate = endOfDay(new Date());
   const selectedMonth = parseISO(monthYearString);
   const today = new Date();
+
+  // If the selected month is not the current month, set the end date to the last day of the selected month
   if (
     selectedMonth.getMonth() !== today.getMonth() ||
     selectedMonth.getFullYear() !== today.getFullYear()
   ) {
-    endDate = endOfDay(selectedMonth);
+    endDate = endOfDay(selectedMonth); // End of the selected month
+    endDate = endOfMonth(endDate);
   }
+
+  startDate = setDate(startDate, 1);
 
   const depositMonthlyReport =
     await prisma.alliance_top_up_request_table.aggregate({
-      where: {
-        alliance_top_up_request_date_updated: {
-          gte: startDate,
-          lte: endDate,
-        },
-        alliance_top_up_request_status: "APPROVED",
-      },
       _sum: {
         alliance_top_up_request_amount: true,
+      },
+      where: {
+        alliance_top_up_request_date_updated: {
+          gte: getPhilippinesTime(startDate, "start"),
+          lte: getPhilippinesTime(endDate, "end"),
+        },
+        alliance_top_up_request_status: "APPROVED",
       },
       _count: {
         alliance_top_up_request_id: true,
@@ -538,13 +545,15 @@ export const depositReportPostModel = async (params: {
 
   const depositDailyIncome = await prisma.$queryRaw`
     SELECT 
-      TO_CHAR(alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila', 'YYYY-MM-DD') AS date, 
+      DATE_TRUNC('day', alliance_top_up_request_date_updated) AS date, 
       SUM(alliance_top_up_request_amount) AS amount
     FROM alliance_schema.alliance_top_up_request_table
-    WHERE alliance_top_up_request_date_updated BETWEEN ${startDate} AND ${endDate}
+    WHERE alliance_top_up_request_date_updated::Date BETWEEN ${
+      startDate.toISOString().split("T")[0]
+    }::Date AND ${endDate.toISOString().split("T")[0]}::Date
     AND alliance_top_up_request_status = 'APPROVED'
     GROUP BY date
-    ORDER BY date DESC
+    ORDER BY date DESC;
   `;
 
   return {

@@ -3,6 +3,7 @@ import {
   userActiveListModel,
   userChangePasswordModel,
   userGenerateLinkModel,
+  userGetSearchModel,
   userListModel,
   userListReinvestedModel,
   userModelGet,
@@ -157,6 +158,18 @@ export const userTreeController = async (c: Context) => {
     const params = c.get("params");
 
     const data = await userTreeModel(params);
+
+    return c.json(data, 200);
+  } catch (error) {
+    return c.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+};
+
+export const userGetSearchController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const data = await userGetSearchModel(params);
 
     return c.json(data, 200);
   } catch (error) {

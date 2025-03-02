@@ -751,3 +751,49 @@ export const userTreeModel = async (params: { memberId: string }) => {
 
   return formattedUserTreeData;
 };
+
+export const userGetSearchModel = async (params: { userName: string }) => {
+  const { userName } = params;
+
+  const users = await prisma.user_table.findMany({
+    where: {
+      user_username: {
+        contains: userName,
+        mode: "insensitive",
+      },
+    },
+    select: {
+      user_id: true,
+      user_username: true,
+      user_first_name: true,
+      user_last_name: true,
+      alliance_member_table: {
+        select: {
+          alliance_member_id: true,
+          alliance_member_is_active: true,
+          alliance_member_role: true,
+          alliance_member_restricted: true,
+        },
+      },
+    },
+  });
+
+  if (!users || users.length === 0) {
+    return { data: [] };
+  }
+
+  const formattedUsers = users.flatMap((user) =>
+    user.alliance_member_table.map((member) => ({
+      user_id: user.user_id,
+      alliance_member_id: member.alliance_member_id,
+      user_username: user.user_username,
+      user_first_name: user.user_first_name,
+      user_last_name: user.user_last_name,
+      alliance_member_is_active: member.alliance_member_is_active,
+      alliance_member_role: member.alliance_member_role,
+      alliance_member_restricted: member.alliance_member_restricted,
+    }))
+  );
+
+  return { data: formattedUsers };
+};
