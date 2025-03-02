@@ -53,6 +53,7 @@ export const referralDirectMiddleware = async (c: Context, next: Next) => {
   }
 
   c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", parsedData);
 
   await next();
 };
@@ -95,11 +96,11 @@ export const referralIndirectMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!parsedData) {
-    return sendErrorResponse("Invalid data", 400);
+    return sendErrorResponse("Invalid request", 400);
   }
 
   c.set("teamMemberProfile", teamMemberProfile);
-
+  c.set("params", parsedData);
   await next();
 };
 

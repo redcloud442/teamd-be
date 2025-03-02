@@ -19,7 +19,7 @@ export const withdrawModel = async (params) => {
         },
     });
     if (existingPackageWithdrawal) {
-        throw new Error("You have already made a PACKAGE withdrawal today. Please try again tomorrow.");
+        throw new Error(`You have already made a ${existingPackageWithdrawal.alliance_withdrawal_request_withdraw_type} withdrawal today. Please try again tomorrow.`);
     }
     const amountMatch = await prisma.alliance_earnings_table.findUnique({
         where: {
@@ -29,19 +29,24 @@ export const withdrawModel = async (params) => {
             alliance_olympus_earnings: true,
             alliance_referral_bounty: true,
             alliance_combined_earnings: true,
+            alliance_winning_earnings: true,
         },
     });
     if (!amountMatch) {
         throw new Error("Invalid request.");
     }
-    const { alliance_olympus_earnings, alliance_referral_bounty } = amountMatch;
+    const { alliance_olympus_earnings, alliance_referral_bounty, alliance_winning_earnings, } = amountMatch;
     const amountValue = Math.round(Number(amount) * 100) / 100;
     const earningsType = earnings === "PACKAGE"
         ? "alliance_olympus_earnings"
-        : "alliance_referral_bounty";
+        : earnings === "REFERRAL"
+            ? "alliance_referral_bounty"
+            : "alliance_winning_earnings";
     const earningsWithdrawalType = earnings === "PACKAGE"
         ? "alliance_withdrawal_request_earnings_amount"
-        : "alliance_withdrawal_request_referral_amount";
+        : earnings === "REFERRAL"
+            ? "alliance_withdrawal_request_referral_amount"
+            : "alliance_withdrawal_request_winning_amount";
     const earningsValue = Math.round(Number(amountMatch[earningsType]) * 100) / 100;
     if (amountValue > earningsValue) {
         throw new Error("Insufficient balance.");
@@ -54,6 +59,10 @@ export const withdrawModel = async (params) => {
     if (earnings === "REFERRAL") {
         const referralDeduction = Math.min(remainingAmount, Number(alliance_referral_bounty));
         remainingAmount -= referralDeduction;
+    }
+    if (earnings === "WINNING") {
+        const winningDeduction = Math.min(remainingAmount, Number(alliance_winning_earnings));
+        remainingAmount -= winningDeduction;
     }
     const finalAmount = calculateFinalAmount(Number(amount), earnings);
     const fee = calculateFee(Number(amount), earnings);
@@ -100,7 +109,11 @@ export const withdrawModel = async (params) => {
         await tx.alliance_transaction_table.create({
             data: {
                 transaction_amount: finalAmount,
-                transaction_description: `Withdrawal ${earnings === "PACKAGE" ? "Package" : "Referral"} Ongoing.`,
+                transaction_description: `Withdrawal ${earnings === "PACKAGE"
+                    ? "Package"
+                    : earnings === "REFERRAL"
+                        ? "Referral"
+                        : "Winning"} Ongoing.`,
                 transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
                 transaction_member_id: teamMemberProfile.alliance_member_id,
             },
@@ -164,6 +177,9 @@ export const updateWithdrawModel = async (params) => {
         });
         if (!existingRequest) {
             throw new Error("Request not found.");
+        }
+        if (existingRequest.alliance_withdrawal_request_status !== "PENDING") {
+            throw new Error("Request has already been processed.");
         }
         if (teamMemberProfile.alliance_member_id !==
             existingRequest.alliance_withdrawal_request_approved_by &&
