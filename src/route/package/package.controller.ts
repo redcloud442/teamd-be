@@ -21,7 +21,7 @@ export const packagePostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
-    return c.json({ message: "Package Created" });
+    return c.json({ message: "Package Created" }, 200);
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }
@@ -31,7 +31,7 @@ export const packageGetController = async (c: Context) => {
   try {
     const data = await packageGetModel();
 
-    return c.json({ data });
+    return c.json({ data }, 200);
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }

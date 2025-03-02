@@ -21,6 +21,10 @@ export const calculateFinalAmount = (amount, selectedEarnings) => {
         const fee = amount * 0.1;
         return amount - fee;
     }
+    else if (selectedEarnings === "WINNING") {
+        const fee = amount * 0.1;
+        return amount - fee;
+    }
     return amount;
 };
 export const calculateFee = (amount, selectedEarnings) => {
@@ -29,6 +33,10 @@ export const calculateFee = (amount, selectedEarnings) => {
         return fee;
     }
     else if (selectedEarnings === "REFERRAL") {
+        const fee = amount * 0.1;
+        return fee;
+    }
+    else if (selectedEarnings === "WINNING") {
         const fee = amount * 0.1;
         return fee;
     }

@@ -12,6 +12,7 @@ import referral from "./referral/referral.route.js";
 import testimonial from "./testimonial/testimonial.route.js";
 import transaction from "./transaction/transaction.route.js";
 import user from "./user/user.route.js";
+import wheel from "./wheel/wheel.route.js";
 import withdraw from "./withdraw/withdraw.route.js";
 const app = new Hono();
 //auth route
@@ -48,6 +49,9 @@ app.route("/leaderboard", leaderboard);
 //options route
 app.use("/options/*", protectionMiddleware);
 app.route("/options", options);
+//wheel route
+app.use("/wheel/*", protectionMiddleware);
+app.route("/wheel", wheel);
 //testimonial route
 app.use("/testimonial/*", protectionMiddleware);
 app.route("/testimonial", testimonial);
