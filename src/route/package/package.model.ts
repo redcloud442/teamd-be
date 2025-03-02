@@ -17,7 +17,7 @@ export const packagePostModel = async (params: {
         alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
       },
     }),
-    prisma.alliance_referral_table.findFirst({
+    prisma.alliance_referral_table.findUnique({
       where: {
         alliance_referral_member_id: teamMemberProfile.alliance_member_id,
       },
