@@ -61,7 +61,6 @@ export const registerUserController = async (c: Context) => {
 
     return c.json({ message: "User created" }, 200);
   } catch (error) {
-    console.log(error);
     return c.json({ message: "Error occurred" }, 500);
   }
 };

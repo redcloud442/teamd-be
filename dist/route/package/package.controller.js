@@ -1,5 +1,4 @@
 import { sendErrorResponse } from "../../utils/function.js";
-import { wheelGetPackageModel } from "../wheel/wheel.model.js";
 import { claimPackagePostModel, packageCreatePostModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packageUpdatePutModel, } from "./package.model.js";
 export const packagePostController = async (c) => {
     try {
@@ -10,17 +9,17 @@ export const packagePostController = async (c) => {
             packageId,
             teamMemberProfile: teamMemberProfile,
         });
-        const data = await wheelGetPackageModel({ teamMemberProfile });
-        return c.json(data, 200);
+        return c.json({ message: "Package Created" }, 200);
     }
     catch (error) {
+        console.log(error);
         return sendErrorResponse("Internal Server Error", 500);
     }
 };
 export const packageGetController = async (c) => {
     try {
         const data = await packageGetModel();
-        return c.json({ data });
+        return c.json({ data }, 200);
     }
     catch (error) {
         return sendErrorResponse("Internal Server Error", 500);

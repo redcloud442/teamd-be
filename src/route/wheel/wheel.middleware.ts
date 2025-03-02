@@ -23,7 +23,8 @@ export const wheelPostMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-post`,
     10,
-    "1m"
+    "1m",
+    c
   );
 
   if (!isAllowed) {
@@ -53,7 +54,8 @@ export const wheelGetMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-get`,
     10,
-    "1m"
+    "1m",
+    c
   );
 
   if (!isAllowed) {
@@ -83,7 +85,8 @@ export const wheelPutMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-put`,
     10,
-    "1m"
+    "1m",
+    c
   );
 
   if (!isAllowed) {
@@ -124,7 +127,8 @@ export const wheelPutSettingsMiddleware = async (c: Context, next: Next) => {
   const isAllowed = await rateLimit(
     `rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-put-settings`,
     10,
-    "1m"
+    "1m",
+    c
   );
 
   if (!isAllowed) {

@@ -107,6 +107,7 @@ export const userModelPost = async (params: { memberId: string }) => {
       alliance_olympus_earnings: true,
       alliance_combined_earnings: true,
       alliance_referral_bounty: true,
+      alliance_winning_earnings: true,
     },
   });
 
@@ -114,6 +115,7 @@ export const userModelPost = async (params: { memberId: string }) => {
     directReferralAmount: user?.direct_referral_amount,
     indirectReferralAmount: user?.indirect_referral_amount,
     totalEarnings: user?.total_earnings,
+    winningEarnings: userEarnings?.alliance_winning_earnings,
     withdrawalAmount: user?.total_withdrawals,
     directReferralCount: user?.direct_referral_count,
     indirectReferralCount: user?.indirect_referral_count,

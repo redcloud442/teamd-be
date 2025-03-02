@@ -132,6 +132,10 @@ export const depositPutModel = async (params: {
       throw new Error("Request not found.");
     }
 
+    if (existingRequest.alliance_top_up_request_status !== "PENDING") {
+      throw new Error("Request has already been processed.");
+    }
+
     const updatedRequest = await tx.alliance_top_up_request_table.update({
       where: { alliance_top_up_request_id: requestId },
       data: {

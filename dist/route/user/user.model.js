@@ -88,6 +88,7 @@ export const userModelPost = async (params) => {
         directReferralAmount: user?.direct_referral_amount,
         indirectReferralAmount: user?.indirect_referral_amount,
         totalEarnings: user?.total_earnings,
+        winningEarnings: userEarnings?.alliance_winning_earnings,
         withdrawalAmount: user?.total_withdrawals,
         directReferralCount: user?.direct_referral_count,
         indirectReferralCount: user?.indirect_referral_count,
@@ -115,7 +116,6 @@ export const userModelGet = async (params) => {
             },
         },
     });
-    // Check for "REFERRAL" withdrawals
     const existingReferralWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
         where: {
             alliance_withdrawal_request_member_id: memberId,
@@ -164,12 +164,40 @@ export const userModelGet = async (params) => {
     if (existingDeposit !== null) {
         canUserDeposit = true;
     }
-    return {
+    const wheelLog = await prisma.alliance_wheel_log_table.upsert({
+        where: {
+            alliance_wheel_member_id: memberId,
+        },
+        update: {},
+        create: {
+            alliance_wheel_member_id: memberId,
+        },
+    });
+    const dailyTask = await prisma.alliance_wheel_table.upsert({
+        where: {
+            alliance_wheel_date_alliance_wheel_member_id: {
+                alliance_wheel_date: todayStart,
+                alliance_wheel_member_id: memberId,
+            },
+        },
+        update: {},
+        create: {
+            alliance_wheel_date: todayStart,
+            alliance_wheel_member_id: memberId,
+        },
+    });
+    const response = {
+        wheelLog,
+        dailyTask,
+    };
+    const data = {
         canWithdrawPackage,
         canWithdrawReferral,
         canWithdrawWinning,
         canUserDeposit,
+        response,
     };
+    return { data };
 };
 export const userPatchModel = async (params) => {
     const { memberId, action, role, type } = params;

@@ -9,32 +9,18 @@ export const packagePostModel = async (params: {
   const { amount, packageId, teamMemberProfile } = params;
 
   const [packageData, earningsData, referralData] = await Promise.all([
-    prisma.package_table.findUnique({
+    prisma.package_table.findFirst({
       where: { package_id: packageId },
-      select: {
-        package_percentage: true,
-        packages_days: true,
-        package_is_disabled: true,
-        package_name: true,
-      },
     }),
     prisma.alliance_earnings_table.findUnique({
       where: {
         alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
-      },
-      select: {
-        alliance_olympus_wallet: true,
-        alliance_referral_bounty: true,
-        alliance_olympus_earnings: true,
-        alliance_combined_earnings: true,
-        alliance_winning_earnings: true,
       },
     }),
     prisma.alliance_referral_table.findFirst({
       where: {
         alliance_referral_member_id: teamMemberProfile.alliance_member_id,
       },
-      select: { alliance_referral_hierarchy: true },
     }),
   ]);
 
@@ -95,15 +81,9 @@ export const packagePostModel = async (params: {
     100
   );
 
-  let count = 0;
-
   let bountyLogs: Prisma.package_ally_bounty_logCreateManyInput[] = [];
 
   let transactionLogs: Prisma.alliance_transaction_tableCreateManyInput[] = [];
-
-  if (requestedAmount % 5000 === 0) {
-    count = requestedAmount / 5000;
-  }
 
   const connectionData = await prisma.$transaction(async (tx) => {
     const connectionData = await tx.package_member_connection_table.create({
@@ -128,13 +108,16 @@ export const packagePostModel = async (params: {
       },
     });
 
-    if (count > 0) {
+    if (requestedAmount % 5000 === 0) {
+      const finalCount = Math.floor(requestedAmount / 5000) * 2;
       await tx.alliance_wheel_log_table.update({
         where: {
           alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
         },
         data: {
-          alliance_wheel_spin_count: count,
+          alliance_wheel_spin_count: {
+            increment: finalCount,
+          },
         },
       });
     }
