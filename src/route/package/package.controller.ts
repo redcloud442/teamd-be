@@ -23,6 +23,7 @@ export const packagePostController = async (c: Context) => {
 
     return c.json({ message: "Package Created" }, 200);
   } catch (error) {
+    console.log(error);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
