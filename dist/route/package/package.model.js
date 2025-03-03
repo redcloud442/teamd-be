@@ -1,3 +1,4 @@
+import { getPhilippinesTime } from "@/utils/function.js";
 import { Prisma } from "@prisma/client";
 import prisma from "../../utils/prisma.js";
 export const packagePostModel = async (params) => {
@@ -60,15 +61,16 @@ export const packagePostModel = async (params) => {
                 transaction_description: `Package Enrolled: ${packageData.package_name}`,
             },
         });
-        if (requestedAmount % 5000 === 0) {
-            const finalCount = Math.floor(requestedAmount / 5000) * 2;
+        if (Number(amount) >= 5000) {
+            const baseCount = Math.floor(Number(amount) / 5000) * 2;
+            const count = baseCount > 0 ? baseCount : 2;
             await tx.alliance_wheel_log_table.update({
                 where: {
                     alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
                 },
                 data: {
                     alliance_wheel_spin_count: {
-                        increment: finalCount,
+                        increment: count,
                     },
                 },
             });
@@ -153,7 +155,7 @@ export const packagePostModel = async (params) => {
             },
         });
     }
-    return true;
+    return bountyLogs;
 };
 export const packageGetModel = async () => {
     const result = await prisma.$transaction(async (tx) => {
@@ -365,6 +367,107 @@ export const packageListGetAdminModel = async () => {
         },
     });
     return result;
+};
+export const packageDailytaskGetModel = async (params) => {
+    const { bountyLogs } = params;
+    if (bountyLogs.length === 0)
+        return;
+    const memberIds = [
+        ...new Set(bountyLogs.map((log) => log.package_ally_bounty_member_id)),
+    ];
+    const wheelData = await prisma.alliance_wheel_table.findMany({
+        where: {
+            alliance_wheel_member_id: { in: memberIds },
+        },
+    });
+    // **Step 2: Create Last Updated Map**
+    const lastUpdatedMap = new Map(wheelData.map((data) => [
+        data.alliance_wheel_member_id,
+        data.alliance_wheel_date_updated ||
+            data.alliance_wheel_date ||
+            new Date(),
+    ]));
+    // **Step 3: Fetch Referral Counts (Using $queryRaw)**
+    const lastUpdated = new Date(Math.min(...Array.from(lastUpdatedMap.values()).map((d) => d.getTime())));
+    const referralCounts = await prisma.$queryRaw `
+    SELECT 
+      package_ally_bounty_member_id,
+      COUNT(DISTINCT package_ally_bounty_from) AS count
+    FROM packages_schema.package_ally_bounty_log
+    INNER JOIN alliance_schema.alliance_referral_table 
+      ON alliance_referral_member_id = package_ally_bounty_from
+    WHERE package_ally_bounty_member_id = ANY(${memberIds}::uuid[])
+    AND package_ally_bounty_log_date_created >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
+    AND alliance_referral_date >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
+    GROUP BY package_ally_bounty_member_id;
+  `;
+    // **Step 4: Convert Referral Counts to Map**
+    const referralCountMap = new Map(referralCounts.map((r) => [r.package_ally_bounty_member_id, r.count]));
+    // **Step 5: Determine New Spin Counts**
+    const updates = memberIds.map((memberId) => {
+        const referralCount = referralCountMap.get(memberId) || 0;
+        const wheel = wheelData.find((w) => w.alliance_wheel_member_id === memberId);
+        let newSpinCount = 0;
+        const updates = {
+            alliance_wheel_date_updated: new Date(),
+        };
+        if (referralCount >= 3 &&
+            !wheel?.three_referrals &&
+            !wheel?.ten_referrals) {
+            newSpinCount = 3;
+            updates.three_referrals = true;
+        }
+        if (referralCount >= 10 &&
+            !wheel?.ten_referrals &&
+            wheel?.three_referrals) {
+            newSpinCount = 5;
+            updates.ten_referrals = true;
+        }
+        if (referralCount >= 25 &&
+            !wheel?.twenty_five_referrals &&
+            wheel?.ten_referrals) {
+            newSpinCount = 15;
+            updates.twenty_five_referrals = true;
+        }
+        if (referralCount >= 50 &&
+            !wheel?.fifty_referrals &&
+            wheel?.twenty_five_referrals) {
+            newSpinCount = 35;
+            updates.fifty_referrals = true;
+        }
+        if (referralCount >= 100 &&
+            !wheel?.one_hundred_referrals &&
+            wheel?.fifty_referrals) {
+            newSpinCount = 50;
+            updates.one_hundred_referrals = true;
+        }
+        return { memberId, newSpinCount, updates };
+    });
+    const upsertWheelQueries = updates.map(({ memberId, updates }) => prisma.alliance_wheel_table.upsert({
+        where: {
+            alliance_wheel_date_alliance_wheel_member_id: {
+                alliance_wheel_date: getPhilippinesTime(new Date(), "start"),
+                alliance_wheel_member_id: memberId,
+            },
+        },
+        update: updates,
+        create: {
+            alliance_wheel_member_id: memberId,
+            alliance_wheel_date: getPhilippinesTime(new Date(), "start"),
+            ...updates,
+        },
+    }));
+    const updateSpinCountQueries = updates
+        .filter(({ newSpinCount }) => newSpinCount > 0)
+        .map(({ memberId, newSpinCount }) => prisma.alliance_wheel_log_table.upsert({
+        where: { alliance_wheel_member_id: memberId },
+        update: { alliance_wheel_spin_count: { increment: newSpinCount } },
+        create: {
+            alliance_wheel_member_id: memberId,
+            alliance_wheel_spin_count: newSpinCount,
+        },
+    }));
+    await prisma.$transaction([...upsertWheelQueries, ...updateSpinCountQueries]);
 };
 function generateReferralChain(hierarchy, teamMemberId, maxDepth = 100) {
     if (!hierarchy)

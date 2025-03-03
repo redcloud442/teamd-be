@@ -110,8 +110,6 @@ export const wheelPostModel = async (params: {
 
     const winningPrize = await getRandomPrize(tx);
 
-    console.log(winningPrize);
-
     if (winningPrize.alliance_wheel_settings_label === "RE-SPIN") {
     } else if (winningPrize.alliance_wheel_settings_label === "NO REWARD") {
       await tx.alliance_wheel_log_table.update({
