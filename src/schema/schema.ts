@@ -8,25 +8,25 @@ export const registerSchema = z.object({
 });
 
 export const LoginSchema = z.object({
-  userName: z
-    .string()
-    .min(6, "Username must be at least 6 characters long")
-    .max(20, "Username must be at most 20 characters long")
-    .regex(
-      /^[a-zA-Z0-9_]+$/,
-      "Username can only contain letters, numbers, and underscores"
-    ),
+    userName: z
+      .string()
+      .min(6, "Username must be at least 6 characters long")
+      .max(20, "Username must be at most 50 characters long")
+      .regex(
+        /^[a-zA-Z][a-zA-Z0-9._]*$/,
+        "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
+      ),
   password: z.string().min(6),
 });
 
 export const loginCheckSchema = z.object({
-  userName: z
+    userName: z
     .string()
     .min(6, "Username must be at least 6 characters long")
-    .max(20, "Username must be at most 20 characters long")
+    .max(20, "Username must be at most 50 characters long")
     .regex(
-      /^[a-zA-Z0-9_]+$/,
-      "Username can only contain letters, numbers, and underscores"
+      /^[a-zA-Z][a-zA-Z0-9._]*$/,
+      "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
     ),
 });
 

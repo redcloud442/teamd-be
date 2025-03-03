@@ -36,6 +36,7 @@ export const authGetMiddleware = async (c: Context, next: Next) => {
   const parsed = loginCheckSchema.safeParse({ userName });
 
   if (!parsed.success) {
+
     return c.json({ message: "Invalid userName" }, 400);
   }
 
