@@ -13,13 +13,12 @@ const NO_REWARD_PRIZE = {
 };
 
 async function getRandomPrize(tx: Prisma.TransactionClient) {
-  const cacheKey = `wheel-get-random-prize`;
-  const today = new Date().toISOString().slice(0, 10);
-  const prizeCounterKey = `prize-count-${PRIZE_ID}-${today}`;
+  const prizeCounterKey = `prize-count-${PRIZE_ID}`;
 
   const currentCount = (await redis.get(prizeCounterKey)) as string | null;
   const count = currentCount ? parseInt(currentCount, 10) : 0;
 
+  // Fetch all prizes
   let prizes = await tx.alliance_wheel_settings_table.findMany({
     orderBy: {
       alliance_wheel_settings_percentage: "desc",
@@ -51,7 +50,18 @@ async function getRandomPrize(tx: Prisma.TransactionClient) {
 
     if (random < cumulativeProbability) {
       if (prize.alliance_wheel_settings_id === PRIZE_ID) {
-        await redis.set(cacheKey, JSON.stringify(prize), { ex: 3600 });
+        const newCount = await redis.incr(prizeCounterKey);
+
+        const now = new Date();
+        const midnight = new Date(now);
+        midnight.setHours(23, 59, 59, 999);
+        const secondsUntilMidnight = Math.floor(
+          (midnight.getTime() - now.getTime()) / 1000
+        );
+
+        if (newCount === 1) {
+          await redis.expire(prizeCounterKey, secondsUntilMidnight);
+        }
       }
 
       return prize;
