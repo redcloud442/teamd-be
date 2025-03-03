@@ -1,3 +1,4 @@
+import { redis } from "@/utils/redis.js";
 import { PrismaClient } from "@prisma/client";
 import { getPhilippinesTime } from "../../utils/function.js";
 const prisma = new PrismaClient();
@@ -156,16 +157,38 @@ export const dashboardPostModel = async (params) => {
     });
 };
 export const dashboardGetModel = async () => {
-    const [totalActivatedPackage, numberOfRegisteredUser, totalActivatedUser] = await prisma.$transaction([
+    const cacheKey = `dashboard-get`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
+    const [totalActivatedPackage, numberOfRegisteredUser, totalActivatedUser, totalSpinPurchase, totalWinningWithdrawal,] = await prisma.$transaction([
         prisma.package_member_connection_table.count(),
         prisma.alliance_member_table.count(),
         prisma.alliance_member_table.count({
             where: { alliance_member_is_active: true },
         }),
+        prisma.alliance_spin_purchase_table.aggregate({
+            _sum: { alliance_spin_purchase_amount: true },
+            _count: { alliance_spin_purchase_member_id: true },
+        }),
+        prisma.alliance_withdrawal_request_table.aggregate({
+            where: {
+                alliance_withdrawal_request_status: "APPROVED",
+                alliance_withdrawal_request_withdraw_type: "WINNING",
+            },
+            _sum: { alliance_withdrawal_request_amount: true },
+        }),
     ]);
-    return {
+    // ✅ Format the response
+    const response = {
         numberOfRegisteredUser,
         totalActivatedPackage,
         totalActivatedUser,
+        totalSpinPurchase: totalSpinPurchase._sum.alliance_spin_purchase_amount || 0,
+        totalSpinPurchaseCount: totalSpinPurchase._count.alliance_spin_purchase_member_id || 0,
+        totalWinningWithdrawal: totalWinningWithdrawal._sum.alliance_withdrawal_request_amount || 0,
     };
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 1000 });
+    return response;
 };

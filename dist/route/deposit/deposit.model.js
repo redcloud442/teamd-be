@@ -1,7 +1,7 @@
-import { getPhilippinesTime } from "@/utils/function.js";
 import { Prisma } from "@prisma/client";
 import { endOfDay, endOfMonth, parseISO, setDate, setHours, setMilliseconds, setMinutes, setSeconds, } from "date-fns";
 import {} from "../../schema/schema.js";
+import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 export const depositPostModel = async (params) => {
     const { amount, accountName, accountNumber, topUpMode } = params.TopUpFormValues;
