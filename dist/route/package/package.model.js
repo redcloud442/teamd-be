@@ -11,7 +11,7 @@ export const packagePostModel = async (params) => {
                 alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
             },
         }),
-        prisma.alliance_referral_table.findFirst({
+        prisma.alliance_referral_table.findUnique({
             where: {
                 alliance_referral_member_id: teamMemberProfile.alliance_member_id,
             },
@@ -29,7 +29,7 @@ export const packagePostModel = async (params) => {
     const { alliance_olympus_wallet, alliance_olympus_earnings, alliance_referral_bounty, alliance_combined_earnings, alliance_winning_earnings, } = earningsData;
     const combinedEarnings = Number(alliance_combined_earnings.toFixed(2));
     const requestedAmount = Number(amount.toFixed(2));
-    if (combinedEarnings < requestedAmount) {
+    if (requestedAmount > combinedEarnings) {
         throw new Error("Insufficient balance in the wallet.");
     }
     const { olympusWallet, olympusEarnings, referralWallet, winningEarnings, updatedCombinedWallet, isReinvestment, } = deductFromWallets(requestedAmount, combinedEarnings, Number(alliance_olympus_wallet), Number(alliance_olympus_earnings), Number(alliance_referral_bounty), Number(alliance_winning_earnings));
@@ -48,6 +48,9 @@ export const packagePostModel = async (params) => {
                 package_member_status: "ACTIVE",
                 package_member_completion_date: new Date(Date.now() + packageData.packages_days * 24 * 60 * 60 * 1000),
                 package_member_is_reinvestment: isReinvestment,
+            },
+            select: {
+                package_member_connection_id: true,
             },
         });
         await tx.alliance_transaction_table.create({
