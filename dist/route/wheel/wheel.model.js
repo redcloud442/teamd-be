@@ -1,21 +1,46 @@
 import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
+const PRIZE_ID = "a1ea289d-2581-4d73-9655-89f717a88a9d";
+const PRIZE_LIMIT = 5;
+const NO_REWARD_PRIZE = {
+    alliance_wheel_settings_label: "NO REWARD",
+    alliance_wheel_settings_id: "NO_REWARD",
+    alliance_wheel_settings_percentage: 0,
+    alliance_wheel_settings_color: "#000000",
+};
 async function getRandomPrize(tx) {
-    const prizes = await tx.alliance_wheel_settings_table.findMany({
+    const cacheKey = `wheel-get-random-prize`;
+    const today = new Date().toISOString().slice(0, 10);
+    const prizeCounterKey = `prize-count-${PRIZE_ID}-${today}`;
+    const currentCount = (await redis.get(prizeCounterKey));
+    const count = currentCount ? parseInt(currentCount, 10) : 0;
+    let prizes = await tx.alliance_wheel_settings_table.findMany({
         orderBy: {
             alliance_wheel_settings_percentage: "desc",
         },
     });
+    if (count >= PRIZE_LIMIT) {
+        prizes = prizes.filter((prize) => prize.alliance_wheel_settings_id !== PRIZE_ID);
+    }
+    if (!prizes.length)
+        return NO_REWARD_PRIZE;
     const totalPercentage = prizes.reduce((sum, prize) => sum + prize.alliance_wheel_settings_percentage, 0);
-    let cumulativeProbability = 0;
+    if (totalPercentage <= 0) {
+        throw new Error("Total percentage must be greater than 0.");
+    }
     const random = Math.random() * totalPercentage;
+    let cumulativeProbability = 0;
     for (const prize of prizes) {
         cumulativeProbability += prize.alliance_wheel_settings_percentage;
-        if (random <= cumulativeProbability) {
+        if (random < cumulativeProbability) {
+            if (prize.alliance_wheel_settings_id === PRIZE_ID) {
+                await redis.set(cacheKey, JSON.stringify(prize), { ex: 3600 });
+            }
             return prize;
         }
     }
-    return prizes[prizes.length - 1]; // Fallback
+    return prizes[prizes.length - 1];
 }
 export const wheelPostModel = async (params) => {
     const { teamMemberProfile } = params;
@@ -50,6 +75,7 @@ export const wheelPostModel = async (params) => {
             throw new Error("You have no spins left");
         }
         const winningPrize = await getRandomPrize(tx);
+        console.log(winningPrize);
         if (winningPrize.alliance_wheel_settings_label === "RE-SPIN") {
         }
         else if (winningPrize.alliance_wheel_settings_label === "NO REWARD") {
@@ -69,10 +95,10 @@ export const wheelPostModel = async (params) => {
                 },
                 data: {
                     alliance_winning_earnings: {
-                        increment: Number(winningPrize.alliance_wheel_settings_label),
+                        increment: Number(winningPrize?.alliance_wheel_settings_label),
                     },
                     alliance_combined_earnings: {
-                        increment: Number(winningPrize.alliance_wheel_settings_label),
+                        increment: Number(winningPrize?.alliance_wheel_settings_label),
                     },
                 },
             });
@@ -87,7 +113,7 @@ export const wheelPostModel = async (params) => {
             await tx.alliance_transaction_table.create({
                 data: {
                     transaction_member_id: teamMemberProfile.alliance_member_id,
-                    transaction_amount: Number(winningPrize.alliance_wheel_settings_label),
+                    transaction_amount: Number(winningPrize?.alliance_wheel_settings_label),
                     transaction_date: new Date(),
                     transaction_details: "",
                     transaction_description: "Prime Wheel Earnings",
@@ -95,7 +121,7 @@ export const wheelPostModel = async (params) => {
             });
         }
         return {
-            prize: winningPrize.alliance_wheel_settings_label,
+            prize: winningPrize?.alliance_wheel_settings_label,
             count: wheelLog?.alliance_wheel_spin_count,
         };
     });
