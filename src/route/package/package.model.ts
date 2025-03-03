@@ -115,16 +115,17 @@ export const packagePostModel = async (params: {
         transaction_description: `Package Enrolled: ${packageData.package_name}`,
       },
     });
+    if (Number(amount) >= 5000) {
+      const baseCount = Math.floor(Number(amount) / 5000) * 2;
+      const count = baseCount > 0 ? baseCount : 2;
 
-    if (requestedAmount % 5000 === 0) {
-      const finalCount = Math.floor(requestedAmount / 5000) * 2;
       await tx.alliance_wheel_log_table.update({
         where: {
           alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
         },
         data: {
           alliance_wheel_spin_count: {
-            increment: finalCount,
+            increment: count,
           },
         },
       });
