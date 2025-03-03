@@ -265,6 +265,14 @@ export const wheelPutModel = async (params: {
       },
     });
 
+    await tx.alliance_spin_purchase_table.create({
+      data: {
+        alliance_spin_purchase_member_id: teamMemberProfile.alliance_member_id,
+        alliance_spin_purchase_amount: requestedAmount,
+        alliance_spin_quantity: quantity,
+      },
+    });
+
     return {
       message: "Wheel updated successfully.",
     };

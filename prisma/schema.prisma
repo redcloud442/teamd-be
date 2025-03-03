@@ -88,6 +88,7 @@ model alliance_member_table {
   alliance_transaction_table alliance_transaction_table[]
   alliance_wheel_table alliance_wheel_table[]
   alliance_wheel_log_table alliance_wheel_log_table[]
+  alliance_spin_purchase_table alliance_spin_purchase_table[]
 
   package_ally_bounty_log_from package_ally_bounty_log[] @relation("FromMember")
   @@schema("alliance_schema")
@@ -282,6 +283,19 @@ model alliance_wheel_table {
   @@index([alliance_wheel_member_id], name: "idx_alliance_wheel_member_id")
 }
 
+model alliance_spin_purchase_table {
+  alliance_spin_purchase_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_spin_purchase_date DateTime @default(now()) @db.Timestamptz(3)
+  alliance_spin_quantity Int @default(0)
+  alliance_spin_purchase_amount Float @default(0.0)
+  alliance_spin_purchase_member_id String @db.Uuid
+
+  alliance_member_table alliance_member_table @relation(fields: [alliance_spin_purchase_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@schema("alliance_schema")
+
+  @@index([alliance_spin_purchase_member_id], name: "idx_alliance_spin_purchase_member_id")
+}
 
 model alliance_wheel_log_table {
   alliance_wheel_log_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
