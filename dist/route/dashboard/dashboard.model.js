@@ -1,6 +1,6 @@
-import { redis } from "@/utils/redis.js";
 import { PrismaClient } from "@prisma/client";
 import { getPhilippinesTime } from "../../utils/function.js";
+import { redis } from "../../utils/redis.js";
 const prisma = new PrismaClient();
 export const dashboardPostModel = async (params) => {
     return await prisma.$transaction(async (tx) => {
