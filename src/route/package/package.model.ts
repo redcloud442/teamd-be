@@ -579,8 +579,6 @@ export const packageDailytaskGetModel = async (params: {
     Math.min(...Array.from(lastUpdatedMap.values()).map((d) => d.getTime()))
   );
 
-  console.log(lastUpdated);
-
   const referralCounts: {
     package_ally_bounty_member_id: string;
     count: number;
@@ -610,13 +608,12 @@ export const packageDailytaskGetModel = async (params: {
     );
 
     let newSpinCount = 0;
-    const updates: Record<string, boolean | Date> = {
-      alliance_wheel_date_updated: new Date(),
-    };
+    const updates: Record<string, boolean | Date> = {};
 
     if (referralCount >= 3 && !wheel?.three_referrals) {
       newSpinCount = 3;
       updates.three_referrals = true;
+      updates.alliance_wheel_date_updated = new Date();
     }
     if (
       referralCount >= 10 &&
@@ -625,6 +622,7 @@ export const packageDailytaskGetModel = async (params: {
     ) {
       newSpinCount = 5;
       updates.ten_referrals = true;
+      updates.alliance_wheel_date_updated = new Date();
     }
     if (
       referralCount >= 25 &&
@@ -633,6 +631,7 @@ export const packageDailytaskGetModel = async (params: {
     ) {
       newSpinCount = 15;
       updates.twenty_five_referrals = true;
+      updates.alliance_wheel_date_updated = new Date();
     }
     if (
       referralCount >= 50 &&
@@ -641,6 +640,7 @@ export const packageDailytaskGetModel = async (params: {
     ) {
       newSpinCount = 35;
       updates.fifty_referrals = true;
+      updates.alliance_wheel_date_updated = new Date();
     }
     if (
       referralCount >= 100 &&
@@ -649,10 +649,13 @@ export const packageDailytaskGetModel = async (params: {
     ) {
       newSpinCount = 50;
       updates.one_hundred_referrals = true;
+      updates.alliance_wheel_date_updated = new Date();
     }
 
     return { memberId, newSpinCount, updates };
   });
+
+  console.log(updates);
 
   const upsertWheelQueries = updates.map(({ memberId, updates }) =>
     prisma.alliance_wheel_table.upsert({
@@ -670,8 +673,6 @@ export const packageDailytaskGetModel = async (params: {
       },
     })
   );
-
-  console.log(updates);
 
   const updateSpinCountQueries = updates
     .filter(({ newSpinCount }) => newSpinCount > 0)
