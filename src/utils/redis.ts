@@ -2,16 +2,29 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import type { Context } from "hono";
 
+// Ensure environment variables are set correctly
+if (
+  !process.env.UPSTASH_REDIS_REST_URL ||
+  !process.env.UPSTASH_REDIS_REST_TOKEN
+) {
+  throw new Error("Upstash Redis credentials are missing.");
+}
+
+// Create a single Redis connection
 export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || "https://default.redis.url'",
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || "'default-redis-token'",
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
+// Cache rate limiter instances to avoid recreating them per request
+const rateLimiterInstances = new Map<string, Ratelimit>();
+
 /**
- * Rate Limit Function with Dynamic Time Window
+ * Rate Limit Function with Custom Sliding Windows per Request
  * @param {string} identifier - Unique user key (IP, User ID, etc.)
  * @param {number} maxRequests - Maximum allowed requests
- * @param {string} timeWindow - Time duration (e.g., "10 s", "1 m", "5 m", "1 h")
+ * @param {string} timeWindow - Time duration (e.g., "10s", "1m", "5m", "1h")
+ * @param {Context} context - Hono request context
  * @returns {boolean} - `true` if request is allowed, `false` if rate limit exceeded
  */
 export async function rateLimit(
@@ -20,20 +33,29 @@ export async function rateLimit(
   timeWindow: "10s" | "1m" | "5m" | "1h",
   context: Context
 ) {
-  const ratelimit = new Ratelimit({
-    redis: redis as any,
-    limiter: Ratelimit.slidingWindow(maxRequests, `${timeWindow}`),
-    enableProtection: true,
-    analytics: true,
-  });
+  // Unique rate limiter instance per user/API combination
+  const limiterKey = `${identifier}:${maxRequests}:${timeWindow}`;
 
-  const { success, pending } = await ratelimit.limit(identifier, {
-    ip: context.req.raw.headers.get("cf-connecting-ip") || "",
-    userAgent: context.req.raw.headers.get("user-agent") || "",
-    country: context.req.raw.headers.get("cf-ipcountry") || "",
-  });
+  if (!rateLimiterInstances.has(limiterKey)) {
+    rateLimiterInstances.set(
+      limiterKey,
+      new Ratelimit({
+        redis: redis as any,
+        limiter: Ratelimit.slidingWindow(maxRequests, timeWindow),
+        enableProtection: true,
+        analytics: true,
+      })
+    );
+  }
 
-  await pending;
+  const ratelimit = rateLimiterInstances.get(limiterKey)!;
+
+  // Extract relevant headers
+  const ip = context.req.raw.headers.get("cf-connecting-ip") || undefined;
+  const userAgent = context.req.raw.headers.get("user-agent") || undefined;
+
+  // Perform rate limit check directly from Upstash (no caching)
+  const { success } = await ratelimit.limit(identifier, { ip, userAgent });
 
   return success;
 }
