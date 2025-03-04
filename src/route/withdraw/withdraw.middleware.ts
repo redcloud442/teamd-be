@@ -1,6 +1,7 @@
 import type { Context, Next } from "hono";
 import {
   updateWithdrawSchema,
+  withdrawHideUserPostSchema,
   withdrawHistoryPostSchema,
   withdrawHistoryReportPostSchema,
   withdrawListPostSchema,
@@ -192,6 +193,7 @@ export const withdrawListPostMiddleware = async (c: Context, next: Next) => {
     statusFilter,
     isAscendingSort,
     dateFilter,
+    showHiddenUser,
   } = await c.req.json();
 
   const validate = withdrawListPostSchema.safeParse({
@@ -203,6 +205,7 @@ export const withdrawListPostMiddleware = async (c: Context, next: Next) => {
     statusFilter,
     isAscendingSort,
     dateFilter,
+    showHiddenUser,
   });
 
   if (!validate.success) {
@@ -293,6 +296,53 @@ export const withdrawTotalReportPostMiddleware = async (
     type,
     take,
     skip,
+  });
+
+  if (!validate.success) {
+    return sendErrorResponse(validate.error.message, 400);
+  }
+
+  c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", validate.data);
+
+  await next();
+};
+
+export const withdrawHideUserPostMiddleware = async (
+  c: Context,
+  next: Next
+) => {
+  const user = c.get("user");
+
+  const response = await protectionAccountingAdmin(user.id, prisma);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-hide-user-post`,
+    100,
+    "1m",
+    c
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
+
+  const { id } = c.req.param();
+  const { type } = await c.req.json();
+
+  const validate = withdrawHideUserPostSchema.safeParse({
+    id,
+    type,
   });
 
   if (!validate.success) {

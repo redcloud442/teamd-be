@@ -237,14 +237,14 @@ export const withdrawListPostModel = async (params) => {
         },
         totalCount: BigInt(0),
     };
-    const { page, limit, search, columnAccessor, userFilter, statusFilter, isAscendingSort, dateFilter, } = parameters;
+    const { page, limit, search, columnAccessor, userFilter, statusFilter, isAscendingSort, dateFilter, showHiddenUser, } = parameters;
     const offset = (page - 1) * limit;
     const sortBy = isAscendingSort ? "DESC" : "ASC";
     const orderBy = columnAccessor
         ? Prisma.sql `ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
         : Prisma.empty;
     const commonConditions = [
-        Prisma.raw(`m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid`),
+        Prisma.raw(`m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid AND t.alliance_withdrawal_request_member_id ${showHiddenUser ? "IN" : "NOT IN"} (SELECT alliance_hidden_user_member_id FROM alliance_schema.alliance_hidden_user_table)`),
     ];
     if (teamMemberProfile.alliance_member_role === "ACCOUNTING") {
         commonConditions.push(Prisma.raw(`t.alliance_withdrawal_request_approved_by = '${teamMemberProfile.alliance_member_id}'::uuid`));
@@ -477,4 +477,22 @@ export const withdrawHistoryReportPostModel = async (params) => {
             (withdrawalData._sum.alliance_withdrawal_request_fee || 0),
     };
     return returnData;
+};
+export const withdrawHideUserModel = async (params) => {
+    const { id, type, teamMemberProfile } = params;
+    if (type === "add") {
+        await prisma.alliance_hidden_user_table.create({
+            data: {
+                alliance_hidden_user_member_id: id,
+                alliance_hidden_user_action_by: teamMemberProfile.alliance_member_id,
+            },
+        });
+    }
+    else if (type === "remove") {
+        await prisma.alliance_hidden_user_table.delete({
+            where: {
+                alliance_hidden_user_member_id: id,
+            },
+        });
+    }
 };

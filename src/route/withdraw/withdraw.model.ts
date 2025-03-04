@@ -376,6 +376,7 @@ export const withdrawListPostModel = async (params: {
       start: string;
       end: string;
     };
+    showHiddenUser: boolean;
   };
   teamMemberProfile: alliance_member_table;
 }) => {
@@ -399,6 +400,7 @@ export const withdrawListPostModel = async (params: {
     statusFilter,
     isAscendingSort,
     dateFilter,
+    showHiddenUser,
   } = parameters;
 
   const offset = (page - 1) * limit;
@@ -410,7 +412,11 @@ export const withdrawListPostModel = async (params: {
 
   const commonConditions: Prisma.Sql[] = [
     Prisma.raw(
-      `m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid`
+      `m.alliance_member_alliance_id = '${
+        teamMemberProfile.alliance_member_alliance_id
+      }'::uuid AND t.alliance_withdrawal_request_member_id ${
+        showHiddenUser ? "IN" : "NOT IN"
+      } (SELECT alliance_hidden_user_member_id FROM alliance_schema.alliance_hidden_user_table)`
     ),
   ];
 
@@ -739,4 +745,27 @@ export const withdrawHistoryReportPostModel = async (params: {
   };
 
   return returnData;
+};
+
+export const withdrawHideUserModel = async (params: {
+  id: string;
+  type: "add" | "remove";
+  teamMemberProfile: alliance_member_table;
+}) => {
+  const { id, type, teamMemberProfile } = params;
+
+  if (type === "add") {
+    await prisma.alliance_hidden_user_table.create({
+      data: {
+        alliance_hidden_user_member_id: id,
+        alliance_hidden_user_action_by: teamMemberProfile.alliance_member_id,
+      },
+    });
+  } else if (type === "remove") {
+    await prisma.alliance_hidden_user_table.delete({
+      where: {
+        alliance_hidden_user_member_id: id,
+      },
+    });
+  }
 };

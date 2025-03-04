@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import { sendErrorResponse } from "../../utils/function.js";
 import {
   updateWithdrawModel,
+  withdrawHideUserModel,
   withdrawHistoryModel,
   withdrawHistoryReportPostModel,
   withdrawHistoryReportPostTotalModel,
@@ -97,6 +98,24 @@ export const withdrawTotalReportPostController = async (c: Context) => {
     const data = await withdrawHistoryReportPostTotalModel(params);
 
     return c.json(data, 200);
+  } catch (e) {
+    return sendErrorResponse("Internal Server Error", 500);
+  }
+};
+
+export const withdrawHideUserPostController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const teamMemberProfile = c.get("teamMemberProfile");
+
+    await withdrawHideUserModel({
+      id: params.id,
+      type: params.type,
+      teamMemberProfile,
+    });
+
+    return c.json({ message: "User hidden" }, 200);
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
   }

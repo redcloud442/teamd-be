@@ -267,6 +267,7 @@ export const withdrawListPostSchema = z.object({
         end: z.string().optional(),
     })
         .optional(),
+    showHiddenUser: z.boolean(),
 });
 //dashboard schema
 export const dashboardPostSchema = z.object({
@@ -289,6 +290,10 @@ export const withdrawTotalReportPostSchema = z.object({
     type: z.enum(["DAILY", "WEEKLY", "MONTHLY"]),
     take: z.number().optional(),
     skip: z.number().optional(),
+});
+export const withdrawHideUserPostSchema = z.object({
+    id: z.string().uuid(),
+    type: z.enum(["add", "remove"]),
 });
 //leaderboard schema
 export const leaderboardPostSchema = z.object({

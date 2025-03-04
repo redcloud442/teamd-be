@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import {
   updateWithdrawPostController,
+  withdrawHideUserPostController,
   withdrawHistoryPostController,
   withdrawHistoryReportPostController,
   withdrawListPostController,
@@ -9,6 +10,7 @@ import {
 } from "./withdraw.controller.js";
 import {
   updateWithdrawMiddleware,
+  withdrawHideUserPostMiddleware,
   withdrawHistoryPostMiddleware,
   withdrawHistoryReportPostMiddleware,
   withdrawListPostMiddleware,
@@ -29,7 +31,7 @@ withdraw.post(
 withdraw.post(
   "/report",
   withdrawHistoryReportPostMiddleware,
-  withdrawHistoryReportPostController 
+  withdrawHistoryReportPostController
 );
 
 withdraw.post(
@@ -39,6 +41,12 @@ withdraw.post(
 );
 
 withdraw.put("/:id", updateWithdrawMiddleware, updateWithdrawPostController);
+
+withdraw.put(
+  "/:id/hide-user",
+  withdrawHideUserPostMiddleware,
+  withdrawHideUserPostController
+);
 
 withdraw.post("/list", withdrawListPostMiddleware, withdrawListPostController);
 

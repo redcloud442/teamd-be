@@ -8,19 +8,19 @@ export const registerSchema = z.object({
 });
 
 export const LoginSchema = z.object({
-    userName: z
-      .string()
-      .min(6, "Username must be at least 6 characters long")
-      .max(20, "Username must be at most 50 characters long")
-      .regex(
-        /^[a-zA-Z][a-zA-Z0-9._]*$/,
-        "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
-      ),
+  userName: z
+    .string()
+    .min(6, "Username must be at least 6 characters long")
+    .max(20, "Username must be at most 50 characters long")
+    .regex(
+      /^[a-zA-Z][a-zA-Z0-9._]*$/,
+      "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
+    ),
   password: z.string().min(6),
 });
 
 export const loginCheckSchema = z.object({
-    userName: z
+  userName: z
     .string()
     .min(6, "Username must be at least 6 characters long")
     .max(20, "Username must be at most 50 characters long")
@@ -328,6 +328,7 @@ export const withdrawListPostSchema = z.object({
       end: z.string().optional(),
     })
     .optional(),
+  showHiddenUser: z.boolean(),
 });
 
 //dashboard schema
@@ -354,6 +355,11 @@ export const withdrawTotalReportPostSchema = z.object({
   type: z.enum(["DAILY", "WEEKLY", "MONTHLY"]),
   take: z.number().optional(),
   skip: z.number().optional(),
+});
+
+export const withdrawHideUserPostSchema = z.object({
+  id: z.string().uuid(),
+  type: z.enum(["add", "remove"]),
 });
 
 //leaderboard schema

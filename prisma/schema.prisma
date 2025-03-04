@@ -89,6 +89,8 @@ model alliance_member_table {
   alliance_wheel_table alliance_wheel_table[]
   alliance_wheel_log_table alliance_wheel_log_table[]
   alliance_spin_purchase_table alliance_spin_purchase_table[]
+  alliance_hidden_user_table alliance_hidden_user_table[]
+  alliance_hidden_user_table_action_by alliance_hidden_user_table[] @relation("ActionBy")
 
   package_ally_bounty_log_from package_ally_bounty_log[] @relation("FromMember")
   @@schema("alliance_schema")
@@ -307,6 +309,20 @@ model alliance_wheel_log_table {
   @@schema("alliance_schema")
 
   @@index([alliance_wheel_member_id], name: "idx_alliance_wheel_log_member_id")
+}
+
+model alliance_hidden_user_table {
+  alliance_hidden_user_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  alliance_hidden_user_date DateTime @default(now()) @db.Timestamptz(3)
+  alliance_hidden_user_member_id String @db.Uuid @unique
+
+  alliance_hidden_user_action_by String @db.Uuid
+
+  alliance_member_table alliance_member_table @relation(fields: [alliance_hidden_user_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  alliance_member_table_action_by alliance_member_table? @relation("ActionBy", fields: [alliance_hidden_user_action_by], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@schema("alliance_schema") 
 }
 
 model package_table {
