@@ -66,4 +66,5 @@ EXPOSE 3000
 ENTRYPOINT ["/app/entrypoint.sh"]  
 
 # Default command to start the app
-CMD ["bun", "/app/dist/index.js"]
+CMD ["bun", "prod"]
+
