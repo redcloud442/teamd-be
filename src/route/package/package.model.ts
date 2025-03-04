@@ -558,9 +558,7 @@ export const packageDailytaskGetModel = async (params: {
   const lastUpdatedMap = new Map(
     wheelData.map((data) => [
       data.alliance_wheel_member_id,
-      data.alliance_wheel_date_updated ||
-        data.alliance_wheel_date ||
-        new Date(),
+      data.alliance_wheel_date_updated || data.alliance_wheel_date,
     ])
   );
 
