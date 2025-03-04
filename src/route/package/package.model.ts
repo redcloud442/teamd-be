@@ -548,11 +548,23 @@ export const packageDailytaskGetModel = async (params: {
     ...new Set(bountyLogs.map((log) => log.package_ally_bounty_member_id)),
   ];
 
-  const wheelData = await prisma.alliance_wheel_table.findMany({
-    where: {
-      alliance_wheel_member_id: { in: memberIds },
-    },
-  });
+  const wheelDataPromises = memberIds.map((memberId) =>
+    prisma.alliance_wheel_table.upsert({
+      where: {
+        alliance_wheel_date_alliance_wheel_member_id: {
+          alliance_wheel_date: getPhilippinesTime(new Date(), "start"),
+          alliance_wheel_member_id: memberId,
+        },
+      },
+      update: {},
+      create: {
+        alliance_wheel_date: getPhilippinesTime(new Date(), "start"),
+        alliance_wheel_member_id: memberId,
+      },
+    })
+  );
+
+  const wheelData = await Promise.all(wheelDataPromises);
 
   // **Step 2: Create Last Updated Map**
   const lastUpdatedMap = new Map(
@@ -566,6 +578,8 @@ export const packageDailytaskGetModel = async (params: {
   const lastUpdated = new Date(
     Math.min(...Array.from(lastUpdatedMap.values()).map((d) => d.getTime()))
   );
+
+  console.log(lastUpdated);
 
   const referralCounts: {
     package_ally_bounty_member_id: string;
@@ -600,11 +614,7 @@ export const packageDailytaskGetModel = async (params: {
       alliance_wheel_date_updated: new Date(),
     };
 
-    if (
-      referralCount >= 3 &&
-      !wheel?.three_referrals &&
-      !wheel?.ten_referrals
-    ) {
+    if (referralCount >= 3 && !wheel?.three_referrals) {
       newSpinCount = 3;
       updates.three_referrals = true;
     }
@@ -660,6 +670,8 @@ export const packageDailytaskGetModel = async (params: {
       },
     })
   );
+
+  console.log(updates);
 
   const updateSpinCountQueries = updates
     .filter(({ newSpinCount }) => newSpinCount > 0)
