@@ -1,5 +1,5 @@
-import { getPhilippinesTime } from "@/utils/function.js";
 import { Prisma, type alliance_member_table } from "@prisma/client";
+import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 
 export const packagePostModel = async (params: {
