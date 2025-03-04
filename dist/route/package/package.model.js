@@ -1,5 +1,5 @@
-import { getPhilippinesTime } from "@/utils/function.js";
 import { Prisma } from "@prisma/client";
+import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 export const packagePostModel = async (params) => {
     const { amount, packageId, teamMemberProfile } = params;
@@ -375,20 +375,28 @@ export const packageDailytaskGetModel = async (params) => {
     const memberIds = [
         ...new Set(bountyLogs.map((log) => log.package_ally_bounty_member_id)),
     ];
-    const wheelData = await prisma.alliance_wheel_table.findMany({
+    const wheelDataPromises = memberIds.map((memberId) => prisma.alliance_wheel_table.upsert({
         where: {
-            alliance_wheel_member_id: { in: memberIds },
+            alliance_wheel_date_alliance_wheel_member_id: {
+                alliance_wheel_date: getPhilippinesTime(new Date(), "start"),
+                alliance_wheel_member_id: memberId,
+            },
         },
-    });
+        update: {},
+        create: {
+            alliance_wheel_date: getPhilippinesTime(new Date(), "start"),
+            alliance_wheel_member_id: memberId,
+        },
+    }));
+    const wheelData = await Promise.all(wheelDataPromises);
     // **Step 2: Create Last Updated Map**
     const lastUpdatedMap = new Map(wheelData.map((data) => [
         data.alliance_wheel_member_id,
-        data.alliance_wheel_date_updated ||
-            data.alliance_wheel_date ||
-            new Date(),
+        data.alliance_wheel_date_updated || data.alliance_wheel_date,
     ]));
     // **Step 3: Fetch Referral Counts (Using $queryRaw)**
     const lastUpdated = new Date(Math.min(...Array.from(lastUpdatedMap.values()).map((d) => d.getTime())));
+    console.log(lastUpdated);
     const referralCounts = await prisma.$queryRaw `
     SELECT 
       package_ally_bounty_member_id,
@@ -411,9 +419,7 @@ export const packageDailytaskGetModel = async (params) => {
         const updates = {
             alliance_wheel_date_updated: new Date(),
         };
-        if (referralCount >= 3 &&
-            !wheel?.three_referrals &&
-            !wheel?.ten_referrals) {
+        if (referralCount >= 3 && !wheel?.three_referrals) {
             newSpinCount = 3;
             updates.three_referrals = true;
         }
@@ -457,6 +463,7 @@ export const packageDailytaskGetModel = async (params) => {
             ...updates,
         },
     }));
+    console.log(updates);
     const updateSpinCountQueries = updates
         .filter(({ newSpinCount }) => newSpinCount > 0)
         .map(({ memberId, newSpinCount }) => prisma.alliance_wheel_log_table.upsert({
