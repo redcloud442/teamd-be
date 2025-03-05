@@ -616,7 +616,7 @@ export const packageDailytaskGetModel = async (params: {
     let newSpinCount = 0;
     const updates: Record<string, boolean | Date> = {};
 
-    if (referralCount >= 1 && !wheel?.three_referrals) {
+    if (referralCount >= 3 && !wheel?.three_referrals) {
       newSpinCount = 3;
       updates.three_referrals = true;
       updates.alliance_wheel_date_updated = new Date();
