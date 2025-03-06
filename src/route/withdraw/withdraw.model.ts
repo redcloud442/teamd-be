@@ -391,6 +391,7 @@ export const withdrawListPostModel = async (params: {
     totalCount: BigInt(0),
     totalWithdrawals: {
       amount: 0,
+      count: 0,
     },
   };
 
@@ -538,10 +539,23 @@ export const withdrawListPostModel = async (params: {
           alliance_withdrawal_request_fee: true,
         },
       });
+
+    const totalApprovedCount =
+      await prisma.alliance_withdrawal_request_table.aggregate({
+        where: {
+          alliance_withdrawal_request_status: "APPROVED",
+          alliance_withdrawal_request_date: {
+            gte: getPhilippinesTime(new Date(new Date()), "start"),
+            lte: getPhilippinesTime(new Date(new Date()), "end"),
+          },
+        },
+        _count: true,
+      });
     returnData.totalWithdrawals = {
       amount:
         Number(aggregateResult._sum.alliance_withdrawal_request_amount || 0) -
         Number(aggregateResult._sum.alliance_withdrawal_request_fee || 0),
+      count: totalApprovedCount._count,
     };
   }
 
