@@ -78,7 +78,7 @@ export const withdrawModel = async (params) => {
         WHERE awr.alliance_withdrawal_request_date::timestamptz BETWEEN ${startDate}::timestamptz AND ${endDate}::timestamptz
         GROUP BY awr.alliance_withdrawal_request_approved_by
       ) approvedRequests ON am.alliance_member_id = approvedRequests."approverId"
-      WHERE am.alliance_member_role = 'ACCOUNTING'
+      WHERE am.alliance_member_role IN ('ACCOUNTING', 'ACCOUNTING_HEAD')
       ORDER BY "requestCount" ASC
       LIMIT 1;
     `;
@@ -236,6 +236,9 @@ export const withdrawListPostModel = async (params) => {
             PENDING: { data: [], count: BigInt(0) },
         },
         totalCount: BigInt(0),
+        totalWithdrawals: {
+            amount: 0,
+        },
     };
     const { page, limit, search, columnAccessor, userFilter, statusFilter, isAscendingSort, dateFilter, showHiddenUser, } = parameters;
     const offset = (page - 1) * limit;
@@ -246,6 +249,7 @@ export const withdrawListPostModel = async (params) => {
     const commonConditions = [
         Prisma.raw(`m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid AND t.alliance_withdrawal_request_member_id ${showHiddenUser ? "IN" : "NOT IN"} (SELECT alliance_hidden_user_member_id FROM alliance_schema.alliance_hidden_user_table)`),
     ];
+    console.log(teamMemberProfile.alliance_member_role);
     if (teamMemberProfile.alliance_member_role === "ACCOUNTING") {
         commonConditions.push(Prisma.raw(`t.alliance_withdrawal_request_approved_by = '${teamMemberProfile.alliance_member_id}'::uuid`));
     }
@@ -276,8 +280,6 @@ export const withdrawListPostModel = async (params) => {
     const withdrawals = await prisma.$queryRaw `
     SELECT 
       u.user_id,
-      u.user_first_name,
-      u.user_last_name,
       u.user_email,
       u.user_username,
       m.alliance_member_id,
@@ -313,6 +315,25 @@ export const withdrawListPostModel = async (params) => {
       WHERE ${countWhereClause}
       GROUP BY t.alliance_withdrawal_request_status
     `;
+    if (teamMemberProfile.alliance_member_role === "ACCOUNTING_HEAD") {
+        const aggregateResult = await prisma.alliance_withdrawal_request_table.aggregate({
+            where: {
+                alliance_withdrawal_request_status: "PENDING",
+                alliance_withdrawal_request_date: {
+                    gte: getPhilippinesTime(new Date(new Date()), "start"),
+                    lte: getPhilippinesTime(new Date(new Date()), "end"),
+                },
+            },
+            _sum: {
+                alliance_withdrawal_request_amount: true,
+                alliance_withdrawal_request_fee: true,
+            },
+        });
+        returnData.totalWithdrawals = {
+            amount: Number(aggregateResult._sum.alliance_withdrawal_request_amount || 0) -
+                Number(aggregateResult._sum.alliance_withdrawal_request_fee || 0),
+        };
+    }
     ["APPROVED", "REJECTED", "PENDING"].forEach((status) => {
         const match = statusCounts.find((item) => item.status === status);
         returnData.data[status].count = match
@@ -326,6 +347,7 @@ export const withdrawListPostModel = async (params) => {
         }
     });
     returnData.totalCount = statusCounts.reduce((sum, item) => sum + BigInt(item.count), BigInt(0));
+    console.log(returnData);
     return JSON.parse(JSON.stringify(returnData, (key, value) => typeof value === "bigint" ? value.toString() : value));
 };
 export const withdrawHistoryReportPostTotalModel = async (params) => {

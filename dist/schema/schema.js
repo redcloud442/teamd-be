@@ -101,7 +101,9 @@ export const userSchemaPost = z.object({
 export const userSchemaPatch = z.object({
     memberId: z.string().uuid(),
     action: z.enum(["updateRole", "banUser"]),
-    role: z.enum(["ADMIN", "MEMBER", "MERCHANT", "ACCOUNTING"]).optional(),
+    role: z
+        .enum(["ADMIN", "MEMBER", "MERCHANT", "ACCOUNTING", "ACCOUNTING_HEAD"])
+        .optional(),
 });
 export const userProfileSchemaPatch = z.object({
     profilePicture: z.string().min(1),

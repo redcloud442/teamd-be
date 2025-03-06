@@ -27,7 +27,13 @@ export const protectionMemberUser = async (userId, prisma) => {
             return sendErrorResponse("Internal Server Error", 500);
         }
         if (!teamMember?.alliance_member_alliance_id ||
-            !["MEMBER", "MERCHANT", "ACCOUNTING", "ADMIN"].includes(teamMember.alliance_member_role)) {
+            ![
+                "MEMBER",
+                "MERCHANT",
+                "ACCOUNTING",
+                "ADMIN",
+                "ACCOUNTING_HEAD",
+            ].includes(teamMember.alliance_member_role)) {
             return sendErrorResponse("Invalid Referral Link", 400);
         }
         if (teamMember.alliance_member_restricted) {
@@ -133,7 +139,7 @@ export const protectionAccountingAdmin = async (userId, prisma) => {
             return sendErrorResponse("Internal Server Error", 500);
         }
         if (!teamMember?.alliance_member_alliance_id ||
-            !["ACCOUNTING", "ADMIN"].includes(teamMember.alliance_member_role)) {
+            !["ACCOUNTING", "ADMIN", "ACCOUNTING_HEAD"].includes(teamMember.alliance_member_role)) {
             return sendErrorResponse("Invalid Referral Link", 400);
         }
         if (teamMember.alliance_member_restricted) {

@@ -15,6 +15,7 @@ enum Role {
   ADMIN
   MERCHANT
   ACCOUNTING
+  ACCOUNTING_HEAD
 @@schema("alliance_schema")
 }
 

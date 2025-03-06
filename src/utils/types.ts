@@ -52,6 +52,9 @@ export type ReturnDataType = {
 };
 
 export type WithdrawReturnDataType = {
+  totalWithdrawals?: {
+    amount: number;
+  };
   data: {
     [key: string]: {
       data: WithdrawalRequestData[];

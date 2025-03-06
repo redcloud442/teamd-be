@@ -389,26 +389,29 @@ export const packageDailytaskGetModel = async (params) => {
         },
     }));
     const wheelData = await Promise.all(wheelDataPromises);
-    // **Step 2: Create Last Updated Map**
+    // **Step 2: Create Last Updated Map (Per User)**
     const lastUpdatedMap = new Map(wheelData.map((data) => [
         data.alliance_wheel_member_id,
         data.alliance_wheel_date_updated || data.alliance_wheel_date,
     ]));
-    // **Step 3: Fetch Referral Counts (Using $queryRaw)**
-    const lastUpdated = new Date(Math.min(...Array.from(lastUpdatedMap.values()).map((d) => d.getTime())));
-    console.log(lastUpdated);
-    const referralCounts = await prisma.$queryRaw `
-    SELECT 
-      package_ally_bounty_member_id,
-      COUNT(DISTINCT package_ally_bounty_from) AS count
-    FROM packages_schema.package_ally_bounty_log
-    INNER JOIN alliance_schema.alliance_referral_table 
-      ON alliance_referral_member_id = package_ally_bounty_from
-    WHERE package_ally_bounty_member_id = ANY(${memberIds}::uuid[])
-    AND package_ally_bounty_log_date_created >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
-    AND alliance_referral_date >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
-    GROUP BY package_ally_bounty_member_id;
-  `;
+    console.log("Last Updated Map Per User:", lastUpdatedMap);
+    // **Step 3: Fetch Referral Counts Per User**
+    const referralCounts = await Promise.all(memberIds.map(async (memberId) => {
+        const lastUpdated = lastUpdatedMap.get(memberId) || new Date(0); // Default to earliest date if not found
+        const result = await prisma.$queryRaw `
+        SELECT 
+          package_ally_bounty_member_id,
+          COUNT(DISTINCT package_ally_bounty_from) AS count
+        FROM packages_schema.package_ally_bounty_log
+        INNER JOIN alliance_schema.alliance_referral_table 
+          ON alliance_referral_member_id = package_ally_bounty_from
+        WHERE package_ally_bounty_member_id = ${memberId}::uuid
+        AND package_ally_bounty_log_date_created >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
+        AND alliance_referral_date >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
+        GROUP BY package_ally_bounty_member_id;
+      `;
+        return result[0] || { package_ally_bounty_member_id: memberId, count: 0 };
+    }));
     // **Step 4: Convert Referral Counts to Map**
     const referralCountMap = new Map(referralCounts.map((r) => [r.package_ally_bounty_member_id, r.count]));
     // **Step 5: Determine New Spin Counts**
@@ -416,39 +419,43 @@ export const packageDailytaskGetModel = async (params) => {
         const referralCount = referralCountMap.get(memberId) || 0;
         const wheel = wheelData.find((w) => w.alliance_wheel_member_id === memberId);
         let newSpinCount = 0;
-        const updates = {
-            alliance_wheel_date_updated: new Date(),
-        };
+        const updates = {};
         if (referralCount >= 3 && !wheel?.three_referrals) {
             newSpinCount = 3;
             updates.three_referrals = true;
+            updates.alliance_wheel_date_updated = new Date();
         }
         if (referralCount >= 10 &&
             !wheel?.ten_referrals &&
             wheel?.three_referrals) {
             newSpinCount = 5;
             updates.ten_referrals = true;
+            updates.alliance_wheel_date_updated = new Date();
         }
         if (referralCount >= 25 &&
             !wheel?.twenty_five_referrals &&
             wheel?.ten_referrals) {
             newSpinCount = 15;
             updates.twenty_five_referrals = true;
+            updates.alliance_wheel_date_updated = new Date();
         }
         if (referralCount >= 50 &&
             !wheel?.fifty_referrals &&
             wheel?.twenty_five_referrals) {
             newSpinCount = 35;
             updates.fifty_referrals = true;
+            updates.alliance_wheel_date_updated = new Date();
         }
         if (referralCount >= 100 &&
             !wheel?.one_hundred_referrals &&
             wheel?.fifty_referrals) {
             newSpinCount = 50;
             updates.one_hundred_referrals = true;
+            updates.alliance_wheel_date_updated = new Date();
         }
         return { memberId, newSpinCount, updates };
     });
+    console.log("User Updates:", updates);
     const upsertWheelQueries = updates.map(({ memberId, updates }) => prisma.alliance_wheel_table.upsert({
         where: {
             alliance_wheel_date_alliance_wheel_member_id: {
@@ -463,7 +470,6 @@ export const packageDailytaskGetModel = async (params) => {
             ...updates,
         },
     }));
-    console.log(updates);
     const updateSpinCountQueries = updates
         .filter(({ newSpinCount }) => newSpinCount > 0)
         .map(({ memberId, newSpinCount }) => prisma.alliance_wheel_log_table.upsert({
