@@ -391,7 +391,7 @@ export const withdrawListPostModel = async (params: {
     totalCount: BigInt(0),
     totalWithdrawals: {
       amount: 0,
-      count: 0,
+      approvedAmount: 0,
     },
   };
 
@@ -552,13 +552,20 @@ export const withdrawListPostModel = async (params: {
             lte: getPhilippinesTime(new Date(new Date()), "end"),
           },
         },
-        _count: true,
+        _sum: {
+          alliance_withdrawal_request_amount: true,
+          alliance_withdrawal_request_fee: true,
+        },
       });
     returnData.totalWithdrawals = {
       amount:
         Number(aggregateResult._sum.alliance_withdrawal_request_amount || 0) -
         Number(aggregateResult._sum.alliance_withdrawal_request_fee || 0),
-      count: totalApprovedCount._count,
+      approvedAmount:
+        Number(
+          totalApprovedCount._sum.alliance_withdrawal_request_amount || 0
+        ) -
+        Number(totalApprovedCount._sum.alliance_withdrawal_request_fee || 0),
     };
   }
 
