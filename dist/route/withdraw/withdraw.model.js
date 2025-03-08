@@ -238,6 +238,7 @@ export const withdrawListPostModel = async (params) => {
         totalCount: BigInt(0),
         totalWithdrawals: {
             amount: 0,
+            approvedAmount: 0,
         },
     };
     const { page, limit, search, columnAccessor, userFilter, statusFilter, isAscendingSort, dateFilter, showHiddenUser, } = parameters;
@@ -249,8 +250,8 @@ export const withdrawListPostModel = async (params) => {
     const commonConditions = [
         Prisma.raw(`m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid AND t.alliance_withdrawal_request_member_id ${showHiddenUser ? "IN" : "NOT IN"} (SELECT alliance_hidden_user_member_id FROM alliance_schema.alliance_hidden_user_table)`),
     ];
-    console.log(teamMemberProfile.alliance_member_role);
-    if (teamMemberProfile.alliance_member_role === "ACCOUNTING") {
+    if (teamMemberProfile.alliance_member_role === "ACCOUNTING" ||
+        teamMemberProfile.alliance_member_role === "ACCOUNTING_HEAD") {
         commonConditions.push(Prisma.raw(`t.alliance_withdrawal_request_approved_by = '${teamMemberProfile.alliance_member_id}'::uuid`));
     }
     if (userFilter) {
@@ -329,9 +330,24 @@ export const withdrawListPostModel = async (params) => {
                 alliance_withdrawal_request_fee: true,
             },
         });
+        const totalApprovedCount = await prisma.alliance_withdrawal_request_table.aggregate({
+            where: {
+                alliance_withdrawal_request_status: "APPROVED",
+                alliance_withdrawal_request_date: {
+                    gte: getPhilippinesTime(new Date(new Date()), "start"),
+                    lte: getPhilippinesTime(new Date(new Date()), "end"),
+                },
+            },
+            _sum: {
+                alliance_withdrawal_request_amount: true,
+                alliance_withdrawal_request_fee: true,
+            },
+        });
         returnData.totalWithdrawals = {
             amount: Number(aggregateResult._sum.alliance_withdrawal_request_amount || 0) -
                 Number(aggregateResult._sum.alliance_withdrawal_request_fee || 0),
+            approvedAmount: Number(totalApprovedCount._sum.alliance_withdrawal_request_amount || 0) -
+                Number(totalApprovedCount._sum.alliance_withdrawal_request_fee || 0),
         };
     }
     ["APPROVED", "REJECTED", "PENDING"].forEach((status) => {
@@ -347,7 +363,6 @@ export const withdrawListPostModel = async (params) => {
         }
     });
     returnData.totalCount = statusCounts.reduce((sum, item) => sum + BigInt(item.count), BigInt(0));
-    console.log(returnData);
     return JSON.parse(JSON.stringify(returnData, (key, value) => typeof value === "bigint" ? value.toString() : value));
 };
 export const withdrawHistoryReportPostTotalModel = async (params) => {

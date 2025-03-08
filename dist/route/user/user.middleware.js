@@ -276,7 +276,7 @@ export const userListReinvestedMiddleware = async (c, next) => {
 };
 export const userTreeMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionAccountingAdmin(user.id, prisma);
     if (response instanceof Response) {
         return response;
     }

@@ -394,7 +394,6 @@ export const packageDailytaskGetModel = async (params) => {
         data.alliance_wheel_member_id,
         data.alliance_wheel_date_updated || data.alliance_wheel_date,
     ]));
-    console.log("Last Updated Map Per User:", lastUpdatedMap);
     // **Step 3: Fetch Referral Counts Per User**
     const referralCounts = await Promise.all(memberIds.map(async (memberId) => {
         const lastUpdated = lastUpdatedMap.get(memberId) || new Date(0); // Default to earliest date if not found
@@ -455,7 +454,6 @@ export const packageDailytaskGetModel = async (params) => {
         }
         return { memberId, newSpinCount, updates };
     });
-    console.log("User Updates:", updates);
     const upsertWheelQueries = updates.map(({ memberId, updates }) => prisma.alliance_wheel_table.upsert({
         where: {
             alliance_wheel_date_alliance_wheel_member_id: {
