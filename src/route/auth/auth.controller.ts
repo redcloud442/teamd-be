@@ -1,3 +1,4 @@
+import { supabaseClient } from "@/utils/supabase.js";
 import type { Context } from "hono";
 import { getClientIP } from "../../utils/function.js";
 import {
@@ -53,14 +54,15 @@ export const adminController = async (c: Context) => {
 };
 
 export const registerUserController = async (c: Context) => {
+  const params = c.get("params");
   try {
-    const params = c.get("params");
     const ip = getClientIP(c.req.raw);
 
     await registerUserModel({ ...params, ip });
 
     return c.json({ message: "User created" }, 200);
   } catch (error) {
+    await supabaseClient.auth.admin.deleteUser(params.userId);
     return c.json({ message: "Error occurred" }, 500);
   }
 };
