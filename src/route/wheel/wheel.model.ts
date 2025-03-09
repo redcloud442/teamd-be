@@ -3,8 +3,11 @@ import { getPhilippinesTime } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
 
-const PRIZE_ID = "a1ea289d-2581-4d73-9655-89f717a88a9d";
-const PRIZE_LIMIT = 5;
+const PRIZE_IDS = [
+  "a1ea289d-2581-4d73-9655-89f717a88a9d",
+  "fa0582a5-7895-4de5-a609-d32397d917bc",
+];
+const PRIZE_LIMIT = 1;
 const NO_REWARD_PRIZE = {
   alliance_wheel_settings_label: "NO REWARD",
   alliance_wheel_settings_id: "NO_REWARD",
@@ -13,23 +16,27 @@ const NO_REWARD_PRIZE = {
 };
 
 async function getRandomPrize(tx: Prisma.TransactionClient) {
-  const prizeCounterKey = `prize-count-${PRIZE_ID}`;
+  const prizeCounts = await Promise.all(
+    PRIZE_IDS.map(async (prizeId: string) => {
+      const count = (await redis.get(`prize-count-${prizeId}`)) as
+        | string
+        | null;
+      return { prizeId, count: count ? parseInt(count, 10) : 0 };
+    })
+  );
 
-  const currentCount = (await redis.get(prizeCounterKey)) as string | null;
-  const count = currentCount ? parseInt(currentCount, 10) : 0;
-
-  // Fetch all prizes
   let prizes = await tx.alliance_wheel_settings_table.findMany({
     orderBy: {
       alliance_wheel_settings_percentage: "desc",
     },
   });
 
-  if (count >= PRIZE_LIMIT) {
-    prizes = prizes.filter(
-      (prize) => prize.alliance_wheel_settings_id !== PRIZE_ID
+  prizes = prizes.filter((prize) => {
+    const prizeData = prizeCounts.find(
+      (p) => p.prizeId === prize.alliance_wheel_settings_id
     );
-  }
+    return !(prizeData && prizeData.count >= PRIZE_LIMIT);
+  });
 
   if (!prizes.length) return NO_REWARD_PRIZE;
 
@@ -49,18 +56,18 @@ async function getRandomPrize(tx: Prisma.TransactionClient) {
     cumulativeProbability += prize.alliance_wheel_settings_percentage;
 
     if (random < cumulativeProbability) {
-      if (prize.alliance_wheel_settings_id === PRIZE_ID) {
-        const newCount = await redis.incr(prizeCounterKey);
-
-        const now = new Date();
-        const midnight = new Date(now);
-        midnight.setHours(23, 59, 59, 999);
-        const secondsUntilMidnight = Math.floor(
-          (midnight.getTime() - now.getTime()) / 1000
-        );
+      if (PRIZE_IDS.includes(prize.alliance_wheel_settings_id)) {
+        const prizeKey = `prize-count-${prize.alliance_wheel_settings_id}`;
+        const newCount = await redis.incr(prizeKey);
 
         if (newCount === 1) {
-          await redis.expire(prizeCounterKey, secondsUntilMidnight);
+          const now = new Date();
+          const midnight = new Date(now);
+          midnight.setHours(23, 59, 59, 999);
+          const secondsUntilMidnight = Math.floor(
+            (midnight.getTime() - now.getTime()) / 1000
+          );
+          await redis.expire(prizeKey, secondsUntilMidnight);
         }
       }
 

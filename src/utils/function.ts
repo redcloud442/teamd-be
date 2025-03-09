@@ -1,7 +1,7 @@
 import { supabaseClient } from "./supabase.js";
 
 export const sendErrorResponse = (message: string, status: number) =>
-  Response.json({ error: message }, { status });
+  Response.json({ message: message }, { status });
 
 export const sendSuccessResponse = (message: string, status: number) =>
   Response.json({ message: message }, { status });

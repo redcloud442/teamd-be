@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 export const loginModel = async (params) => {
     const { userName, password, ip } = params;
@@ -22,7 +21,7 @@ export const loginModel = async (params) => {
         },
     });
     if (!user) {
-        throw new Error("Invalid username or password");
+        throw new Error("Invalid username");
     }
     const teamMemberProfile = user.alliance_member_table[0];
     if (!teamMemberProfile)
@@ -71,7 +70,7 @@ export const loginGetModel = async (userName) => {
         },
     });
     if (teamMember?.alliance_member_restricted) {
-        return sendErrorResponse("Not Allowed", 403);
+        throw new Error("Not Allowed");
     }
     return user;
 };

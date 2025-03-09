@@ -1,4 +1,5 @@
 import { supabaseClient } from "@/utils/supabase.js";
+import { Prisma } from "@prisma/client";
 import type { Context } from "hono";
 import { getClientIP } from "../../utils/function.js";
 import {
@@ -18,7 +19,13 @@ export const loginController = async (c: Context) => {
 
     return c.json({ message: "Login successful" }, 200);
   } catch (error) {
-    return c.json({ message: "Invalid username or password" }, 401);
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return c.json({ message: "A database error occurred" }, 500);
+    }
+    if (error instanceof Error) {
+      return c.json({ message: error.message }, 401);
+    }
+    return c.json({ message: "Internal server error" }, 500);
   }
 };
 
@@ -37,7 +44,15 @@ export const loginGetController = async (c: Context) => {
 
     return c.json({ message: "User does not exist" }, 200);
   } catch (error) {
-    return c.json({ message: "Error occurred" }, 500);
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return c.json({ message: "A database error occurred" }, 500);
+    }
+    if (error instanceof Error) {
+      return c.json({ message: error.message }, 401);
+    }
+
+    // Handles any unknown errors
+    return c.json({ message: "Internal server error" }, 500);
   }
 };
 
@@ -49,7 +64,15 @@ export const adminController = async (c: Context) => {
 
     return c.json({ message: "Admin login successful" }, 200);
   } catch (error) {
-    return c.json({ message: "Error occurred" }, 500);
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return c.json({ message: "A database error occurred" }, 500);
+    }
+    if (error instanceof Error) {
+      return c.json({ message: error.message }, 401);
+    }
+
+    // Handles any unknown errors
+    return c.json({ message: "Internal server error" }, 500);
   }
 };
 
@@ -63,6 +86,13 @@ export const registerUserController = async (c: Context) => {
     return c.json({ message: "User created" }, 200);
   } catch (error) {
     await supabaseClient.auth.admin.deleteUser(params.userId);
-    return c.json({ message: "Error occurred" }, 500);
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return c.json({ message: "A database error occurred" }, 500);
+    }
+    if (error instanceof Error) {
+      return c.json({ message: error.message }, 401);
+    }
+
+    return c.json({ message: "Internal server error" }, 500);
   }
 };

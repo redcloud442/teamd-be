@@ -9,7 +9,7 @@ export const authMiddleware = async (c, next) => {
     }
     const isAllowed = await rateLimit(`rate-limit:${userName}`, 5, "1m", c);
     if (!isAllowed) {
-        return sendErrorResponse("Too many requests. Please try again later.", 429);
+        return sendErrorResponse("Too many requests. Please try again later after 1 minute.", 429);
     }
     c.set("params", parsed.data);
     await next();
@@ -23,7 +23,7 @@ export const authGetMiddleware = async (c, next) => {
     }
     const isAllowed = await rateLimit(`rate-limit:${userName}`, 5, "1m", c);
     if (!isAllowed) {
-        return sendErrorResponse("Too many requests. Please try again later.", 429);
+        return sendErrorResponse("Too many requests. Please try again later after 1 minute.", 429);
     }
     c.set("userName", userName);
     await next();
@@ -37,7 +37,7 @@ export const loginCheckMiddleware = async (c, next) => {
     }
     const isAllowed = await rateLimit(`rate-limit:${userName}`, 5, "1m", c);
     if (!isAllowed) {
-        return sendErrorResponse("Too many requests. Please try again later.", 429);
+        return sendErrorResponse("Too many requests. Please try again later after 1 minute.", 429);
     }
     c.set("userName", userName);
     await next();
@@ -61,7 +61,7 @@ export const registerUserMiddleware = async (c, next) => {
     }
     const isAllowed = await rateLimit(`rate-limit:${userName}:${ip}`, 5, "1m", c);
     if (!isAllowed) {
-        return sendErrorResponse("Too many requests. Please try again later.", 429);
+        return sendErrorResponse("Too many requests. Please try again later after 1 minute.", 429);
     }
     c.set("params", parsed.data);
     await next();
