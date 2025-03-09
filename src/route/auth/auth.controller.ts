@@ -1,7 +1,7 @@
-import { supabaseClient } from "@/utils/supabase.js";
 import { Prisma } from "@prisma/client";
 import type { Context } from "hono";
 import { getClientIP } from "../../utils/function.js";
+import { supabaseClient } from "../../utils/supabase.js";
 import {
   adminModel,
   loginGetModel,
