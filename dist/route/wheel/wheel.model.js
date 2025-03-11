@@ -4,6 +4,7 @@ import { redis } from "../../utils/redis.js";
 const PRIZE_IDS = [
     "a1ea289d-2581-4d73-9655-89f717a88a9d",
     "fa0582a5-7895-4de5-a609-d32397d917bc",
+    "07e872b0-17fc-439e-9a8d-33c80ff756a9",
 ];
 const PRIZE_LIMIT = 1;
 const NO_REWARD_PRIZE = {
@@ -120,16 +121,20 @@ export const wheelPostModel = async (params) => {
                     },
                 },
             });
-            await tx.alliance_transaction_table.create({
-                data: {
-                    transaction_member_id: teamMemberProfile.alliance_member_id,
-                    transaction_amount: Number(winningPrize?.alliance_wheel_settings_label),
-                    transaction_date: new Date(),
-                    transaction_details: "",
-                    transaction_description: "Prime Wheel Earnings",
-                },
-            });
         }
+        await tx.alliance_transaction_table.create({
+            data: {
+                transaction_member_id: teamMemberProfile.alliance_member_id,
+                transaction_amount: Number(winningPrize?.alliance_wheel_settings_label),
+                transaction_date: new Date(),
+                transaction_details: "",
+                transaction_description: `Prime Wheel ${winningPrize?.alliance_wheel_settings_label === "RE-SPIN"
+                    ? "RE-SPIN"
+                    : winningPrize?.alliance_wheel_settings_label === "NO REWARD"
+                        ? "NO REWARD"
+                        : "Earnings"}`,
+            },
+        });
         return {
             prize: winningPrize?.alliance_wheel_settings_label,
             count: wheelLog?.alliance_wheel_spin_count,

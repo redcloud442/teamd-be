@@ -1,6 +1,6 @@
-import { supabaseClient } from "@/utils/supabase.js";
 import { Prisma } from "@prisma/client";
 import { getClientIP } from "../../utils/function.js";
+import { supabaseClient } from "../../utils/supabase.js";
 import { adminModel, loginGetModel, loginModel, registerUserModel, } from "./auth.model.js";
 export const loginController = async (c) => {
     try {
