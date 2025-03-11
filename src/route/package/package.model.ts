@@ -62,10 +62,10 @@ export const packagePostModel = async (params: {
   } = deductFromWallets(
     requestedAmount,
     combinedEarnings,
-    Number(alliance_olympus_wallet),
-    Number(alliance_olympus_earnings),
-    Number(alliance_referral_bounty),
-    Number(alliance_winning_earnings)
+    Number(alliance_olympus_wallet.toFixed(2)),
+    Number(alliance_olympus_earnings.toFixed(2)),
+    Number(alliance_referral_bounty.toFixed(2)),
+    Number(alliance_winning_earnings.toFixed(2))
   );
 
   const packagePercentage = new Prisma.Decimal(
@@ -833,7 +833,7 @@ function deductFromWallets(
     }
   }
 
-  // If any balance remains, throw an error
+  console.log(remaining);
   if (remaining > 0) {
     throw new Error("Insufficient funds to complete the transaction.");
   }

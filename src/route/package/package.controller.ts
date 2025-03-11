@@ -10,6 +10,7 @@ import {
   packagePostModel,
   packageUpdatePutModel,
 } from "./package.model.js";
+
 export const packagePostController = async (c: Context) => {
   try {
     const { amount, packageId } = await c.req.json();
