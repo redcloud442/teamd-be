@@ -716,15 +716,16 @@ export const packageDailytaskGetModel = async (params: {
     await prisma.$executeRawUnsafe(`
       UPDATE alliance_schema.alliance_wheel_log_table
       SET alliance_wheel_spin_count = 
-        CASE 
-          ${spinCounts
-            .map(
-              (s) =>
-                `WHEN alliance_wheel_member_id = '${s.memberId}'::uuid THEN alliance_wheel_spin_count + ${s.spinCount}`
-            )
-            .join(" ")}
-          ELSE alliance_wheel_spin_count 
-        END
+      CASE 
+        ${spinCounts
+          .map(
+            (s) =>
+              `WHEN alliance_wheel_member_id = '${s.memberId}'::uuid 
+                THEN GREATEST(alliance_wheel_spin_count + ${s.spinCount}, 0)`
+          )
+          .join(" ")}
+        ELSE alliance_wheel_spin_count 
+      END
       WHERE alliance_wheel_member_id IN (${spinCounts
         .map((s) => `'${s.memberId}'::uuid`)
         .join(", ")});
