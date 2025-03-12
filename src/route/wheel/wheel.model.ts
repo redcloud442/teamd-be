@@ -7,6 +7,8 @@ const PRIZE_IDS = [
   "a1ea289d-2581-4d73-9655-89f717a88a9d",
   "fa0582a5-7895-4de5-a609-d32397d917bc",
   "07e872b0-17fc-439e-9a8d-33c80ff756a9",
+  "50a65746-4944-410b-807e-8265e5698c9f",
+  "07e872b0-17fc-439e-9a8d-33c80ff756a9",
 ];
 const PRIZE_LIMIT = 1;
 const NO_REWARD_PRIZE = {
@@ -84,97 +86,127 @@ export const wheelPostModel = async (params: {
 }) => {
   const { teamMemberProfile } = params;
 
-  const response = await prisma.$transaction(async (tx) => {
-    const wheel = await tx.alliance_wheel_table.findFirst({
-      where: {
-        alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
-        alliance_wheel_date: {
-          gte: getPhilippinesTime(new Date(), "start"),
-          lte: getPhilippinesTime(new Date(), "end"),
-        },
-      },
-      orderBy: {
-        alliance_wheel_date: "desc",
-      },
-      take: 1,
-    });
+  return await prisma.$transaction(async (tx) => {
+    // Acquire row-level lock using raw SQL
+    const wheelLog = await tx.$queryRawUnsafe<
+      {
+        alliance_wheel_log_id: string;
+        alliance_wheel_spin_count: number;
+        is_spinning: boolean;
+      }[]
+    >(
+      `SELECT * FROM alliance_schema.alliance_wheel_log_table
+      WHERE alliance_wheel_member_id = '${teamMemberProfile.alliance_member_id}'::uuid
+      FOR UPDATE SKIP LOCKED`
+    );
 
-    let wheelLog = await tx.alliance_wheel_log_table.findUnique({
-      where: {
-        alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
-      },
-    });
-    if (!wheel) {
-      wheelLog = await tx.alliance_wheel_log_table.create({
+    let logEntry = wheelLog[0];
+
+    console.log(logEntry);
+    // If no log entry exists, create one
+    if (!logEntry) {
+      logEntry = await tx.alliance_wheel_log_table.create({
         data: {
           alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
           alliance_wheel_spin_count: 0,
-        },
-      });
-    }
-    if (wheelLog?.alliance_wheel_spin_count === 0) {
-      throw new Error("You have no spins left");
-    }
-
-    const winningPrize = await getRandomPrize(tx);
-
-    if (winningPrize.alliance_wheel_settings_label === "RE-SPIN") {
-    } else if (winningPrize.alliance_wheel_settings_label === "NO REWARD") {
-      await tx.alliance_wheel_log_table.update({
-        where: { alliance_wheel_log_id: wheelLog!.alliance_wheel_log_id },
-        data: {
-          alliance_wheel_spin_count: {
-            decrement: 1,
-          },
-        },
-      });
-    } else {
-      await tx.alliance_earnings_table.update({
-        where: {
-          alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
-        },
-        data: {
-          alliance_winning_earnings: {
-            increment: Number(winningPrize?.alliance_wheel_settings_label),
-          },
-          alliance_combined_earnings: {
-            increment: Number(winningPrize?.alliance_wheel_settings_label),
-          },
-        },
-      });
-      await tx.alliance_wheel_log_table.update({
-        where: { alliance_wheel_log_id: wheelLog!.alliance_wheel_log_id },
-        data: {
-          alliance_wheel_spin_count: {
-            decrement: 1,
-          },
+          is_spinning: false,
         },
       });
     }
 
-    await tx.alliance_transaction_table.create({
-      data: {
-        transaction_member_id: teamMemberProfile.alliance_member_id,
-        transaction_amount: Number(winningPrize?.alliance_wheel_settings_label),
-        transaction_date: new Date(),
-        transaction_details: "",
-        transaction_description: `Prime Wheel ${
-          winningPrize?.alliance_wheel_settings_label === "RE-SPIN"
-            ? "RE-SPIN"
-            : winningPrize?.alliance_wheel_settings_label === "NO REWARD"
-            ? "NO REWARD"
-            : "Earnings"
-        }`,
-      },
+    // Prevent concurrent spins
+    if (logEntry.is_spinning) {
+      throw new Error("A spin is already in progress. Please wait.");
+    }
+
+    // Check if the user has available spins
+    if (logEntry.alliance_wheel_spin_count === 0) {
+      throw new Error("You have no spins left.");
+    }
+
+    // Mark as spinning inside the transaction
+    await tx.alliance_wheel_log_table.update({
+      where: { alliance_wheel_log_id: logEntry.alliance_wheel_log_id },
+      data: { is_spinning: true },
     });
 
-    return {
-      prize: winningPrize?.alliance_wheel_settings_label,
-      count: wheelLog?.alliance_wheel_spin_count,
-    };
-  });
+    try {
+      const winningPrize = await getRandomPrize(tx);
 
-  return response;
+      if (winningPrize.alliance_wheel_settings_label === "RE-SPIN") {
+        // No changes needed
+      } else if (winningPrize.alliance_wheel_settings_label === "NO REWARD") {
+        // Deduct one spin if no reward is received
+        await tx.alliance_wheel_log_table.update({
+          where: { alliance_wheel_log_id: logEntry.alliance_wheel_log_id },
+          data: {
+            alliance_wheel_spin_count: { decrement: 1 },
+          },
+        });
+      } else {
+        // Update earnings if the user wins a prize
+        await tx.alliance_earnings_table.update({
+          where: {
+            alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
+          },
+          data: {
+            alliance_winning_earnings: {
+              increment: Number(winningPrize.alliance_wheel_settings_label),
+            },
+            alliance_combined_earnings: {
+              increment: Number(winningPrize.alliance_wheel_settings_label),
+            },
+          },
+        });
+
+        // Deduct one spin
+        await tx.alliance_wheel_log_table.update({
+          where: { alliance_wheel_log_id: logEntry.alliance_wheel_log_id },
+          data: {
+            alliance_wheel_spin_count: { decrement: 1 },
+          },
+        });
+      }
+
+      // Log the transaction
+      await tx.alliance_transaction_table.create({
+        data: {
+          transaction_member_id: teamMemberProfile.alliance_member_id,
+          transaction_amount: Number(
+            winningPrize.alliance_wheel_settings_label
+          ),
+          transaction_date: new Date(),
+          transaction_details: "",
+          transaction_description: `Prime Wheel ${
+            winningPrize.alliance_wheel_settings_label === "RE-SPIN"
+              ? "RE-SPIN"
+              : winningPrize.alliance_wheel_settings_label === "NO REWARD"
+              ? "NO REWARD"
+              : "Earnings"
+          }`,
+        },
+      });
+
+      // Reset `is_spinning` flag back to false
+      await tx.alliance_wheel_log_table.update({
+        where: { alliance_wheel_log_id: logEntry.alliance_wheel_log_id },
+        data: { is_spinning: false },
+      });
+
+      return {
+        prize: winningPrize.alliance_wheel_settings_label,
+        count: logEntry.alliance_wheel_spin_count - 1,
+      };
+    } catch (error) {
+      // Reset `is_spinning` flag in case of an error
+      await tx.alliance_wheel_log_table.update({
+        where: { alliance_wheel_log_id: logEntry.alliance_wheel_log_id },
+        data: { is_spinning: false },
+      });
+
+      throw error; // Re-throw the original error
+    }
+  });
 };
 
 export const wheelGetModel = async (params: {

@@ -13,7 +13,7 @@ export const wheelPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-post`, 10, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile?.alliance_member_id}:wheel-post`, 1, "10s", c);
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later.", 429);
     }

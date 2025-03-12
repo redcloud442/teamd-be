@@ -33,7 +33,7 @@ export const packagePostModel = async (params) => {
     if (requestedAmount > combinedEarnings) {
         throw new Error("Insufficient balance in the wallet.");
     }
-    const { olympusWallet, olympusEarnings, referralWallet, winningEarnings, updatedCombinedWallet, isReinvestment, } = deductFromWallets(requestedAmount, combinedEarnings, Number(alliance_olympus_wallet), Number(alliance_olympus_earnings), Number(alliance_referral_bounty), Number(alliance_winning_earnings));
+    const { olympusWallet, olympusEarnings, referralWallet, winningEarnings, updatedCombinedWallet, isReinvestment, } = deductFromWallets(requestedAmount, combinedEarnings, Number(alliance_olympus_wallet.toFixed(2)), Number(alliance_olympus_earnings.toFixed(2)), Number(alliance_referral_bounty.toFixed(2)), Number(alliance_winning_earnings.toFixed(2)));
     const packagePercentage = new Prisma.Decimal(Number(packageData.package_percentage)).div(100);
     const packageAmountEarnings = new Prisma.Decimal(requestedAmount).mul(packagePercentage);
     const referralChain = generateReferralChain(referralData?.alliance_referral_hierarchy ?? null, teamMemberProfile.alliance_member_id, 100);
@@ -509,12 +509,13 @@ export const packageDailytaskGetModel = async (params) => {
         await prisma.$executeRawUnsafe(`
       UPDATE alliance_schema.alliance_wheel_log_table
       SET alliance_wheel_spin_count = 
-        CASE 
-          ${spinCounts
-            .map((s) => `WHEN alliance_wheel_member_id = '${s.memberId}'::uuid THEN alliance_wheel_spin_count + ${s.spinCount}`)
+      CASE 
+        ${spinCounts
+            .map((s) => `WHEN alliance_wheel_member_id = '${s.memberId}'::uuid 
+                THEN GREATEST(alliance_wheel_spin_count + ${s.spinCount}, 0)`)
             .join(" ")}
-          ELSE alliance_wheel_spin_count 
-        END
+        ELSE alliance_wheel_spin_count 
+      END
       WHERE alliance_wheel_member_id IN (${spinCounts
             .map((s) => `'${s.memberId}'::uuid`)
             .join(", ")});
@@ -604,7 +605,7 @@ function deductFromWallets(amount, combinedWallet, olympusWallet, olympusEarning
             winningEarnings = 0;
         }
     }
-    // If any balance remains, throw an error
+    console.log(remaining);
     if (remaining > 0) {
         throw new Error("Insufficient funds to complete the transaction.");
     }
