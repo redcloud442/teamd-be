@@ -179,7 +179,7 @@ model alliance_top_up_request_table {
   alliance_top_up_request_attachment   String
   alliance_top_up_request_reject_note  String?
   alliance_top_up_request_reference_number String? @unique
-  
+
 
   alliance_top_up_request_member_id    String    @db.Uuid
   alliance_top_up_request_approved_by  String?   @db.Uuid
@@ -304,6 +304,7 @@ model alliance_wheel_log_table {
   alliance_wheel_log_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   alliance_wheel_spin_count Int @default(0)
   alliance_wheel_member_id String @db.Uuid  @unique
+  is_spinning Boolean @default(false)
 
   alliance_member_table alliance_member_table @relation(fields: [alliance_wheel_member_id], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -323,7 +324,7 @@ model alliance_hidden_user_table {
 
   alliance_member_table_action_by alliance_member_table? @relation("ActionBy", fields: [alliance_hidden_user_action_by], references: [alliance_member_id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@schema("alliance_schema") 
+  @@schema("alliance_schema")
 }
 
 model package_table {
@@ -359,7 +360,7 @@ model package_member_connection_table {
   package_ally_bounty_log package_ally_bounty_log[]
   package_earnings_log package_earnings_log[]
   @@schema("packages_schema")
-  
+
   @@index([package_member_package_id], name: "idx_package_member_package_id")
   @@index([package_member_member_id], name: "idx_package_member_member_id")
 }
