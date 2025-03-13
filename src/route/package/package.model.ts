@@ -598,8 +598,8 @@ export const packageDailytaskGetModel = async (params: {
         INNER JOIN alliance_schema.alliance_referral_table 
           ON alliance_referral_member_id = package_ally_bounty_from
         WHERE package_ally_bounty_member_id = ${memberId}::uuid
-        AND package_ally_bounty_log_date_created >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
-        AND alliance_referral_date >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
+        AND package_ally_bounty_log_date_created >= ${lastUpdated}::TIMESTAMP AT TIME ZONE 'UTC'
+        AND alliance_referral_date >= ${lastUpdated}::TIMESTAMP AT TIME ZONE 'UTC'
         GROUP BY package_ally_bounty_member_id;
       `;
       return result[0] || { package_ally_bounty_member_id: memberId, count: 0 };
