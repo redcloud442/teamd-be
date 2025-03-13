@@ -583,7 +583,6 @@ export const packageDailytaskGetModel = async (params: {
     ])
   );
 
-  console.log(memberIds);
   const referralCounts = await Promise.all(
     memberIds.map(async (memberId) => {
       const lastUpdated = lastUpdatedMap.get(memberId) || new Date(0);
@@ -606,6 +605,31 @@ export const packageDailytaskGetModel = async (params: {
     })
   );
 
+  const wheelLogData = await prisma.alliance_wheel_table.findMany({
+    where: {
+      alliance_wheel_member_id: { in: memberIds },
+      alliance_wheel_date: {
+        gte: startDate,
+      },
+    },
+    orderBy: {
+      alliance_wheel_date: "desc",
+    },
+  });
+
+  const wheelMap = new Map(
+    wheelLogData.map((r) => [
+      r.alliance_wheel_member_id,
+      {
+        alliance_wheel_date: r.alliance_wheel_date,
+        ten_referrals: r.ten_referrals,
+        twenty_five_referrals: r.twenty_five_referrals,
+        fifty_referrals: r.fifty_referrals,
+        one_hundred_referrals: r.one_hundred_referrals,
+        three_referrals: r.three_referrals,
+      },
+    ])
+  );
   const referralCountMap = new Map(
     referralCounts.map((r) => [r.package_ally_bounty_member_id, r.count])
   );
@@ -614,39 +638,37 @@ export const packageDailytaskGetModel = async (params: {
   const updates: Record<string, boolean | Date>[] = [];
   const spinCounts: { memberId: string; spinCount: number }[] = [];
 
+  console.log(wheelMap);
+
   memberIds.forEach((memberId) => {
     const referralCount = referralCountMap.get(memberId) || 0;
+    const wheelData = wheelMap.get(memberId);
     let newSpinCount = 0;
     const updateFields: Record<string, boolean | Date> = {};
 
-    if (referralCount >= 3 && !updateFields.three_referrals) {
+    if (referralCount >= 3 && !wheelData?.three_referrals) {
       newSpinCount = 3;
       updateFields.three_referrals = true;
-      updateFields.alliance_wheel_date_updated = new Date();
     }
-    if (referralCount >= 10 && updateFields.three_referrals) {
+    if (referralCount >= 10 && wheelData?.three_referrals) {
       newSpinCount = 5;
       updateFields.ten_referrals = true;
-      updateFields.alliance_wheel_date_updated = new Date();
     }
-    if (referralCount >= 25 && updateFields.ten_referrals) {
+    if (referralCount >= 25 && wheelData?.ten_referrals) {
       newSpinCount = 15;
       updateFields.twenty_five_referrals = true;
-      updateFields.alliance_wheel_date_updated = new Date();
     }
-    if (referralCount >= 50 && updateFields.twenty_five_referrals) {
+    if (referralCount >= 50 && wheelData?.twenty_five_referrals) {
       newSpinCount = 35;
       updateFields.fifty_referrals = true;
-      updateFields.alliance_wheel_date_updated = new Date();
     }
     if (
       referralCount >= 100 &&
-      updateFields.fifty_referrals &&
-      !updateFields.one_hundred_referrals
+      wheelData?.fifty_referrals &&
+      !wheelData?.one_hundred_referrals
     ) {
       newSpinCount = 50;
       updateFields.one_hundred_referrals = true;
-      updateFields.alliance_wheel_date_updated = new Date();
     }
 
     if (newSpinCount > 0) {
