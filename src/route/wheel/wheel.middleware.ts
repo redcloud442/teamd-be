@@ -100,6 +100,7 @@ export const wheelPutMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!validate.success) {
+    console.log(validate.error);
     return sendErrorResponse(validate.error.message, 400);
   }
 
