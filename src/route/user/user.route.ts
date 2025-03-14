@@ -11,6 +11,7 @@ import {
   userPostController,
   userProfilePutController,
   userPutController,
+  userReferralController,
   userSponsorController,
   userTreeController,
 } from "./user.controller.js";
@@ -26,6 +27,7 @@ import {
   userPostMiddleware,
   userProfilePutMiddleware,
   userPutMiddleware,
+  userReferralMiddleware,
   userSponsorMiddleware,
   userTreeMiddleware,
 } from "./user.middleware.js";
@@ -41,6 +43,8 @@ user.get("/", userGetMiddleware, userGetController);
 user.patch("/:id", userPatchMiddleware, userPatchController);
 
 user.get("/search", userGetSearchMiddleware, userGetSearchController);
+
+user.post("/:id/referral", userReferralMiddleware, userReferralController);
 
 user.put("/:id", userProfilePutMiddleware, userProfilePutController);
 

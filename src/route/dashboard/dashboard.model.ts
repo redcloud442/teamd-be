@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export const dashboardPostModel = async (params: {
   dateFilter: { start?: string; end?: string };
 }) => {
-  return await prisma.$transaction(async (tx) => {
+
     const { dateFilter } = params;
 
     const startDate = dateFilter.start
@@ -32,7 +32,7 @@ export const dashboardPostModel = async (params: {
       chartDataRaw,
       data,
     ] = await Promise.all([
-      tx.alliance_top_up_request_table.aggregate({
+      prisma.alliance_top_up_request_table.aggregate({
         _sum: { alliance_top_up_request_amount: true },
         where: {
           alliance_top_up_request_date_updated: {
@@ -49,7 +49,7 @@ export const dashboardPostModel = async (params: {
         },
       }),
 
-      tx.package_member_connection_table.aggregate({
+      prisma.package_member_connection_table.aggregate({
         _sum: { package_member_amount: true, package_amount_earnings: true },
         where: {
           package_member_connection_created: {
@@ -65,7 +65,7 @@ export const dashboardPostModel = async (params: {
         },
       }),
 
-      tx.alliance_member_table.count({
+      prisma.alliance_member_table.count({
         where: {
           alliance_member_is_active: true,
           alliance_member_date_updated: {
@@ -81,7 +81,7 @@ export const dashboardPostModel = async (params: {
         },
       }),
 
-      tx.alliance_withdrawal_request_table.count({
+      prisma.alliance_withdrawal_request_table.count({
         where: {
           alliance_withdrawal_request_status: "APPROVED",
           alliance_withdrawal_request_date_updated: {
@@ -97,7 +97,7 @@ export const dashboardPostModel = async (params: {
         },
       }),
 
-      tx.alliance_top_up_request_table.count({
+      prisma.alliance_top_up_request_table.count({
         where: {
           alliance_top_up_request_status: "APPROVED",
           alliance_top_up_request_date_updated: {
@@ -113,7 +113,7 @@ export const dashboardPostModel = async (params: {
         },
       }),
 
-      tx.alliance_withdrawal_request_table.aggregate({
+      prisma.alliance_withdrawal_request_table.aggregate({
         _sum: {
           alliance_withdrawal_request_amount: true,
           alliance_withdrawal_request_fee: true,
@@ -134,7 +134,7 @@ export const dashboardPostModel = async (params: {
         },
       }),
 
-      tx.package_ally_bounty_log.groupBy({
+      prisma.package_ally_bounty_log.groupBy({
         by: ["package_ally_bounty_type"],
         _sum: { package_ally_bounty_earnings: true },
         where: {
@@ -151,7 +151,7 @@ export const dashboardPostModel = async (params: {
         },
       }),
 
-      tx.package_member_connection_table.count({
+      prisma.package_member_connection_table.count({
         where: {
           package_member_connection_created: {
             gte: getPhilippinesTime(
@@ -166,7 +166,7 @@ export const dashboardPostModel = async (params: {
         },
       }),
 
-      tx.$queryRaw`
+      prisma.$queryRaw`
       WITH daily_earnings AS (
         SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
                SUM(COALESCE(alliance_top_up_request_amount, 0)) AS earnings
@@ -199,7 +199,7 @@ export const dashboardPostModel = async (params: {
       ORDER BY date;
     `,
 
-      tx.package_member_connection_table.aggregate({
+      prisma.package_member_connection_table.aggregate({
         _sum: {
           package_member_amount: true,
         },
@@ -255,7 +255,7 @@ export const dashboardPostModel = async (params: {
       reinvestorsCount: Number(data?._count.package_member_member_id || 0),
       totalReinvestmentAmount: Number(data?._sum.package_member_amount || 0),
     };
-  });
+
 };
 
 export const dashboardGetModel = async () => {

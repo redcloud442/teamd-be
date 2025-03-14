@@ -152,6 +152,16 @@ export const userSponsorSchema = z.object({
   userId: z.string().uuid(),
 });
 
+export const userGetReferralSchema = z.object({
+  userId: z.string().uuid(),
+  dateFilter: z
+    .object({
+      start: z.string().optional(),
+      end: z.string().optional(),
+    })
+    .optional(),
+});
+
 export const userListSchema = z.object({
   page: z.number().min(1),
   limit: z.number().min(1).max(10),

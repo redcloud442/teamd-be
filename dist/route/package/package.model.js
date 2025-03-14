@@ -74,6 +74,13 @@ export const packagePostModel = async (params) => {
                     },
                 },
             });
+            await tx.alliance_transaction_table.create({
+                data: {
+                    transaction_member_id: teamMemberProfile.alliance_member_id,
+                    transaction_amount: count,
+                    transaction_description: `Package Task + ${count} Spins`,
+                },
+            });
         }
         await tx.alliance_earnings_table.update({
             where: {
@@ -395,57 +402,75 @@ export const packageDailytaskGetModel = async (params) => {
         data.alliance_wheel_member_id,
         data.alliance_wheel_date_updated || data.alliance_wheel_date,
     ]));
-    console.log(memberIds);
     const referralCounts = await Promise.all(memberIds.map(async (memberId) => {
         const lastUpdated = lastUpdatedMap.get(memberId) || new Date(0);
         const result = await prisma.$queryRaw `
-        SELECT 
+        SELECT
           package_ally_bounty_member_id,
           COUNT(DISTINCT package_ally_bounty_from) AS count
         FROM packages_schema.package_ally_bounty_log
-        INNER JOIN alliance_schema.alliance_referral_table 
+        INNER JOIN alliance_schema.alliance_referral_table
           ON alliance_referral_member_id = package_ally_bounty_from
         WHERE package_ally_bounty_member_id = ${memberId}::uuid
-        AND package_ally_bounty_log_date_created >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
-        AND alliance_referral_date >= ${lastUpdated}::TIMESTAMP WITHOUT TIME ZONE
+        AND package_ally_bounty_log_date_created >= ${lastUpdated}::TIMESTAMP AT TIME ZONE 'UTC'
+        AND alliance_referral_date >= ${lastUpdated}::TIMESTAMP AT TIME ZONE 'UTC'
         GROUP BY package_ally_bounty_member_id;
       `;
         return result[0] || { package_ally_bounty_member_id: memberId, count: 0 };
     }));
+    const wheelLogData = await prisma.alliance_wheel_table.findMany({
+        where: {
+            alliance_wheel_member_id: { in: memberIds },
+            alliance_wheel_date: {
+                gte: startDate,
+            },
+        },
+        orderBy: {
+            alliance_wheel_date: "desc",
+        },
+    });
+    const wheelMap = new Map(wheelLogData.map((r) => [
+        r.alliance_wheel_member_id,
+        {
+            alliance_wheel_date: r.alliance_wheel_date,
+            ten_referrals: r.ten_referrals,
+            twenty_five_referrals: r.twenty_five_referrals,
+            fifty_referrals: r.fifty_referrals,
+            one_hundred_referrals: r.one_hundred_referrals,
+            three_referrals: r.three_referrals,
+        },
+    ]));
     const referralCountMap = new Map(referralCounts.map((r) => [r.package_ally_bounty_member_id, r.count]));
     const transactions = [];
     const updates = [];
     const spinCounts = [];
+    console.log(wheelMap);
     memberIds.forEach((memberId) => {
         const referralCount = referralCountMap.get(memberId) || 0;
+        const wheelData = wheelMap.get(memberId);
         let newSpinCount = 0;
         const updateFields = {};
-        if (referralCount >= 3 && !updateFields.three_referrals) {
+        if (referralCount >= 3 && !wheelData?.three_referrals) {
             newSpinCount = 3;
             updateFields.three_referrals = true;
-            updateFields.alliance_wheel_date_updated = new Date();
         }
-        if (referralCount >= 10 && updateFields.three_referrals) {
+        if (referralCount >= 10 && wheelData?.three_referrals) {
             newSpinCount = 5;
             updateFields.ten_referrals = true;
-            updateFields.alliance_wheel_date_updated = new Date();
         }
-        if (referralCount >= 25 && updateFields.ten_referrals) {
+        if (referralCount >= 25 && wheelData?.ten_referrals) {
             newSpinCount = 15;
             updateFields.twenty_five_referrals = true;
-            updateFields.alliance_wheel_date_updated = new Date();
         }
-        if (referralCount >= 50 && updateFields.twenty_five_referrals) {
+        if (referralCount >= 50 && wheelData?.twenty_five_referrals) {
             newSpinCount = 35;
             updateFields.fifty_referrals = true;
-            updateFields.alliance_wheel_date_updated = new Date();
         }
         if (referralCount >= 100 &&
-            updateFields.fifty_referrals &&
-            !updateFields.one_hundred_referrals) {
+            wheelData?.fifty_referrals &&
+            !wheelData?.one_hundred_referrals) {
             newSpinCount = 50;
             updateFields.one_hundred_referrals = true;
-            updateFields.alliance_wheel_date_updated = new Date();
         }
         if (newSpinCount > 0) {
             updateFields.alliance_wheel_date_updated = new Date();
@@ -470,37 +495,37 @@ export const packageDailytaskGetModel = async (params) => {
         await prisma.$executeRaw `
       UPDATE alliance_schema.alliance_wheel_table
       SET
-        three_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        three_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.three_referrals) ? true : false}
-          ELSE three_referrals 
+          ELSE three_referrals
         END,
-        ten_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        ten_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.ten_referrals) ? true : false}
-          ELSE ten_referrals 
+          ELSE ten_referrals
         END,
-        twenty_five_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        twenty_five_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.twenty_five_referrals) ? true : false}
-          ELSE twenty_five_referrals 
+          ELSE twenty_five_referrals
         END,
-        fifty_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        fifty_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.fifty_referrals) ? true : false}
-          ELSE fifty_referrals 
+          ELSE fifty_referrals
         END,
-        one_hundred_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        one_hundred_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.one_hundred_referrals) ? true : false}
-          ELSE one_hundred_referrals 
+          ELSE one_hundred_referrals
         END,
-        alliance_wheel_date_updated = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        alliance_wheel_date_updated = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.alliance_wheel_date_updated)
             ? new Date()
             : null}
-          ELSE alliance_wheel_date_updated 
+          ELSE alliance_wheel_date_updated
         END
       WHERE alliance_wheel_member_id = ANY(${memberIds}::uuid[]);
     `;
@@ -508,17 +533,11 @@ export const packageDailytaskGetModel = async (params) => {
     if (spinCounts.length > 0) {
         await prisma.$executeRawUnsafe(`
       UPDATE alliance_schema.alliance_wheel_log_table
-      SET alliance_wheel_spin_count = 
-      CASE 
-        ${spinCounts
-            .map((s) => `WHEN alliance_wheel_member_id = '${s.memberId}'::uuid 
-                THEN GREATEST(alliance_wheel_spin_count + ${s.spinCount}, 0)`)
-            .join(" ")}
-        ELSE alliance_wheel_spin_count 
-      END
-      WHERE alliance_wheel_member_id IN (${spinCounts
-            .map((s) => `'${s.memberId}'::uuid`)
-            .join(", ")});
+      SET alliance_wheel_spin_count = alliance_wheel_spin_count + subquery.spinCount
+      FROM (VALUES
+        ${spinCounts.map((s) => `('${s.memberId}', ${s.spinCount})`).join(", ")}
+      ) AS subquery(memberId, spinCount)
+      WHERE alliance_wheel_log_table.alliance_wheel_member_id = subquery.memberId::uuid;
     `);
     }
 };
