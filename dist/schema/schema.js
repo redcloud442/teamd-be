@@ -120,6 +120,15 @@ export const userGenerateLinkSchema = z.object({
 export const userSponsorSchema = z.object({
     userId: z.string().uuid(),
 });
+export const userGetReferralSchema = z.object({
+    userId: z.string().uuid(),
+    dateFilter: z
+        .object({
+        start: z.string().optional(),
+        end: z.string().optional(),
+    })
+        .optional(),
+});
 export const userListSchema = z.object({
     page: z.number().min(1),
     limit: z.number().min(1).max(10),
@@ -311,11 +320,11 @@ export const userOptionsPostSchema = z.object({
 });
 //wheel schema
 export const wheelPutSchema = z.object({
-    quantity: z.number().min(1).max(100),
+    quantity: z.number().max(100),
 });
 export const wheelPutSettingsSchema = z.object({
     id: z.string().uuid(),
-    percentage: z.number().min(1).max(100),
+    percentage: z.number().max(100),
     label: z.string().min(1),
     color: z.string().min(1),
 });

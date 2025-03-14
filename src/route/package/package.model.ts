@@ -125,6 +125,14 @@ export const packagePostModel = async (params: {
           },
         },
       });
+
+      await tx.alliance_transaction_table.create({
+        data: {
+          transaction_member_id: teamMemberProfile.alliance_member_id,
+          transaction_amount: count,
+          transaction_description: `Package Task + ${count} Spins`,
+        },
+      });
     }
 
     await tx.alliance_earnings_table.update({
@@ -590,11 +598,11 @@ export const packageDailytaskGetModel = async (params: {
         package_ally_bounty_member_id: string;
         count: number;
       }[] = await prisma.$queryRaw`
-        SELECT 
+        SELECT
           package_ally_bounty_member_id,
           COUNT(DISTINCT package_ally_bounty_from) AS count
         FROM packages_schema.package_ally_bounty_log
-        INNER JOIN alliance_schema.alliance_referral_table 
+        INNER JOIN alliance_schema.alliance_referral_table
           ON alliance_referral_member_id = package_ally_bounty_from
         WHERE package_ally_bounty_member_id = ${memberId}::uuid
         AND package_ally_bounty_log_date_created >= ${lastUpdated}::TIMESTAMP AT TIME ZONE 'UTC'
@@ -696,39 +704,39 @@ export const packageDailytaskGetModel = async (params: {
     await prisma.$executeRaw`
       UPDATE alliance_schema.alliance_wheel_table
       SET
-        three_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        three_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.three_referrals) ? true : false}
-          ELSE three_referrals 
+          ELSE three_referrals
         END,
-        ten_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        ten_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.ten_referrals) ? true : false}
-          ELSE ten_referrals 
+          ELSE ten_referrals
         END,
-        twenty_five_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        twenty_five_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.twenty_five_referrals) ? true : false}
-          ELSE twenty_five_referrals 
+          ELSE twenty_five_referrals
         END,
-        fifty_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        fifty_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.fifty_referrals) ? true : false}
-          ELSE fifty_referrals 
+          ELSE fifty_referrals
         END,
-        one_hundred_referrals = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        one_hundred_referrals = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${updates.some((u) => u.one_hundred_referrals) ? true : false}
-          ELSE one_hundred_referrals 
+          ELSE one_hundred_referrals
         END,
-        alliance_wheel_date_updated = CASE 
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[]) 
+        alliance_wheel_date_updated = CASE
+          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
           THEN ${
             updates.some((u) => u.alliance_wheel_date_updated)
               ? new Date()
               : null
           }
-          ELSE alliance_wheel_date_updated 
+          ELSE alliance_wheel_date_updated
         END
       WHERE alliance_wheel_member_id = ANY(${memberIds}::uuid[]);
     `;

@@ -258,7 +258,7 @@ export const userPatchModel = async (params) => {
 export const userSponsorModel = async (params) => {
     const { userId } = params;
     const user = await prisma.$queryRaw `
-  SELECT 
+  SELECT
         ut2.user_username
       FROM user_schema.user_table ut
       JOIN alliance_schema.alliance_member_table am
@@ -408,7 +408,7 @@ export const userActiveListModel = async (params) => {
       `
         : Prisma.empty;
     const usersWithActiveWallet = await prisma.$queryRaw `
-    SELECT 
+    SELECT
       ut.user_id,
       ut.user_username,
       ut.user_first_name,
@@ -419,7 +419,7 @@ export const userActiveListModel = async (params) => {
       ON ut.user_id = am.alliance_member_user_id
     LEFT JOIN alliance_schema.alliance_earnings_table ae
       ON ae.alliance_earnings_member_id = am.alliance_member_id
-    WHERE 
+    WHERE
       ae.alliance_olympus_wallet > 0
       ${searchCondition}
       ${orderBy}
@@ -427,14 +427,14 @@ export const userActiveListModel = async (params) => {
     OFFSET ${offset}
   `;
     const totalCount = await prisma.$queryRaw `
-    SELECT 
+    SELECT
       COUNT(*)
     FROM user_schema.user_table ut
     JOIN alliance_schema.alliance_member_table am
       ON ut.user_id = am.alliance_member_user_id
     LEFT JOIN alliance_schema.alliance_earnings_table ae
       ON ae.alliance_earnings_member_id = am.alliance_member_id
-      WHERE 
+      WHERE
       ae.alliance_olympus_wallet > 0
       ${searchCondition}
     `;
@@ -472,7 +472,7 @@ export const userListReinvestedModel = async (params) => {
         ? getPhilippinesTime(new Date(dateFilter.end), "end")
         : getPhilippinesTime(new Date(), "end");
     const data = await prisma.$queryRaw `
-        SELECT 
+        SELECT
           pml.package_member_member_id,
           pml.package_member_amount,
           pml.package_member_connection_created,
@@ -483,19 +483,19 @@ export const userListReinvestedModel = async (params) => {
       FROM packages_schema.package_member_connection_table pml
       JOIN packages_schema.package_earnings_log pol
           ON pol.package_member_member_id = pml.package_member_member_id
-      JOIN alliance_schema.alliance_member_table am 
+      JOIN alliance_schema.alliance_member_table am
           ON am.alliance_member_id = pml.package_member_member_id
-      JOIN user_schema.user_table u 
+      JOIN user_schema.user_table u
           ON u.user_id = am.alliance_member_user_id
       WHERE pml.package_member_is_reinvestment = true AND pml.package_member_connection_created::timestamptz
           BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
-      GROUP BY 
-          pml.package_member_member_id, 
-          pml.package_member_amount, 
-          pml.package_member_connection_created, 
+      GROUP BY
+          pml.package_member_member_id,
+          pml.package_member_amount,
+          pml.package_member_connection_created,
           pml.package_member_status,
-          u.user_username, 
-          u.user_first_name, 
+          u.user_username,
+          u.user_first_name,
           u.user_last_name
       ORDER BY pml.package_member_connection_created DESC
       LIMIT ${take}
@@ -504,25 +504,25 @@ export const userListReinvestedModel = async (params) => {
     const totalCount = await prisma.$queryRaw `
       SELECT COUNT(*)::INTEGER AS count
       FROM (
-          SELECT 
+          SELECT
               pml.package_member_member_id
           FROM packages_schema.package_member_connection_table pml
           JOIN packages_schema.package_earnings_log pol
           ON pol.package_member_member_id = pml.package_member_member_id
-          JOIN alliance_schema.alliance_member_table am 
+          JOIN alliance_schema.alliance_member_table am
               ON am.alliance_member_id = pml.package_member_member_id
-          JOIN user_schema.user_table u 
+          JOIN user_schema.user_table u
               ON u.user_id = am.alliance_member_user_id
           WHERE pml.package_member_is_reinvestment = true
             AND pml.package_member_connection_created::timestamptz
           BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
-          GROUP BY 
-            pml.package_member_member_id, 
-            pml.package_member_amount, 
-            pml.package_member_connection_created, 
+          GROUP BY
+            pml.package_member_member_id,
+            pml.package_member_amount,
+            pml.package_member_connection_created,
             pml.package_member_status,
-            u.user_username, 
-            u.user_first_name, 
+            u.user_username,
+            u.user_first_name,
             u.user_last_name
       ) AS total_count
   `;
@@ -617,4 +617,33 @@ export const userGetSearchModel = async (params) => {
         alliance_member_restricted: member.alliance_member_restricted,
     })));
     return { data: formattedUsers };
+};
+export const userReferralModel = async (params) => {
+    const { memberId, dateFilter } = params;
+    // Aggregate Direct and Indirect referrals separately
+    const referrals = await prisma.package_ally_bounty_log.groupBy({
+        by: ["package_ally_bounty_type"],
+        where: {
+            package_ally_bounty_member_id: memberId,
+            package_ally_bounty_log_date_created: {
+                gte: getPhilippinesTime(new Date(dateFilter.start), "start"),
+                lte: getPhilippinesTime(new Date(dateFilter.end), "end"),
+            },
+        },
+        _sum: { package_ally_bounty_earnings: true },
+    });
+    // Convert the result into an object with direct & indirect earnings
+    const result = {
+        directReferral: 0,
+        indirectReferral: 0,
+    };
+    referrals.forEach((entry) => {
+        if (entry.package_ally_bounty_type === "DIRECT") {
+            result.directReferral = entry._sum.package_ally_bounty_earnings || 0;
+        }
+        else if (entry.package_ally_bounty_type === "INDIRECT") {
+            result.indirectReferral = entry._sum.package_ally_bounty_earnings || 0;
+        }
+    });
+    return result;
 };

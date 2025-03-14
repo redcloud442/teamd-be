@@ -11,6 +11,7 @@ import {
   userModelPut,
   userPatchModel,
   userProfileModelPut,
+  userReferralModel,
   userSponsorModel,
   userTreeModel,
 } from "./user.model.js";
@@ -170,6 +171,18 @@ export const userGetSearchController = async (c: Context) => {
     const params = c.get("params");
 
     const data = await userGetSearchModel(params);
+
+    return c.json(data, 200);
+  } catch (error) {
+    return c.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+};
+
+export const userReferralController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const data = await userReferralModel(params);
 
     return c.json(data, 200);
   } catch (error) {
