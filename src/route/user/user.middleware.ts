@@ -610,7 +610,7 @@ export const userReferralMiddleware = async (c: Context, next: Next) => {
 
 
     const validate = userGetReferralSchema.safeParse({
-      userId: id,
+      memberId: id,
       dateFilter,
     });
 
