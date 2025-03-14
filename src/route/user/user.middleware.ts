@@ -581,7 +581,7 @@ export const userGetSearchMiddleware = async (c: Context, next: Next) => {
 export const userReferralMiddleware = async (c: Context, next: Next) => {
     const user = c.get("user");
 
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionAdmin(user.id, prisma);
 
     if (response instanceof Response) {
       return response;
