@@ -153,7 +153,7 @@ export const userSponsorSchema = z.object({
 });
 
 export const userGetReferralSchema = z.object({
-  userId: z.string().uuid(),
+  memberId: z.string().uuid(),
   dateFilter: z
     .object({
       start: z.string().optional(),

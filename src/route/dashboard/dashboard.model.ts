@@ -255,6 +255,7 @@ export const dashboardPostModel = async (params: {
       reinvestorsCount: Number(data?._count.package_member_member_id || 0),
       totalReinvestmentAmount: Number(data?._sum.package_member_amount || 0),
     };
+
 };
 
 export const dashboardGetModel = async () => {

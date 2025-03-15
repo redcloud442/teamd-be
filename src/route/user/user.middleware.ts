@@ -614,9 +614,10 @@ export const userReferralMiddleware = async (c: Context, next: Next) => {
       dateFilter,
     });
 
-    if (!validate.success) {
-      return sendErrorResponse("Invalid Request", 400);
-    }
+  if (!validate.success) {
+    console.log(validate.error);
+    return sendErrorResponse("Invalid Request", 400);
+  }
 
   c.set("teamMemberProfile", teamMemberProfile);
   c.set("params", validate.data);
