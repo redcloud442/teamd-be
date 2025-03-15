@@ -11,6 +11,9 @@ export const dashboardPostController = async (c: Context) => {
     return c.json(response, 200);
   } catch (error) {
     console.log(error);
+    if (error instanceof Error) {
+      return sendErrorResponse(error.message, 500);
+    }
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
