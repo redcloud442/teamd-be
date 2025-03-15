@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+
+import prisma from "../../utils/prisma.js";
 import { getPhilippinesTime } from "../../utils/function.js";
 import { redis } from "../../utils/redis.js";
-
-const prisma = new PrismaClient();
 
 export const dashboardPostModel = async (params: {
   dateFilter: { start?: string; end?: string };
