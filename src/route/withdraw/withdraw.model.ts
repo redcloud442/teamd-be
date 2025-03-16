@@ -131,7 +131,7 @@ export const withdrawModel = async (params: {
 
   await prisma.$transaction(async (tx) => {
     const countAllRequests: {
-      approverId: string | null;
+      approver_id: string | null;
       requestCount: bigint;
     }[] = await tx.$queryRaw`
     WITH manual_distribution AS (
@@ -189,7 +189,7 @@ export const withdrawModel = async (params: {
           teamMemberProfile.alliance_member_id,
         alliance_withdrawal_request_withdraw_type: earnings,
         alliance_withdrawal_request_approved_by:
-          countAllRequests[0]?.approverId ?? null,
+          countAllRequests[0]?.approver_id ?? null,
       },
     });
 
