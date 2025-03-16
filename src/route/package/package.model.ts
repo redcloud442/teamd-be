@@ -740,16 +740,18 @@ export const packageDailytaskGetModel = async (params: {
     }
 
     if (spinCounts.length > 0) {
-      await tx.alliance_wheel_log_table.updateMany({
-        where: {
-          alliance_wheel_member_id: { in: memberIds },
-        },
-        data: {
-          alliance_wheel_spin_count: {
-            increment: spinCounts[spinCounts.length - 1].spinCount,
-          },
-        },
-      });
+      await Promise.all(
+        spinCounts.map(({ memberId, spinCount }) =>
+          tx.alliance_wheel_log_table.update({
+            where: { alliance_wheel_member_id: memberId },
+            data: {
+              alliance_wheel_spin_count: {
+                increment: spinCount, // Correctly increment based on each member's spin count
+              },
+            },
+          })
+        )
+      );
     }
   });
 };
