@@ -604,7 +604,7 @@ export const packageDailytaskGetModel = async (params: {
           COUNT(DISTINCT package_ally_bounty_from) AS count
         FROM packages_schema.package_ally_bounty_log
         WHERE package_ally_bounty_member_id = ${memberId}::uuid
-        AND package_ally_bounty_log_date_created >= ${lastUpdated}::TIMESTAMP AT TIME ZONE 'UTC'
+        AND package_ally_bounty_log_date_created >= ${lastUpdated}::timestamptz
         GROUP BY package_ally_bounty_member_id;
       `;
         return (
