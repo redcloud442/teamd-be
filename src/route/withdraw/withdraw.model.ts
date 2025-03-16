@@ -134,19 +134,45 @@ export const withdrawModel = async (params: {
       approverId: string | null;
       requestCount: bigint;
     }[] = await tx.$queryRaw`
-      SELECT am.alliance_member_id AS "approverId",
-             COALESCE(approvedRequests."requestCount", 0) AS "requestCount"
-      FROM alliance_schema.alliance_member_table am
-      LEFT JOIN (
-        SELECT awr.alliance_withdrawal_request_approved_by AS "approverId",
-               COUNT(awr.alliance_withdrawal_request_id) AS "requestCount"
-        FROM alliance_schema.alliance_withdrawal_request_table awr
-        WHERE awr.alliance_withdrawal_request_date::timestamptz BETWEEN ${startDate}::timestamptz AND ${endDate}::timestamptz
-        GROUP BY awr.alliance_withdrawal_request_approved_by
-      ) approvedRequests ON am.alliance_member_id = approvedRequests."approverId"
-      WHERE am.alliance_member_role IN ('ACCOUNTING', 'ACCOUNTING_HEAD')
-      ORDER BY "requestCount" ASC
-      LIMIT 1;
+    WITH manual_distribution AS (
+    SELECT * FROM (VALUES
+        ('b32dcb7b-0b05-49bf-8381-bd25b01ca080'::uuid, 23.30),
+        ('59a287db-d82c-4704-858c-77a279349ba8'::uuid, 23.30),
+        ('82fdd051-f272-462e-a329-33fd05972af3'::uuid, 23.30),
+        ('e0eb10a9-5cdf-4cbf-866d-1ba74d45581b'::uuid, 10.00),
+        ('e63ca157-a599-4ab6-a344-0e1e6c4e8786'::uuid, 10.00),
+        ('57649d2e-0773-490a-8b75-e740d73c0d17'::uuid, 10.00)
+    ) AS md(approver_id, percentage)
+   ),
+    approver_pool AS (
+        SELECT 
+            md.approver_id,
+            md.percentage,
+            am.alliance_member_role,
+            COALESCE(ar.request_count, 0) AS request_count,
+            (md.percentage * random()) AS weight
+        FROM manual_distribution md
+        LEFT JOIN alliance_schema.alliance_member_table am 
+            ON am.alliance_member_id = md.approver_id
+        LEFT JOIN (
+            SELECT 
+                awr.alliance_withdrawal_request_approved_by::uuid AS approver_id,
+                COUNT(awr.alliance_withdrawal_request_id) AS request_count
+            FROM alliance_schema.alliance_withdrawal_request_table awr
+            WHERE awr.alliance_withdrawal_request_date::timestamptz 
+            BETWEEN ${startDate}::timestamptz AND ${endDate}::timestamptz
+            GROUP BY awr.alliance_withdrawal_request_approved_by
+        ) ar ON md.approver_id = ar.approver_id
+        WHERE am.alliance_member_role IN ('ACCOUNTING', 'ACCOUNTING_HEAD')
+    )
+    SELECT 
+        approver_id,
+        percentage,
+        request_count,
+        weight
+    FROM approver_pool
+    ORDER BY weight DESC
+    LIMIT 1
     `;
 
     await tx.alliance_withdrawal_request_table.create({
