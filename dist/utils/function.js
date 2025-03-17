@@ -58,3 +58,4 @@ export const getPhilippinesTime = (date, time) => {
     // Return ISO string for database queries
     return resultDate.toISOString();
 };
+export const toNonNegative = (num) => num < 0 || Math.abs(num) < 1e-6 ? 0 : num;

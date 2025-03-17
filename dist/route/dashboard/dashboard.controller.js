@@ -8,6 +8,9 @@ export const dashboardPostController = async (c) => {
     }
     catch (error) {
         console.log(error);
+        if (error instanceof Error) {
+            return sendErrorResponse(error.message, 500);
+        }
         return sendErrorResponse("Internal Server Error", 500);
     }
 };

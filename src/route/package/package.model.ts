@@ -1,5 +1,5 @@
 import { Prisma, type alliance_member_table } from "@prisma/client";
-import { getPhilippinesTime } from "../../utils/function.js";
+import { getPhilippinesTime, toNonNegative } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 
 export const packagePostModel = async (params: {
@@ -140,11 +140,11 @@ export const packagePostModel = async (params: {
         alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
       },
       data: {
-        alliance_combined_earnings: updatedCombinedWallet,
-        alliance_olympus_wallet: olympusWallet,
-        alliance_olympus_earnings: olympusEarnings,
-        alliance_referral_bounty: referralWallet,
-        alliance_winning_earnings: winningEarnings,
+        alliance_combined_earnings: toNonNegative(updatedCombinedWallet),
+        alliance_olympus_wallet: toNonNegative(olympusWallet),
+        alliance_olympus_earnings: toNonNegative(olympusEarnings),
+        alliance_referral_bounty: toNonNegative(referralWallet),
+        alliance_winning_earnings: toNonNegative(winningEarnings),
       },
     });
 
@@ -594,7 +594,7 @@ export const packageDailytaskGetModel = async (params: {
 
     const referralCounts = await Promise.all(
       memberIds.map(async (memberId) => {
-        const lastUpdated = lastUpdatedMap.get(memberId) || new Date(0);
+        const lastUpdated = lastUpdatedMap.get(memberId);
         const result: {
           package_ally_bounty_member_id: string;
           count: number;
@@ -639,7 +639,10 @@ export const packageDailytaskGetModel = async (params: {
       ])
     );
     const referralCountMap = new Map(
-      referralCounts.map((r) => [r.package_ally_bounty_member_id, r.count])
+      referralCounts.map((r) => [
+        r.package_ally_bounty_member_id,
+        Number(r.count),
+      ])
     );
 
     const transactions: Prisma.alliance_transaction_tableCreateManyInput[] = [];
@@ -742,12 +745,14 @@ export const packageDailytaskGetModel = async (params: {
     if (spinCounts.length > 0) {
       await Promise.all(
         spinCounts.map(({ memberId, spinCount }) =>
-          tx.alliance_wheel_log_table.update({
+          tx.alliance_wheel_log_table.upsert({
             where: { alliance_wheel_member_id: memberId },
-            data: {
-              alliance_wheel_spin_count: {
-                increment: spinCount, // Correctly increment based on each member's spin count
-              },
+            create: {
+              alliance_wheel_member_id: memberId,
+              alliance_wheel_spin_count: spinCount,
+            },
+            update: {
+              alliance_wheel_spin_count: { increment: spinCount },
             },
           })
         )
@@ -857,7 +862,6 @@ function deductFromWallets(
     }
   }
 
-  console.log(remaining);
   if (remaining > 0) {
     throw new Error("Insufficient funds to complete the transaction.");
   }

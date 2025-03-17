@@ -637,6 +637,7 @@ export const userReferralModel = async (params) => {
         directReferral: 0,
         indirectReferral: 0,
     };
+    console.log(referrals);
     referrals.forEach((entry) => {
         if (entry.package_ally_bounty_type === "DIRECT") {
             result.directReferral = entry._sum.package_ally_bounty_earnings || 0;

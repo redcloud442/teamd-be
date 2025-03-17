@@ -324,7 +324,7 @@ export const userGetSearchMiddleware = async (c, next) => {
 };
 export const userReferralMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionAdmin(user.id, prisma);
     if (response instanceof Response) {
         return response;
     }
@@ -339,10 +339,11 @@ export const userReferralMiddleware = async (c, next) => {
     const { id } = c.req.param();
     const { dateFilter } = await c.req.json();
     const validate = userGetReferralSchema.safeParse({
-        userId: id,
+        memberId: id,
         dateFilter,
     });
     if (!validate.success) {
+        console.log(validate.error);
         return sendErrorResponse("Invalid Request", 400);
     }
     c.set("teamMemberProfile", teamMemberProfile);
