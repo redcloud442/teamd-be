@@ -660,16 +660,16 @@ export const packageDailytaskGetModel = async (params: {
         newSpinCount = 5;
         updateFields.ten_referrals = true;
       }
-      if (referralCount >= 3 && wheelData?.ten_referrals) {
+      if (referralCount >= 25 && wheelData?.ten_referrals) {
         newSpinCount = 15;
         updateFields.twenty_five_referrals = true;
       }
-      if (referralCount >= 4 && wheelData?.twenty_five_referrals) {
+      if (referralCount >= 50 && wheelData?.twenty_five_referrals) {
         newSpinCount = 35;
         updateFields.fifty_referrals = true;
       }
       if (
-        referralCount >= 5 &&
+        referralCount >= 100 &&
         wheelData?.fifty_referrals &&
         !wheelData?.one_hundred_referrals
       ) {
