@@ -3,7 +3,6 @@ import { sendErrorResponse } from "../../utils/function.js";
 import {
   claimPackagePostModel,
   packageCreatePostModel,
-  packageDailytaskGetModel,
   packageGetModel,
   packageListGetAdminModel,
   packageListGetModel,
@@ -17,15 +16,15 @@ export const packagePostController = async (c: Context) => {
 
     const teamMemberProfile = c.get("teamMemberProfile");
 
-    const result = await packagePostModel({
+    await packagePostModel({
       amount,
       packageId,
       teamMemberProfile: teamMemberProfile,
     });
 
-    await packageDailytaskGetModel({
-      bountyLogs: result,
-    });
+    // await packageDailytaskGetModel({
+    //   bountyLogs: result,
+    // });
 
     return c.json({ message: "Package Created" }, 200);
   } catch (error) {

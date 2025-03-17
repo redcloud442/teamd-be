@@ -132,6 +132,10 @@ export const depositPutModel = async (params) => {
                     },
                 },
             });
+            await depositDailytaskGetModel({
+                memberId: updatedRequest.alliance_top_up_request_member_id,
+                tx,
+            });
             if (merchant && status === "APPROVED") {
                 if (updatedRequest.alliance_top_up_request_amount >
                     merchant.merchant_member_balance) {
@@ -374,4 +378,114 @@ export const depositReportPostModel = async (params) => {
         monthlyCount: depositMonthlyReport._count.alliance_top_up_request_id || 0,
         dailyIncome: depositDailyIncome,
     };
+};
+export const depositDailytaskGetModel = async (params) => {
+    const { memberId, tx } = params;
+    if (!memberId)
+        return;
+    const referralData = await tx.alliance_referral_table.findUnique({
+        where: {
+            alliance_referral_member_id: memberId,
+        },
+        select: {
+            alliance_referral_from_member_id: true,
+        },
+    });
+    if (!referralData)
+        return;
+    const referrerId = referralData.alliance_referral_from_member_id;
+    if (!referrerId)
+        return;
+    const startDate = getPhilippinesTime(new Date(), "start");
+    const wheelData = await tx.alliance_wheel_table.upsert({
+        where: {
+            alliance_wheel_date_alliance_wheel_member_id: {
+                alliance_wheel_date: startDate,
+                alliance_wheel_member_id: referrerId,
+            },
+        },
+        update: {
+            alliance_wheel_date: startDate,
+        },
+        create: {
+            alliance_wheel_date: startDate,
+            alliance_wheel_member_id: referrerId,
+        },
+        select: {
+            alliance_wheel_member_id: true,
+            alliance_wheel_date: true,
+            three_referrals: true,
+            ten_referrals: true,
+            twenty_five_referrals: true,
+            fifty_referrals: true,
+            one_hundred_referrals: true,
+        },
+    });
+    const referralCounts = await tx.view_user_referral_count.findUnique({
+        where: {
+            referrer_id: referrerId,
+        },
+    });
+    if (!referralCounts)
+        return;
+    const referralCount = referralCounts.direct_invites_count || 0;
+    let newSpinCount = 0;
+    const updateFields = {};
+    if (referralCount >= 3 && !wheelData?.three_referrals) {
+        newSpinCount = 3;
+        updateFields.three_referrals = true;
+    }
+    if (referralCount >= 10 &&
+        wheelData?.three_referrals &&
+        !wheelData?.ten_referrals) {
+        newSpinCount = 5;
+        updateFields.ten_referrals = true;
+    }
+    if (referralCount >= 25 &&
+        wheelData?.ten_referrals &&
+        !wheelData?.twenty_five_referrals) {
+        newSpinCount = 15;
+        updateFields.twenty_five_referrals = true;
+    }
+    if (referralCount >= 50 &&
+        wheelData?.twenty_five_referrals &&
+        !wheelData?.fifty_referrals) {
+        newSpinCount = 35;
+        updateFields.fifty_referrals = true;
+    }
+    if (referralCount >= 100 &&
+        wheelData?.fifty_referrals &&
+        !wheelData?.one_hundred_referrals) {
+        newSpinCount = 50;
+        updateFields.one_hundred_referrals = true;
+    }
+    if (newSpinCount > 0) {
+        updateFields.alliance_wheel_date_updated = new Date();
+        await tx.alliance_transaction_table.create({
+            data: {
+                transaction_amount: 0,
+                transaction_description: `Daily task + ${newSpinCount} spins`,
+                transaction_member_id: referrerId,
+            },
+        });
+        await tx.alliance_wheel_table.update({
+            where: {
+                alliance_wheel_date_alliance_wheel_member_id: {
+                    alliance_wheel_date: startDate,
+                    alliance_wheel_member_id: referrerId,
+                },
+            },
+            data: updateFields,
+        });
+        await tx.alliance_wheel_log_table.upsert({
+            where: { alliance_wheel_member_id: referrerId },
+            create: {
+                alliance_wheel_member_id: referrerId,
+                alliance_wheel_spin_count: newSpinCount,
+            },
+            update: {
+                alliance_wheel_spin_count: { increment: newSpinCount },
+            },
+        });
+    }
 };

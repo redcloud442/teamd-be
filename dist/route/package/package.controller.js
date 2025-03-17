@@ -1,17 +1,17 @@
 import { sendErrorResponse } from "../../utils/function.js";
-import { claimPackagePostModel, packageCreatePostModel, packageDailytaskGetModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packageUpdatePutModel, } from "./package.model.js";
+import { claimPackagePostModel, packageCreatePostModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packageUpdatePutModel, } from "./package.model.js";
 export const packagePostController = async (c) => {
     try {
         const { amount, packageId } = await c.req.json();
         const teamMemberProfile = c.get("teamMemberProfile");
-        const result = await packagePostModel({
+        await packagePostModel({
             amount,
             packageId,
             teamMemberProfile: teamMemberProfile,
         });
-        await packageDailytaskGetModel({
-            bountyLogs: result,
-        });
+        // await packageDailytaskGetModel({
+        //   bountyLogs: result,
+        // });
         return c.json({ message: "Package Created" }, 200);
     }
     catch (error) {

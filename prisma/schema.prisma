@@ -145,6 +145,14 @@ model dashboard_earnings_summary {
   @@schema("alliance_schema")
 }
 
+model view_user_referral_count {
+  referrer_id String @id @db.Uuid
+  direct_invites_count Int @default(0)
+
+  @@map("view_user_referral_count")
+  @@schema("alliance_schema")
+}
+
 model alliance_earnings_table {
   alliance_earnings_id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   alliance_olympus_wallet      Float    @default(0.0)
