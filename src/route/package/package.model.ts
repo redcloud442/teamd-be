@@ -574,6 +574,11 @@ export const packageDailytaskGetModel = async (params: {
       },
       select: {
         alliance_wheel_member_id: true,
+        three_referrals: true,
+        ten_referrals: true,
+        twenty_five_referrals: true,
+        fifty_referrals: true,
+        one_hundred_referrals: true,
         alliance_wheel_date_updated: true,
         alliance_wheel_date: true,
       },
@@ -612,21 +617,9 @@ export const packageDailytaskGetModel = async (params: {
         );
       })
     );
-    console.log(referralCounts);
-    const wheelLogData = await tx.alliance_wheel_table.findMany({
-      where: {
-        alliance_wheel_member_id: { in: memberIds },
-        alliance_wheel_date: {
-          gte: startDate,
-        },
-      },
-      orderBy: {
-        alliance_wheel_date: "desc",
-      },
-    });
 
     const wheelMap = new Map(
-      wheelLogData.map((r) => [
+      wheelData.map((r) => [
         r.alliance_wheel_member_id,
         {
           alliance_wheel_date: r.alliance_wheel_date,
@@ -635,9 +628,11 @@ export const packageDailytaskGetModel = async (params: {
           fifty_referrals: r.fifty_referrals,
           one_hundred_referrals: r.one_hundred_referrals,
           three_referrals: r.three_referrals,
+          alliance_wheel_date_updated: r.alliance_wheel_date_updated,
         },
       ])
     );
+
     const referralCountMap = new Map(
       referralCounts.map((r) => [
         r.package_ally_bounty_member_id,
@@ -645,8 +640,13 @@ export const packageDailytaskGetModel = async (params: {
       ])
     );
 
+    console.log(referralCountMap);
+    console.log(wheelMap);
     const transactions: Prisma.alliance_transaction_tableCreateManyInput[] = [];
-    const updates: Record<string, boolean | Date>[] = [];
+    const updates: {
+      memberId: string;
+      updateFields: Record<string, boolean | Date>;
+    }[] = [];
     const spinCounts: { memberId: string; spinCount: number }[] = [];
 
     memberIds.forEach((memberId) => {
@@ -690,7 +690,10 @@ export const packageDailytaskGetModel = async (params: {
         });
       }
       if (Object.keys(updateFields).length > 0) {
-        updates.push({ ...updateFields });
+        updates.push({
+          memberId,
+          updateFields: { ...updateFields },
+        });
       }
     });
     console.log(transactions);
@@ -705,40 +708,68 @@ export const packageDailytaskGetModel = async (params: {
       UPDATE alliance_schema.alliance_wheel_table
       SET
         three_referrals = CASE
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
-          THEN ${updates.some((u) => u.three_referrals) ? true : false}
+          WHEN alliance_wheel_member_id = ANY(${updates.map(
+            (u) => u.memberId
+          )}::uuid[]) 
+          THEN ${
+            updates.some((u) => u.updateFields.three_referrals) ? true : false
+          }
           ELSE three_referrals
         END,
         ten_referrals = CASE
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
-          THEN ${updates.some((u) => u.ten_referrals) ? true : false}
+        WHEN alliance_wheel_member_id = ANY(${updates.map(
+          (u) => u.memberId
+        )}::uuid[]) 
+          THEN ${
+            updates.some((u) => u.updateFields.ten_referrals) ? true : false
+          }
           ELSE ten_referrals
         END,
         twenty_five_referrals = CASE
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
-          THEN ${updates.some((u) => u.twenty_five_referrals) ? true : false}
+        WHEN alliance_wheel_member_id = ANY(${updates.map(
+          (u) => u.memberId
+        )}::uuid[]) 
+            THEN ${
+              updates.some((u) => u.updateFields.twenty_five_referrals)
+                ? true
+                : false
+            }
           ELSE twenty_five_referrals
         END,
         fifty_referrals = CASE
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
-          THEN ${updates.some((u) => u.fifty_referrals) ? true : false}
+        WHEN alliance_wheel_member_id = ANY(${updates.map(
+          (u) => u.memberId
+        )}::uuid[]) 
+          THEN ${
+            updates.some((u) => u.updateFields.fifty_referrals) ? true : false
+          }
           ELSE fifty_referrals
         END,
         one_hundred_referrals = CASE
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
-          THEN ${updates.some((u) => u.one_hundred_referrals) ? true : false}
+        WHEN alliance_wheel_member_id = ANY(${updates.map(
+          (u) => u.memberId
+        )}::uuid[]) 
+          THEN ${
+            updates.some((u) => u.updateFields.one_hundred_referrals)
+              ? true
+              : false
+          }
           ELSE one_hundred_referrals
         END,
         alliance_wheel_date_updated = CASE
-          WHEN alliance_wheel_member_id = ANY(${memberIds}::uuid[])
+        WHEN alliance_wheel_member_id = ANY(${updates.map(
+          (u) => u.memberId
+        )}::uuid[]) 
           THEN ${
-            updates.some((u) => u.alliance_wheel_date_updated)
+            updates.some((u) => u.updateFields.alliance_wheel_date_updated)
               ? new Date()
               : null
           }
           ELSE alliance_wheel_date_updated
         END
-      WHERE alliance_wheel_member_id = ANY(${memberIds}::uuid[]);
+      WHERE alliance_wheel_member_id = ANY(${updates.map(
+        (u) => u.memberId
+      )}::uuid[]);
     `;
     }
 
