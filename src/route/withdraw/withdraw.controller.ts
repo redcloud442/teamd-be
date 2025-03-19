@@ -23,6 +23,7 @@ export const withdrawPostController = async (c: Context) => {
 
     return c.json({ message: "Withdrawal successful" }, 200);
   } catch (e) {
+    console.log(e);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
