@@ -358,10 +358,20 @@ export const claimPackagePostModel = async (params: {
   await prisma.$transaction(async (tx) => {
     const packageConnection =
       await tx.package_member_connection_table.findUnique({
-        where: { package_member_connection_id: packageConnectionId },
+        where: {
+          package_member_connection_id: packageConnectionId,
+          package_member_member_id: teamMemberProfile.alliance_member_id,
+        },
       });
 
     if (!packageConnection) {
+      throw new Error("Invalid request.");
+    }
+
+    if (
+      packageConnection.package_member_member_id !==
+      teamMemberProfile.alliance_member_id
+    ) {
       throw new Error("Invalid request.");
     }
 
