@@ -9,84 +9,96 @@ export const packagePostModel = async (params: {
 }) => {
   const { amount, packageId, teamMemberProfile } = params;
 
-  const [packageData, earningsData, referralData] = await Promise.all([
-    prisma.package_table.findFirst({
-      where: { package_id: packageId },
-    }),
-    prisma.alliance_earnings_table.findUnique({
-      where: {
-        alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
-      },
-    }),
-    prisma.alliance_referral_table.findUnique({
-      where: {
-        alliance_referral_member_id: teamMemberProfile.alliance_member_id,
-      },
-    }),
-  ]);
-
-  if (!packageData) {
-    throw new Error("Package not found.");
-  }
-
-  if (packageData.package_is_disabled) {
-    throw new Error("Package is disabled.");
-  }
-
-  if (!earningsData) {
-    throw new Error("Earnings record not found.");
-  }
-
-  const {
-    alliance_olympus_wallet,
-    alliance_olympus_earnings,
-    alliance_referral_bounty,
-    alliance_combined_earnings,
-    alliance_winning_earnings,
-  } = earningsData;
-
-  const combinedEarnings = Number(alliance_combined_earnings.toFixed(2));
-  const requestedAmount = Number(amount.toFixed(2));
-
-  if (requestedAmount > combinedEarnings) {
-    throw new Error("Insufficient balance in the wallet.");
-  }
-
-  const {
-    olympusWallet,
-    olympusEarnings,
-    referralWallet,
-    winningEarnings,
-    updatedCombinedWallet,
-    isReinvestment,
-  } = deductFromWallets(
-    requestedAmount,
-    combinedEarnings,
-    Number(alliance_olympus_wallet.toFixed(2)),
-    Number(alliance_olympus_earnings.toFixed(2)),
-    Number(alliance_referral_bounty.toFixed(2)),
-    Number(alliance_winning_earnings.toFixed(2))
-  );
-
-  const packagePercentage = new Prisma.Decimal(
-    Number(packageData.package_percentage)
-  ).div(100);
-
-  const packageAmountEarnings = new Prisma.Decimal(requestedAmount).mul(
-    packagePercentage
-  );
-
-  const referralChain = generateReferralChain(
-    referralData?.alliance_referral_hierarchy ?? null,
-    teamMemberProfile.alliance_member_id,
-    100
-  );
-
-  let bountyLogs: Prisma.package_ally_bounty_logCreateManyInput[] = [];
-
-  let transactionLogs: Prisma.alliance_transaction_tableCreateManyInput[] = [];
-
   const connectionData = await prisma.$transaction(async (tx) => {
+    const [packageData, earningsData, referralData] = await Promise.all([
+      tx.package_table.findFirst({
+        where: { package_id: packageId },
+      }),
+      tx.$queryRaw<
+        {
+          alliance_combined_earnings: number;
+          alliance_olympus_wallet: number;
+          alliance_olympus_earnings: number;
+          alliance_referral_bounty: number;
+          alliance_winning_earnings: number;
+        }[]
+      >`SELECT 
+     alliance_combined_earnings,
+     alliance_olympus_wallet,
+     alliance_olympus_earnings,
+     alliance_referral_bounty,
+     alliance_winning_earnings
+     FROM alliance_schema.alliance_earnings_table 
+     WHERE alliance_earnings_member_id = ${teamMemberProfile.alliance_member_id}::uuid 
+     FOR UPDATE`,
+      tx.alliance_referral_table.findUnique({
+        where: {
+          alliance_referral_member_id: teamMemberProfile.alliance_member_id,
+        },
+      }),
+    ]);
+
+    if (!packageData) {
+      throw new Error("Package not found.");
+    }
+
+    if (packageData.package_is_disabled) {
+      throw new Error("Package is disabled.");
+    }
+
+    if (!earningsData) {
+      throw new Error("Earnings record not found.");
+    }
+
+    const {
+      alliance_olympus_wallet,
+      alliance_olympus_earnings,
+      alliance_referral_bounty,
+      alliance_combined_earnings,
+      alliance_winning_earnings,
+    } = earningsData[0];
+
+    const combinedEarnings = Number(alliance_combined_earnings.toFixed(2));
+    const requestedAmount = Number(amount.toFixed(2));
+
+    if (requestedAmount > combinedEarnings) {
+      throw new Error("Insufficient balance in the wallet.");
+    }
+
+    const {
+      olympusWallet,
+      olympusEarnings,
+      referralWallet,
+      winningEarnings,
+      updatedCombinedWallet,
+      isReinvestment,
+    } = deductFromWallets(
+      requestedAmount,
+      combinedEarnings,
+      Number(alliance_olympus_wallet.toFixed(2)),
+      Number(alliance_olympus_earnings.toFixed(2)),
+      Number(alliance_referral_bounty.toFixed(2)),
+      Number(alliance_winning_earnings.toFixed(2))
+    );
+
+    const packagePercentage = new Prisma.Decimal(
+      Number(packageData.package_percentage)
+    ).div(100);
+
+    const packageAmountEarnings = new Prisma.Decimal(requestedAmount).mul(
+      packagePercentage
+    );
+
+    const referralChain = generateReferralChain(
+      referralData?.alliance_referral_hierarchy ?? null,
+      teamMemberProfile.alliance_member_id,
+      100
+    );
+
+    let bountyLogs: Prisma.package_ally_bounty_logCreateManyInput[] = [];
+
+    let transactionLogs: Prisma.alliance_transaction_tableCreateManyInput[] =
+      [];
     const connectionData = await tx.package_member_connection_table.create({
       data: {
         package_member_member_id: teamMemberProfile.alliance_member_id,
@@ -111,6 +123,7 @@ export const packagePostModel = async (params: {
         transaction_description: `Package Enrolled: ${packageData.package_name}`,
       },
     });
+
     if (Number(amount) >= 5000) {
       const baseCount = Math.floor(Number(amount) / 5000) * 2;
       const count = baseCount > 0 ? baseCount : 2;
@@ -234,7 +247,7 @@ export const packagePostModel = async (params: {
     return connectionData;
   });
 
-  return bountyLogs;
+  return connectionData;
 };
 
 export const packageGetModel = async () => {
@@ -422,6 +435,21 @@ export const claimPackagePostModel = async (params: {
 
     if (totalClaimedAmount !== totalAmountToBeClaimed) {
       throw new Error("Invalid request");
+    }
+
+    const updatedPackage = await tx.package_member_connection_table.updateMany({
+      where: {
+        package_member_connection_id: packageConnectionId,
+        package_member_status: { not: "ENDED" },
+      },
+      data: {
+        package_member_status: "ENDED",
+        package_member_is_ready_to_claim: false,
+      },
+    });
+
+    if (updatedPackage.count === 0) {
+      throw new Error("Invalid request. Package has already been claimed.");
     }
 
     await tx.package_member_connection_table.update({

@@ -28,108 +28,113 @@ export const withdrawModel = async (params: {
     teamMemberProfile,
   } = params;
 
-  const startDate = getPhilippinesTime(new Date(), "start");
-
-  const endDate = getPhilippinesTime(new Date(), "end");
-
-  const existingPackageWithdrawal =
-    await prisma.alliance_withdrawal_request_table.findFirst({
-      where: {
-        alliance_withdrawal_request_member_id:
-          teamMemberProfile.alliance_member_id,
-        alliance_withdrawal_request_status: {
-          in: ["PENDING", "APPROVED"],
-        },
-        alliance_withdrawal_request_withdraw_type: earnings,
-        alliance_withdrawal_request_date: {
-          gte: getPhilippinesTime(new Date(new Date()), "start"),
-          lte: getPhilippinesTime(new Date(new Date()), "end"),
-        },
-      },
-    });
-
-  if (existingPackageWithdrawal) {
-    throw new Error(
-      `You have already made a ${existingPackageWithdrawal.alliance_withdrawal_request_withdraw_type} withdrawal today. Please try again tomorrow.`
-    );
-  }
-
-  const amountMatch = await prisma.alliance_earnings_table.findUnique({
-    where: {
-      alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
-    },
-    select: {
-      alliance_olympus_earnings: true,
-      alliance_referral_bounty: true,
-      alliance_combined_earnings: true,
-      alliance_winning_earnings: true,
-    },
-  });
-
-  if (!amountMatch) {
-    throw new Error("Invalid request.");
-  }
-
-  const {
-    alliance_olympus_earnings,
-    alliance_referral_bounty,
-    alliance_winning_earnings,
-  } = amountMatch;
-
-  const amountValue = Math.round(Number(amount) * 100) / 100;
-
-  const earningsType =
-    earnings === "PACKAGE"
-      ? "alliance_olympus_earnings"
-      : earnings === "REFERRAL"
-      ? "alliance_referral_bounty"
-      : "alliance_winning_earnings";
-
-  const earningsWithdrawalType =
-    earnings === "PACKAGE"
-      ? "alliance_withdrawal_request_earnings_amount"
-      : earnings === "REFERRAL"
-      ? "alliance_withdrawal_request_referral_amount"
-      : "alliance_withdrawal_request_winning_amount";
-
-  const earningsValue =
-    Math.round(Number(amountMatch[earningsType]) * 100) / 100;
-
-  if (amountValue > earningsValue) {
-    throw new Error("Insufficient balance.");
-  }
-
-  let remainingAmount = Number(amount);
-
-  if (earnings === "PACKAGE") {
-    const olympusDeduction = Math.min(
-      remainingAmount,
-      Number(alliance_olympus_earnings)
-    );
-
-    remainingAmount -= olympusDeduction;
-  }
-
-  if (earnings === "REFERRAL") {
-    const referralDeduction = Math.min(
-      remainingAmount,
-      Number(alliance_referral_bounty)
-    );
-    remainingAmount -= referralDeduction;
-  }
-
-  if (earnings === "WINNING") {
-    const winningDeduction = Math.min(
-      remainingAmount,
-      Number(alliance_winning_earnings)
-    );
-    remainingAmount -= winningDeduction;
-  }
-
-  const finalAmount = calculateFinalAmount(Number(amount), earnings);
-  const fee = calculateFee(Number(amount), earnings);
-
   await prisma.$transaction(async (tx) => {
+    const startDate = getPhilippinesTime(new Date(), "start");
+
+    const endDate = getPhilippinesTime(new Date(), "end");
+
+    const existingPackageWithdrawal =
+      await tx.alliance_withdrawal_request_table.findFirst({
+        where: {
+          alliance_withdrawal_request_member_id:
+            teamMemberProfile.alliance_member_id,
+          alliance_withdrawal_request_status: {
+            in: ["PENDING", "APPROVED"],
+          },
+          alliance_withdrawal_request_withdraw_type: earnings,
+          alliance_withdrawal_request_date: {
+            gte: getPhilippinesTime(new Date(new Date()), "start"),
+            lte: getPhilippinesTime(new Date(new Date()), "end"),
+          },
+        },
+      });
+
+    if (existingPackageWithdrawal) {
+      throw new Error(
+        `You have already made a ${existingPackageWithdrawal.alliance_withdrawal_request_withdraw_type} withdrawal today. Please try again tomorrow.`
+      );
+    }
+
+    const amountMatch = await tx.$queryRaw<
+      {
+        alliance_combined_earnings: number;
+        alliance_olympus_wallet: number;
+        alliance_olympus_earnings: number;
+        alliance_referral_bounty: number;
+        alliance_winning_earnings: number;
+      }[]
+    >`SELECT 
+alliance_combined_earnings,
+alliance_olympus_wallet,
+alliance_olympus_earnings,
+alliance_referral_bounty,
+alliance_winning_earnings
+FROM alliance_schema.alliance_earnings_table 
+WHERE alliance_earnings_member_id = ${teamMemberProfile.alliance_member_id}::uuid 
+FOR UPDATE`;
+
+    if (!amountMatch[0]) {
+      throw new Error("Invalid request.");
+    }
+
+    const {
+      alliance_olympus_earnings,
+      alliance_referral_bounty,
+      alliance_winning_earnings,
+    } = amountMatch[0];
+
+    const amountValue = Math.round(Number(amount) * 100) / 100;
+
+    const earningsType =
+      earnings === "PACKAGE"
+        ? "alliance_olympus_earnings"
+        : earnings === "REFERRAL"
+        ? "alliance_referral_bounty"
+        : "alliance_winning_earnings";
+
+    const earningsWithdrawalType =
+      earnings === "PACKAGE"
+        ? "alliance_withdrawal_request_earnings_amount"
+        : earnings === "REFERRAL"
+        ? "alliance_withdrawal_request_referral_amount"
+        : "alliance_withdrawal_request_winning_amount";
+
+    const earningsValue =
+      Math.round(Number(amountMatch[0][earningsType]) * 100) / 100;
+
+    if (amountValue > earningsValue) {
+      throw new Error("Insufficient balance.");
+    }
+
+    let remainingAmount = Number(amount);
+
+    if (earnings === "PACKAGE") {
+      const olympusDeduction = Math.min(
+        remainingAmount,
+        Number(alliance_olympus_earnings)
+      );
+
+      remainingAmount -= olympusDeduction;
+    }
+
+    if (earnings === "REFERRAL") {
+      const referralDeduction = Math.min(
+        remainingAmount,
+        Number(alliance_referral_bounty)
+      );
+      remainingAmount -= referralDeduction;
+    }
+
+    if (earnings === "WINNING") {
+      const winningDeduction = Math.min(
+        remainingAmount,
+        Number(alliance_winning_earnings)
+      );
+      remainingAmount -= winningDeduction;
+    }
+
+    const finalAmount = calculateFinalAmount(Number(amount), earnings);
+    const fee = calculateFee(Number(amount), earnings);
     const countAllRequests: {
       approver_id: string | null;
       request_count: bigint;
