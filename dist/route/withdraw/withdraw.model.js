@@ -262,8 +262,7 @@ export const withdrawListPostModel = async (params) => {
     const commonConditions = [
         Prisma.raw(`m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid AND t.alliance_withdrawal_request_member_id ${showHiddenUser ? "IN" : "NOT IN"} (SELECT alliance_hidden_user_member_id FROM alliance_schema.alliance_hidden_user_table)`),
     ];
-    if (teamMemberProfile.alliance_member_role === "ACCOUNTING" ||
-        teamMemberProfile.alliance_member_role === "ACCOUNTING_HEAD") {
+    if (teamMemberProfile.alliance_member_role === "ACCOUNTING") {
         commonConditions.push(Prisma.raw(`t.alliance_withdrawal_request_approved_by = '${teamMemberProfile.alliance_member_id}'::uuid`));
     }
     if (userFilter) {
