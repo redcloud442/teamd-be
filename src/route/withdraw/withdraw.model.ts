@@ -443,10 +443,7 @@ export const withdrawListPostModel = async (params: {
     ),
   ];
 
-  if (
-    teamMemberProfile.alliance_member_role === "ACCOUNTING" ||
-    teamMemberProfile.alliance_member_role === "ACCOUNTING_HEAD"
-  ) {
+  if (teamMemberProfile.alliance_member_role === "ACCOUNTING") {
     commonConditions.push(
       Prisma.raw(
         `t.alliance_withdrawal_request_approved_by = '${teamMemberProfile.alliance_member_id}'::uuid`
