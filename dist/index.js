@@ -11,7 +11,11 @@ app.use("*", cors({
     origin: [
         `${process.env.NODE_ENV === "development"
             ? "http://localhost:3000"
-            : "https://primepinas.com"}`,
+            : [
+                "https://primepinas.com",
+                "https://website.primepinas.com",
+                "https://front.primepinas.com",
+            ]}`,
     ],
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

@@ -22,13 +22,13 @@ export const merchantDeleteController = async (c) => {
 export const merchantPostController = async (c) => {
     try {
         const { accountNumber, accountType, accountName, merchantQrAttachment } = await c.req.json();
-        await merchantPostModel({
+        const data = await merchantPostModel({
             accountNumber,
             accountType,
             accountName,
             merchantQrAttachment,
         });
-        return c.json({ message: "Merchant Created" });
+        return c.json({ message: "Merchant Created", data }, 200);
     }
     catch (error) {
         return sendErrorResponse("Internal Server Error", 500);

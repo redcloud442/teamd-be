@@ -38,6 +38,13 @@ export const merchantPostModel = async (params) => {
                 merchant_account_name: accountName,
                 merchant_qr_attachment: merchantQrAttachment,
             },
+            select: {
+                merchant_id: true,
+                merchant_account_number: true,
+                merchant_account_type: true,
+                merchant_account_name: true,
+                merchant_qr_attachment: true,
+            },
         });
     });
     return result;

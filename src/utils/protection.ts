@@ -6,65 +6,36 @@ export const protectionMemberUser = async (
   prisma: PrismaClient
 ) => {
   try {
-    const [profile, teamMember] = await Promise.all([
-      prisma.user_table.findUnique({
-        where: { user_id: userId },
-        select: {
-          user_id: true,
-          user_first_name: true,
-          user_last_name: true,
-          user_profile_picture: true,
-          user_username: true,
-        },
-      }),
-      prisma.alliance_member_table.findFirst({
-        where: { alliance_member_user_id: userId },
-        select: {
-          alliance_member_id: true,
-          alliance_member_is_active: true,
-          alliance_member_role: true,
-          alliance_member_alliance_id: true,
-          alliance_member_restricted: true,
-        },
-      }),
-    ]);
+    const user = await prisma.user_table.findUnique({
+      where: { user_id: userId },
+      include: {
+        alliance_member_table: true,
+      },
+    });
 
-    if (!profile) {
+    if (!user) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
     if (
-      !teamMember?.alliance_member_alliance_id ||
+      !user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
       ![
         "MEMBER",
         "MERCHANT",
         "ACCOUNTING",
         "ADMIN",
         "ACCOUNTING_HEAD",
-      ].includes(teamMember.alliance_member_role)
+      ].includes(user.alliance_member_table[0].alliance_member_role)
     ) {
       return sendErrorResponse("Invalid Referral Link", 400);
     }
 
-    if (teamMember.alliance_member_restricted) {
+    if (user.alliance_member_table[0].alliance_member_restricted) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
-    const referal = await prisma.alliance_referral_link_table.findFirst({
-      where: {
-        alliance_referral_link_member_id: teamMember.alliance_member_id,
-      },
-      select: {
-        alliance_referral_link: true,
-      },
-    });
-
-    if (!referal) {
-      return sendErrorResponse("Invalid Referral Link", 400);
-    }
-
     return {
-      teamMemberProfile: teamMember as alliance_member_table,
+      teamMemberProfile: user.alliance_member_table[0] as alliance_member_table,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
@@ -76,59 +47,32 @@ export const protectionMerchantAdmin = async (
   prisma: PrismaClient
 ) => {
   try {
-    const [profile, teamMember] = await Promise.all([
-      prisma.user_table.findUnique({
-        where: { user_id: userId },
-        select: {
-          user_id: true,
-          user_first_name: true,
-          user_last_name: true,
-          user_profile_picture: true,
-          user_username: true,
-        },
-      }),
-      prisma.alliance_member_table.findFirst({
-        where: { alliance_member_user_id: userId },
-        select: {
-          alliance_member_id: true,
-          alliance_member_is_active: true,
-          alliance_member_role: true,
-          alliance_member_alliance_id: true,
-          alliance_member_restricted: true,
-        },
-      }),
-    ]);
+    const user = await prisma.user_table.findUnique({
+      where: { user_id: userId },
+      include: {
+        alliance_member_table: true,
+      },
+    });
 
-    if (!profile) {
+    if (!user) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
     if (
-      !teamMember?.alliance_member_alliance_id ||
-      !["MERCHANT", "ADMIN"].includes(teamMember.alliance_member_role)
+      !user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
+      !["MERCHANT", "ADMIN"].includes(
+        user?.alliance_member_table?.[0]?.alliance_member_role
+      )
     ) {
       return sendErrorResponse("Invalid Referral Link", 400);
     }
 
-    if (teamMember.alliance_member_restricted) {
+    if (user.alliance_member_table[0].alliance_member_restricted) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
-    const referal = await prisma.alliance_referral_link_table.findFirst({
-      where: {
-        alliance_referral_link_member_id: teamMember.alliance_member_id,
-      },
-      select: {
-        alliance_referral_link: true,
-      },
-    });
-
-    if (!referal) {
-      return sendErrorResponse("Invalid Referral Link", 400);
-    }
-
     return {
-      teamMemberProfile: teamMember as alliance_member_table,
+      teamMemberProfile: user.alliance_member_table[0] as alliance_member_table,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
@@ -140,49 +84,34 @@ export const protectionAccountingAdmin = async (
   prisma: PrismaClient
 ) => {
   try {
-    const [profile, teamMember] = await Promise.all([
-      prisma.user_table.findUnique({
-        where: { user_id: userId },
-        select: {
-          user_id: true,
-          user_first_name: true,
-          user_last_name: true,
-          user_profile_picture: true,
-          user_username: true,
-        },
-      }),
-      prisma.alliance_member_table.findFirst({
-        where: { alliance_member_user_id: userId },
-        select: {
-          alliance_member_id: true,
-          alliance_member_is_active: true,
-          alliance_member_role: true,
-          alliance_member_alliance_id: true,
-          alliance_member_restricted: true,
-        },
-      }),
-    ]);
+    const user = await prisma.user_table.findUnique({
+      where: { user_id: userId },
+      include: {
+        alliance_member_table: true,
+      },
+    });
 
-    if (!profile) {
+    if (!user) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
     if (
-      !teamMember?.alliance_member_alliance_id ||
+      !user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
       !["ACCOUNTING", "ADMIN", "ACCOUNTING_HEAD"].includes(
-        teamMember.alliance_member_role
+        user?.alliance_member_table?.[0]?.alliance_member_role
       )
     ) {
       return sendErrorResponse("Invalid Referral Link", 400);
     }
 
-    if (teamMember.alliance_member_restricted) {
+    if (user.alliance_member_table[0].alliance_member_restricted) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
     const referal = await prisma.alliance_referral_link_table.findFirst({
       where: {
-        alliance_referral_link_member_id: teamMember.alliance_member_id,
+        alliance_referral_link_member_id:
+          user?.alliance_member_table?.[0]?.alliance_member_id,
       },
       select: {
         alliance_referral_link: true,
@@ -194,7 +123,7 @@ export const protectionAccountingAdmin = async (
     }
 
     return {
-      teamMemberProfile: teamMember as alliance_member_table,
+      teamMemberProfile: user.alliance_member_table[0] as alliance_member_table,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
@@ -203,47 +132,34 @@ export const protectionAccountingAdmin = async (
 
 export const protectionAdmin = async (userId: string, prisma: PrismaClient) => {
   try {
-    const [profile, teamMember] = await Promise.all([
-      prisma.user_table.findUnique({
-        where: { user_id: userId },
-        select: {
-          user_id: true,
-          user_first_name: true,
-          user_last_name: true,
-          user_profile_picture: true,
-          user_username: true,
-        },
-      }),
-      prisma.alliance_member_table.findFirst({
-        where: { alliance_member_user_id: userId },
-        select: {
-          alliance_member_id: true,
-          alliance_member_is_active: true,
-          alliance_member_role: true,
-          alliance_member_alliance_id: true,
-          alliance_member_restricted: true,
-        },
-      }),
-    ]);
+    const user = await prisma.user_table.findUnique({
+      where: { user_id: userId },
+      include: {
+        alliance_member_table: true,
+      },
+    });
 
-    if (!profile) {
+    if (!user) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
     if (
-      !teamMember?.alliance_member_alliance_id ||
-      !["ADMIN"].includes(teamMember.alliance_member_role)
+      !user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
+      !["ADMIN"].includes(
+        user?.alliance_member_table?.[0]?.alliance_member_role
+      )
     ) {
       return sendErrorResponse("Invalid Referral Link", 400);
     }
 
-    if (teamMember.alliance_member_restricted) {
+    if (user.alliance_member_table[0].alliance_member_restricted) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
     const referal = await prisma.alliance_referral_link_table.findFirst({
       where: {
-        alliance_referral_link_member_id: teamMember.alliance_member_id,
+        alliance_referral_link_member_id:
+          user?.alliance_member_table?.[0]?.alliance_member_id,
       },
       select: {
         alliance_referral_link: true,
@@ -255,7 +171,7 @@ export const protectionAdmin = async (userId: string, prisma: PrismaClient) => {
     }
 
     return {
-      teamMemberProfile: teamMember as alliance_member_table,
+      teamMemberProfile: user.alliance_member_table[0] as alliance_member_table,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
@@ -267,61 +183,32 @@ export const protectionMerchantAdminAccounting = async (
   prisma: PrismaClient
 ) => {
   try {
-    const [profile, teamMember] = await Promise.all([
-      prisma.user_table.findUnique({
-        where: { user_id: userId },
-        select: {
-          user_id: true,
-          user_first_name: true,
-          user_last_name: true,
-          user_profile_picture: true,
-          user_username: true,
-        },
-      }),
-      prisma.alliance_member_table.findFirst({
-        where: { alliance_member_user_id: userId },
-        select: {
-          alliance_member_id: true,
-          alliance_member_is_active: true,
-          alliance_member_role: true,
-          alliance_member_alliance_id: true,
-          alliance_member_restricted: true,
-        },
-      }),
-    ]);
+    const user = await prisma.user_table.findUnique({
+      where: { user_id: userId },
+      include: {
+        alliance_member_table: true,
+      },
+    });
 
-    if (!profile) {
+    if (!user) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
     if (
-      !teamMember?.alliance_member_alliance_id ||
+      !user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
       !["MERCHANT", "ACCOUNTING", "ADMIN"].includes(
-        teamMember.alliance_member_role
+        user.alliance_member_table[0].alliance_member_role
       )
     ) {
       return sendErrorResponse("Invalid Referral Link", 400);
     }
 
-    if (teamMember.alliance_member_restricted) {
+    if (user.alliance_member_table[0].alliance_member_restricted) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
-    const referal = await prisma.alliance_referral_link_table.findFirst({
-      where: {
-        alliance_referral_link_member_id: teamMember.alliance_member_id,
-      },
-      select: {
-        alliance_referral_link: true,
-      },
-    });
-
-    if (!referal) {
-      return sendErrorResponse("Invalid Referral Link", 400);
-    }
-
     return {
-      teamMemberProfile: teamMember as alliance_member_table,
+      teamMemberProfile: user.alliance_member_table[0] as alliance_member_table,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
