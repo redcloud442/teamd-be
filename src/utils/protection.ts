@@ -27,7 +27,7 @@ export const protectionMemberUser = async (
         "ACCOUNTING_HEAD",
       ].includes(user.alliance_member_table[0].alliance_member_role)
     ) {
-      return sendErrorResponse("Invalid Referral Link", 400);
+      return sendErrorResponse("Unauthorized", 401);
     }
 
     if (user.alliance_member_table[0].alliance_member_restricted) {
@@ -64,7 +64,7 @@ export const protectionMerchantAdmin = async (
         user?.alliance_member_table?.[0]?.alliance_member_role
       )
     ) {
-      return sendErrorResponse("Invalid Referral Link", 400);
+      return sendErrorResponse("Unauthorized", 401);
     }
 
     if (user.alliance_member_table[0].alliance_member_restricted) {
@@ -101,25 +101,11 @@ export const protectionAccountingAdmin = async (
         user?.alliance_member_table?.[0]?.alliance_member_role
       )
     ) {
-      return sendErrorResponse("Invalid Referral Link", 400);
+      return sendErrorResponse("Unauthorized", 401);
     }
 
     if (user.alliance_member_table[0].alliance_member_restricted) {
       return sendErrorResponse("Internal Server Error", 500);
-    }
-
-    const referal = await prisma.alliance_referral_link_table.findFirst({
-      where: {
-        alliance_referral_link_member_id:
-          user?.alliance_member_table?.[0]?.alliance_member_id,
-      },
-      select: {
-        alliance_referral_link: true,
-      },
-    });
-
-    if (!referal) {
-      return sendErrorResponse("Invalid Referral Link", 400);
     }
 
     return {
@@ -149,25 +135,11 @@ export const protectionAdmin = async (userId: string, prisma: PrismaClient) => {
         user?.alliance_member_table?.[0]?.alliance_member_role
       )
     ) {
-      return sendErrorResponse("Invalid Referral Link", 400);
+      return sendErrorResponse("Unauthorized", 401);
     }
 
     if (user.alliance_member_table[0].alliance_member_restricted) {
       return sendErrorResponse("Internal Server Error", 500);
-    }
-
-    const referal = await prisma.alliance_referral_link_table.findFirst({
-      where: {
-        alliance_referral_link_member_id:
-          user?.alliance_member_table?.[0]?.alliance_member_id,
-      },
-      select: {
-        alliance_referral_link: true,
-      },
-    });
-
-    if (!referal) {
-      return sendErrorResponse("Invalid Referral Link", 400);
     }
 
     return {
@@ -200,7 +172,7 @@ export const protectionMerchantAdminAccounting = async (
         user.alliance_member_table[0].alliance_member_role
       )
     ) {
-      return sendErrorResponse("Invalid Referral Link", 400);
+      return sendErrorResponse("Unauthorized", 401);
     }
 
     if (user.alliance_member_table[0].alliance_member_restricted) {
