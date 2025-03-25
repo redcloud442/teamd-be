@@ -59,3 +59,19 @@ export const getPhilippinesTime = (date, time) => {
     return resultDate.toISOString();
 };
 export const toNonNegative = (num) => num < 0 || Math.abs(num) < 1e-6 ? 0 : num;
+export const getDepositBonus = (amount) => {
+    const depositTiers = [
+        { deposit: 10000, percentage: 0.001 },
+        { deposit: 25000, percentage: 0.005 },
+        { deposit: 50000, percentage: 0.01 },
+        { deposit: 75000, percentage: 0.02 },
+        { deposit: 100000, percentage: 0.03 },
+    ];
+    if (amount < 10000) {
+        return 0;
+    }
+    const lowestTier = depositTiers
+        .filter((tier) => tier.deposit <= amount)
+        .reduce((prev, curr) => (curr.deposit > prev.deposit ? curr : prev), depositTiers[0]);
+    return amount * lowestTier.percentage;
+};
