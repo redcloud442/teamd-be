@@ -370,7 +370,10 @@ export const updateWithdrawModel = async (params: {
           status.slice(0, 1).toUpperCase() + status.slice(1).toLowerCase()
         } ${note ? `(${note})` : ""}`,
         transaction_details: `Account Name: ${updatedRequest.alliance_withdrawal_request_bank_name}, Account Number: ${updatedRequest.alliance_withdrawal_request_account}`,
-        transaction_amount: updatedRequest.alliance_withdrawal_request_amount,
+        transaction_amount:
+          status === "APPROVED"
+            ? updatedRequest.alliance_withdrawal_request_withdraw_amount
+            : updatedRequest.alliance_withdrawal_request_amount,
         transaction_member_id:
           updatedRequest.alliance_withdrawal_request_member_id,
       },
