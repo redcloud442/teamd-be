@@ -32,7 +32,7 @@ export const withdrawPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-post`,
+    `rate-limit:${teamMemberProfile.company_member_id}:withdraw-post`,
     50,
     "1m",
     c
@@ -81,7 +81,7 @@ export const withdrawHistoryPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-history-get`,
+    `rate-limit:${teamMemberProfile.company_member_id}:withdraw-history-get`,
     50,
     "1m",
     c
@@ -129,7 +129,7 @@ export const updateWithdrawMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:update-withdraw`,
+    `rate-limit:${teamMemberProfile.company_member_id}:update-withdraw`,
     100,
     "1m",
     c
@@ -174,7 +174,7 @@ export const withdrawListPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-list-post`,
+    `rate-limit:${teamMemberProfile.company_member_id}:withdraw-list-post`,
     100,
     "1m",
     c
@@ -237,7 +237,7 @@ export const withdrawHistoryReportPostMiddleware = async (
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-history-report-post`,
+    `rate-limit:${teamMemberProfile.company_member_id}:withdraw-history-report-post`,
     100,
     "1m",
     c
@@ -280,7 +280,7 @@ export const withdrawTotalReportPostMiddleware = async (
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-history-report-post`,
+    `rate-limit:${teamMemberProfile.company_member_id}:withdraw-history-report-post`,
     100,
     "1m",
     c
@@ -327,7 +327,7 @@ export const withdrawHideUserPostMiddleware = async (
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-hide-user-post`,
+    `rate-limit:${teamMemberProfile.company_member_id}:withdraw-hide-user-post`,
     100,
     "1m",
     c

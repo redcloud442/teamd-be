@@ -3,28 +3,35 @@ export const protectionMemberUser = async (userId, prisma) => {
     try {
         const user = await prisma.user_table.findUnique({
             where: { user_id: userId },
-            include: {
-                alliance_member_table: true,
+            select: {
+                company_member_table: {
+                    select: {
+                        company_member_id: true,
+                        company_member_role: true,
+                        company_member_company_id: true,
+                        company_member_restricted: true,
+                    },
+                },
             },
         });
         if (!user) {
             return sendErrorResponse("Internal Server Error", 500);
         }
-        if (!user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
+        if (!user?.company_member_table?.[0]?.company_member_company_id ||
             ![
                 "MEMBER",
                 "MERCHANT",
                 "ACCOUNTING",
                 "ADMIN",
                 "ACCOUNTING_HEAD",
-            ].includes(user.alliance_member_table[0].alliance_member_role)) {
+            ].includes(user.company_member_table[0].company_member_role)) {
             return sendErrorResponse("Unauthorized", 401);
         }
-        if (user.alliance_member_table[0].alliance_member_restricted) {
+        if (user.company_member_table[0].company_member_restricted) {
             return sendErrorResponse("Internal Server Error", 500);
         }
         return {
-            teamMemberProfile: user.alliance_member_table[0],
+            teamMemberProfile: user.company_member_table[0],
         };
     }
     catch (e) {
@@ -35,22 +42,29 @@ export const protectionMerchantAdmin = async (userId, prisma) => {
     try {
         const user = await prisma.user_table.findUnique({
             where: { user_id: userId },
-            include: {
-                alliance_member_table: true,
+            select: {
+                company_member_table: {
+                    select: {
+                        company_member_id: true,
+                        company_member_role: true,
+                        company_member_company_id: true,
+                        company_member_restricted: true,
+                    },
+                },
             },
         });
         if (!user) {
             return sendErrorResponse("Internal Server Error", 500);
         }
-        if (!user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
-            !["MERCHANT", "ADMIN"].includes(user?.alliance_member_table?.[0]?.alliance_member_role)) {
+        if (!user?.company_member_table?.[0]?.company_member_company_id ||
+            !["MERCHANT", "ADMIN"].includes(user?.company_member_table?.[0]?.company_member_role)) {
             return sendErrorResponse("Unauthorized", 401);
         }
-        if (user.alliance_member_table[0].alliance_member_restricted) {
+        if (user.company_member_table[0].company_member_restricted) {
             return sendErrorResponse("Internal Server Error", 500);
         }
         return {
-            teamMemberProfile: user.alliance_member_table[0],
+            teamMemberProfile: user.company_member_table[0],
         };
     }
     catch (e) {
@@ -62,21 +76,21 @@ export const protectionAccountingAdmin = async (userId, prisma) => {
         const user = await prisma.user_table.findUnique({
             where: { user_id: userId },
             include: {
-                alliance_member_table: true,
+                company_member_table: true,
             },
         });
         if (!user) {
             return sendErrorResponse("Internal Server Error", 500);
         }
-        if (!user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
-            !["ACCOUNTING", "ADMIN", "ACCOUNTING_HEAD"].includes(user?.alliance_member_table?.[0]?.alliance_member_role)) {
+        if (!user?.company_member_table?.[0]?.company_member_company_id ||
+            !["ACCOUNTING", "ADMIN", "ACCOUNTING_HEAD"].includes(user?.company_member_table?.[0]?.company_member_role)) {
             return sendErrorResponse("Unauthorized", 401);
         }
-        if (user.alliance_member_table[0].alliance_member_restricted) {
+        if (user.company_member_table[0].company_member_restricted) {
             return sendErrorResponse("Internal Server Error", 500);
         }
         return {
-            teamMemberProfile: user.alliance_member_table[0],
+            teamMemberProfile: user.company_member_table[0],
         };
     }
     catch (e) {
@@ -88,21 +102,21 @@ export const protectionAdmin = async (userId, prisma) => {
         const user = await prisma.user_table.findUnique({
             where: { user_id: userId },
             include: {
-                alliance_member_table: true,
+                company_member_table: true,
             },
         });
         if (!user) {
             return sendErrorResponse("Internal Server Error", 500);
         }
-        if (!user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
-            !["ADMIN"].includes(user?.alliance_member_table?.[0]?.alliance_member_role)) {
+        if (!user?.company_member_table?.[0]?.company_member_company_id ||
+            !["ADMIN"].includes(user?.company_member_table?.[0]?.company_member_role)) {
             return sendErrorResponse("Unauthorized", 401);
         }
-        if (user.alliance_member_table[0].alliance_member_restricted) {
+        if (user.company_member_table[0].company_member_restricted) {
             return sendErrorResponse("Internal Server Error", 500);
         }
         return {
-            teamMemberProfile: user.alliance_member_table[0],
+            teamMemberProfile: user.company_member_table[0],
         };
     }
     catch (e) {
@@ -114,21 +128,21 @@ export const protectionMerchantAdminAccounting = async (userId, prisma) => {
         const user = await prisma.user_table.findUnique({
             where: { user_id: userId },
             include: {
-                alliance_member_table: true,
+                company_member_table: true,
             },
         });
         if (!user) {
             return sendErrorResponse("Internal Server Error", 500);
         }
-        if (!user?.alliance_member_table?.[0]?.alliance_member_alliance_id ||
-            !["MERCHANT", "ACCOUNTING", "ADMIN"].includes(user.alliance_member_table[0].alliance_member_role)) {
+        if (!user?.company_member_table?.[0]?.company_member_company_id ||
+            !["MERCHANT", "ACCOUNTING", "ADMIN"].includes(user.company_member_table[0].company_member_role)) {
             return sendErrorResponse("Unauthorized", 401);
         }
-        if (user.alliance_member_table[0].alliance_member_restricted) {
+        if (user.company_member_table[0].company_member_restricted) {
             return sendErrorResponse("Internal Server Error", 500);
         }
         return {
-            teamMemberProfile: user.alliance_member_table[0],
+            teamMemberProfile: user.company_member_table[0],
         };
     }
     catch (e) {

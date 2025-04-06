@@ -1,5 +1,5 @@
-import prisma from "../../utils/prisma.js";
 import { getPhilippinesTime } from "../../utils/function.js";
+import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
 export const dashboardPostModel = async (params) => {
     return await prisma.$transaction(async (tx) => {
@@ -11,14 +11,14 @@ export const dashboardPostModel = async (params) => {
             ? getPhilippinesTime(new Date(dateFilter.end), "end")
             : getPhilippinesTime(new Date(), "end");
         const [totalEarnings, packageEarnings, totalActivatedUserByDate, totalApprovedWithdrawal, totalApprovedReceipts, totalWithdraw, bountyEarnings, activePackageWithinTheDay, chartDataRaw, data,] = await Promise.all([
-            tx.alliance_top_up_request_table.aggregate({
-                _sum: { alliance_top_up_request_amount: true },
+            tx.company_deposit_request_table.aggregate({
+                _sum: { company_deposit_request_amount: true },
                 where: {
-                    alliance_top_up_request_date_updated: {
+                    company_deposit_request_date_updated: {
                         gte: getPhilippinesTime(new Date(dateFilter.start || new Date()), "start"),
                         lte: getPhilippinesTime(new Date(dateFilter.end || new Date()), "end"),
                     },
-                    alliance_top_up_request_status: "APPROVED",
+                    company_deposit_request_status: "APPROVED",
                 },
             }),
             tx.package_member_connection_table.aggregate({
@@ -30,41 +30,41 @@ export const dashboardPostModel = async (params) => {
                     },
                 },
             }),
-            tx.alliance_member_table.count({
+            tx.company_member_table.count({
                 where: {
-                    alliance_member_is_active: true,
-                    alliance_member_date_updated: {
+                    company_member_is_active: true,
+                    company_member_date_updated: {
                         gte: getPhilippinesTime(new Date(dateFilter.start || new Date()), "start"),
                         lte: getPhilippinesTime(new Date(dateFilter.end || new Date()), "end"),
                     },
                 },
             }),
-            tx.alliance_withdrawal_request_table.count({
+            tx.company_withdrawal_request_table.count({
                 where: {
-                    alliance_withdrawal_request_status: "APPROVED",
-                    alliance_withdrawal_request_date_updated: {
+                    company_withdrawal_request_status: "APPROVED",
+                    company_withdrawal_request_date_updated: {
                         gte: getPhilippinesTime(new Date(dateFilter.start || new Date()), "start"),
                         lte: getPhilippinesTime(new Date(dateFilter.end || new Date()), "end"),
                     },
                 },
             }),
-            tx.alliance_top_up_request_table.count({
+            tx.company_deposit_request_table.count({
                 where: {
-                    alliance_top_up_request_status: "APPROVED",
-                    alliance_top_up_request_date_updated: {
+                    company_deposit_request_status: "APPROVED",
+                    company_deposit_request_date_updated: {
                         gte: getPhilippinesTime(new Date(dateFilter.start || new Date()), "start"),
                         lte: getPhilippinesTime(new Date(dateFilter.end || new Date()), "end"),
                     },
                 },
             }),
-            tx.alliance_withdrawal_request_table.aggregate({
+            tx.company_withdrawal_request_table.aggregate({
                 _sum: {
-                    alliance_withdrawal_request_amount: true,
-                    alliance_withdrawal_request_fee: true,
+                    company_withdrawal_request_amount: true,
+                    company_withdrawal_request_fee: true,
                 },
                 where: {
-                    alliance_withdrawal_request_status: "APPROVED",
-                    alliance_withdrawal_request_date_updated: {
+                    company_withdrawal_request_status: "APPROVED",
+                    company_withdrawal_request_date_updated: {
                         gte: getPhilippinesTime(new Date(dateFilter.start || new Date()), "start"),
                         lte: getPhilippinesTime(new Date(dateFilter.end || new Date()), "end"),
                     },
@@ -138,9 +138,9 @@ export const dashboardPostModel = async (params) => {
             withdraw: row.withdraw || 0,
         }));
         return {
-            totalEarnings: totalEarnings._sum.alliance_top_up_request_amount ?? 0,
-            totalWithdraw: (totalWithdraw._sum.alliance_withdrawal_request_amount ?? 0) -
-                (totalWithdraw._sum.alliance_withdrawal_request_fee ?? 0),
+            totalEarnings: totalEarnings._sum.company_deposit_request_amount ?? 0,
+            totalWithdraw: (totalWithdraw._sum.company_withdrawal_request_amount ?? 0) -
+                (totalWithdraw._sum.company_withdrawal_request_fee ?? 0),
             directLoot,
             indirectLoot,
             packageEarnings: (packageEarnings._sum.package_member_amount || 0) +
@@ -163,20 +163,20 @@ export const dashboardGetModel = async () => {
     }
     const [totalActivatedPackage, numberOfRegisteredUser, totalActivatedUser, totalSpinPurchase, totalWinningWithdrawal,] = await prisma.$transaction([
         prisma.package_member_connection_table.count(),
-        prisma.alliance_member_table.count(),
-        prisma.alliance_member_table.count({
-            where: { alliance_member_is_active: true },
+        prisma.company_member_table.count(),
+        prisma.company_member_table.count({
+            where: { company_member_is_active: true },
         }),
-        prisma.alliance_spin_purchase_table.aggregate({
-            _sum: { alliance_spin_purchase_amount: true },
-            _count: { alliance_spin_purchase_member_id: true },
+        prisma.company_transaction_table.aggregate({
+            _sum: { company_transaction_amount: true },
+            _count: { company_transaction_member_id: true },
         }),
-        prisma.alliance_withdrawal_request_table.aggregate({
+        prisma.company_withdrawal_request_table.aggregate({
             where: {
-                alliance_withdrawal_request_status: "APPROVED",
-                alliance_withdrawal_request_withdraw_type: "WINNING",
+                company_withdrawal_request_status: "APPROVED",
+                company_withdrawal_request_withdraw_type: "WINNING",
             },
-            _sum: { alliance_withdrawal_request_amount: true },
+            _sum: { company_withdrawal_request_amount: true },
         }),
     ]);
     // ✅ Format the response
@@ -184,9 +184,9 @@ export const dashboardGetModel = async () => {
         numberOfRegisteredUser,
         totalActivatedPackage,
         totalActivatedUser,
-        totalSpinPurchase: totalSpinPurchase._sum.alliance_spin_purchase_amount || 0,
-        totalSpinPurchaseCount: totalSpinPurchase._count.alliance_spin_purchase_member_id || 0,
-        totalWinningWithdrawal: totalWinningWithdrawal._sum.alliance_withdrawal_request_amount || 0,
+        totalSpinPurchase: totalSpinPurchase._sum.company_transaction_amount || 0,
+        totalSpinPurchaseCount: totalSpinPurchase._count.company_transaction_member_id || 0,
+        totalWinningWithdrawal: totalWinningWithdrawal._sum.company_withdrawal_request_amount || 0,
     };
     await redis.set(cacheKey, JSON.stringify(response), { ex: 1000 });
     return response;

@@ -13,7 +13,7 @@ export const merchantGetMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:merchant-get`, 50, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:merchant-get`, 50, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -29,7 +29,7 @@ export const merchantDeleteMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:merchant-delete`, 50, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:merchant-delete`, 50, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -50,7 +50,7 @@ export const merchantPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:merchant-post`, 50, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:merchant-post`, 50, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -76,7 +76,7 @@ export const merchantPatchMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:merchant-patch`, 50, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:merchant-patch`, 50, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -102,7 +102,7 @@ export const merchantBankMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:merchant-bank-get`, 50, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:merchant-bank-get`, 50, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -127,7 +127,7 @@ export const merchantBalanceMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:merchant-balance-history`, 50, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:merchant-balance-history`, 50, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }

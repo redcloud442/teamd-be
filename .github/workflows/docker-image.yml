@@ -29,7 +29,7 @@ jobs:
 
       - name: Build Docker image for prod
         run: |
-          docker build -t ghcr.io/redcloud442/pr1me:prod-server .
+          docker build -t ghcr.io/redcloud442/starter-hono:prod .
 
       - name: Verify Docker login
         run: docker info
@@ -39,4 +39,4 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push ghcr.io/redcloud442/pr1me:prod-server
+          docker push ghcr.io/redcloud442/starter-hono:prod

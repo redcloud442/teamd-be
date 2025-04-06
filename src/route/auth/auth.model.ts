@@ -14,16 +14,16 @@ export const loginModel = async (params: {
         equals: userName,
         mode: "insensitive",
       },
-      alliance_member_table: {
+      company_member_table: {
         some: {
-          alliance_member_role: {
+          company_member_role: {
             not: "ADMIN",
           },
         },
       },
     },
     include: {
-      alliance_member_table: true,
+      company_member_table: true,
     },
   });
 
@@ -31,12 +31,12 @@ export const loginModel = async (params: {
     throw new Error("Invalid username");
   }
 
-  const teamMemberProfile = user.alliance_member_table[0];
+  const teamMemberProfile = user.company_member_table[0];
 
   if (!teamMemberProfile)
     throw new Error("User profile not found or incomplete.");
 
-  if (teamMemberProfile.alliance_member_restricted) {
+  if (teamMemberProfile.company_member_restricted) {
     throw new Error("User is banned.");
   }
 
@@ -47,8 +47,8 @@ export const loginModel = async (params: {
   }
 
   if (
-    teamMemberProfile.alliance_member_restricted ||
-    !teamMemberProfile.alliance_member_alliance_id
+    teamMemberProfile.company_member_restricted ||
+    !teamMemberProfile.company_member_company_id
   ) {
     throw new Error("Access restricted or incomplete profile.");
   }
@@ -66,7 +66,7 @@ export const loginModel = async (params: {
     MEMBER: "/",
   };
 
-  const redirect = redirects[teamMemberProfile.alliance_member_role] || "/";
+  const redirect = redirects[teamMemberProfile.company_member_role] || "/";
 
   return redirect;
 };
@@ -81,17 +81,17 @@ export const loginGetModel = async (userName: string) => {
     },
   });
 
-  const teamMember = await prisma.alliance_member_table.findFirst({
+  const teamMember = await prisma.company_member_table.findFirst({
     where: {
-      alliance_member_user_id: user?.user_id,
+      company_member_user_id: user?.user_id,
     },
     select: {
-      alliance_member_role: true,
-      alliance_member_restricted: true,
+      company_member_role: true,
+      company_member_restricted: true,
     },
   });
 
-  if (teamMember?.alliance_member_restricted) {
+  if (teamMember?.company_member_restricted) {
     throw new Error("Not Allowed");
   }
 
@@ -110,14 +110,14 @@ export const adminModel = async (params: {
         equals: userName,
         mode: "insensitive",
       },
-      alliance_member_table: {
+      company_member_table: {
         some: {
-          alliance_member_role: "ADMIN",
+          company_member_role: "ADMIN",
         },
       },
     },
     include: {
-      alliance_member_table: true,
+      company_member_table: true,
     },
   });
 
@@ -129,7 +129,7 @@ export const adminModel = async (params: {
     throw new Error("User is not an admin");
   }
 
-  const teamMember = user.alliance_member_table[0];
+  const teamMember = user.company_member_table[0];
 
   const comparePassword = await bcrypt.compare(password, user.user_password);
 
@@ -187,14 +187,14 @@ export const registerUserModel = async (params: {
         throw new Error("Failed to create user");
       }
 
-      const allianceMember = await tx.alliance_member_table.create({
+      const allianceMember = await tx.company_member_table.create({
         data: {
-          alliance_member_role: "MEMBER",
-          alliance_member_alliance_id: DEFAULT_ALLIANCE_ID,
-          alliance_member_user_id: userId,
+          company_member_role: "MEMBER",
+          company_member_company_id: DEFAULT_ALLIANCE_ID,
+          company_member_user_id: userId,
         },
         select: {
-          alliance_member_id: true,
+          company_member_id: true,
         },
       });
 
@@ -202,20 +202,20 @@ export const registerUserModel = async (params: {
         userName
       )}`;
 
-      await tx.alliance_referral_link_table.create({
+      await tx.company_referral_link_table.create({
         data: {
-          alliance_referral_link: referralLinkURL,
-          alliance_referral_link_member_id: allianceMember.alliance_member_id,
+          company_referral_link: referralLinkURL,
+          company_referral_link_member_id: allianceMember.company_member_id,
         },
       });
 
-      await tx.alliance_earnings_table.create({
+      await tx.company_earnings_table.create({
         data: {
-          alliance_earnings_member_id: allianceMember.alliance_member_id,
+          company_earnings_member_id: allianceMember.company_member_id,
         },
       });
 
-      await handleReferral(tx, referalLink, allianceMember.alliance_member_id);
+      await handleReferral(tx, referalLink, allianceMember.company_member_id);
 
       return {
         success: true,
@@ -239,38 +239,38 @@ async function handleReferral(
 ) {
   const referrerData = await tx.$queryRaw<
     {
-      alliance_referral_link_id: string;
-      alliance_referral_hierarchy: string;
-      alliance_member_id: string;
+      company_referral_link_id: string;
+      company_referral_hierarchy: string;
+      company_member_id: string;
     }[]
   >`
     SELECT
-        rl.alliance_referral_link_id,
-        rt.alliance_referral_hierarchy,
-        am.alliance_member_id
-      FROM alliance_schema.alliance_referral_link_table rl
-      LEFT JOIN alliance_schema.alliance_referral_table rt
-        ON rl.alliance_referral_link_member_id = rt.alliance_referral_member_id
-      LEFT JOIN alliance_schema.alliance_member_table am
-        ON am.alliance_member_id = rl.alliance_referral_link_member_id
+        rl.company_referral_link_id,
+        rt.company_referral_hierarchy,
+        am.company_member_id
+      FROM alliance_schema.company_referral_link_table rl
+      LEFT JOIN alliance_schema.company_referral_table rt
+        ON rl.company_referral_link_member_id = rt.company_referral_member_id
+      LEFT JOIN alliance_schema.company_member_table am
+        ON am.company_member_id = rl.company_referral_link_member_id
       LEFT JOIN user_schema.user_table ut
-        ON ut.user_id = am.alliance_member_user_id
+        ON ut.user_id = am.company_member_user_id
       WHERE ut.user_username = ${referalLink}
   `;
 
-  const referrerLinkId = referrerData[0].alliance_referral_link_id;
-  const parentHierarchy = referrerData[0].alliance_referral_hierarchy;
-  const referrerMemberId = referrerData[0].alliance_member_id;
+  const referrerLinkId = referrerData[0].company_referral_link_id;
+  const parentHierarchy = referrerData[0].company_referral_hierarchy;
+  const referrerMemberId = referrerData[0].company_member_id;
 
-  const newReferral = await tx.alliance_referral_table.create({
+  const newReferral = await tx.company_referral_table.create({
     data: {
-      alliance_referral_member_id: allianceMemberId,
-      alliance_referral_link_id: referrerLinkId,
-      alliance_referral_hierarchy: "",
-      alliance_referral_from_member_id: referrerMemberId,
+      company_referral_member_id: allianceMemberId,
+      company_referral_link_id: referrerLinkId,
+      company_referral_hierarchy: "",
+      company_referral_from_member_id: referrerMemberId,
     },
     select: {
-      alliance_referral_id: true,
+      company_referral_id: true,
     },
   });
 
@@ -278,12 +278,12 @@ async function handleReferral(
     ? `${parentHierarchy}.${allianceMemberId}`
     : `${referrerMemberId}.${allianceMemberId}`;
 
-  await tx.alliance_referral_table.update({
+  await tx.company_referral_table.update({
     where: {
-      alliance_referral_id: newReferral.alliance_referral_id,
+      company_referral_id: newReferral.company_referral_id,
     },
     data: {
-      alliance_referral_hierarchy: newHierarchy,
+      company_referral_hierarchy: newHierarchy,
     },
   });
 }

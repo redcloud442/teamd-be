@@ -32,7 +32,7 @@ export const depositMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-post`,
+    `rate-limit:${teamMemberProfile.company_member_id}:deposit-post`,
     10,
     "1m",
     c
@@ -86,7 +86,7 @@ export const depositPutMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}`,
+    `rate-limit:${teamMemberProfile.company_member_id}`,
     50,
     "1m",
     c
@@ -132,7 +132,7 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-history-get`,
+    `rate-limit:${teamMemberProfile.company_member_id}:deposit-history-get`,
     50,
     "1m",
     c
@@ -189,7 +189,7 @@ export const depositListPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-list-get`,
+    `rate-limit:${teamMemberProfile.company_member_id}:deposit-list-get`,
     50,
     "1m",
     c
@@ -249,7 +249,7 @@ export const depositReferenceMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-reference-get`,
+    `rate-limit:${teamMemberProfile.company_member_id}:deposit-reference-get`,
     5,
     "1m",
     c
@@ -291,7 +291,7 @@ export const depositReportPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:deposit-list-get`,
+    `rate-limit:${teamMemberProfile.company_member_id}:deposit-list-get`,
     50,
     "1m",
     c

@@ -10,10 +10,10 @@ export const userOptionsModel = async (params) => {
             user_username: true,
         },
         where: {
-            alliance_member_table: {
+            company_member_table: {
                 some: {
-                    alliance_member_user_id: { not: undefined },
-                    alliance_member_role: { not: "ADMIN" },
+                    company_member_user_id: { not: undefined },
+                    company_member_role: { not: "ADMIN" },
                 },
             },
         },
@@ -31,10 +31,10 @@ export const merchantOptionsModel = async (params) => {
             user_username: true,
         },
         where: {
-            alliance_member_table: {
+            company_member_table: {
                 some: {
-                    alliance_member_user_id: { not: undefined },
-                    alliance_member_role: "MERCHANT",
+                    company_member_user_id: { not: undefined },
+                    company_member_role: "MERCHANT",
                 },
             },
         },

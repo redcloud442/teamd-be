@@ -41,14 +41,14 @@ export const leaderboardPostModel = async (params: {
   );
 
   // Fetch usernames for the members in the leaderboard
-  const members = await prisma.alliance_member_table.findMany({
-    where: { alliance_member_id: { in: memberIds } },
+  const members = await prisma.company_member_table.findMany({
+    where: { company_member_id: { in: memberIds } },
     include: { user_table: { select: { user_username: true } } },
   });
 
   const memberLookup = Object.fromEntries(
     members.map((m) => [
-      m.alliance_member_id.trim(),
+      m.company_member_id.trim(),
       m.user_table?.user_username || "Unknown",
     ])
   );

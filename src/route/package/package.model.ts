@@ -1,11 +1,11 @@
-import { Prisma, type alliance_member_table } from "@prisma/client";
+import { Prisma, type company_member_table } from "@prisma/client";
 import { toNonNegative } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 
 export const packagePostModel = async (params: {
   amount: number;
   packageId: string;
-  teamMemberProfile: alliance_member_table;
+  teamMemberProfile: company_member_table;
 }) => {
   const { amount, packageId, teamMemberProfile } = params;
 
@@ -16,24 +16,22 @@ export const packagePostModel = async (params: {
       }),
       tx.$queryRaw<
         {
-          alliance_combined_earnings: number;
-          alliance_olympus_wallet: number;
-          alliance_olympus_earnings: number;
-          alliance_referral_bounty: number;
-          alliance_winning_earnings: number;
+          company_combined_earnings: number;
+          company_member_wallet: number;
+          company_member_earnings: number;
+          company_referral_earnings: number;
         }[]
       >`SELECT 
-     alliance_combined_earnings,
-     alliance_olympus_wallet,
-     alliance_olympus_earnings,
-     alliance_referral_bounty,
-     alliance_winning_earnings
-     FROM alliance_schema.alliance_earnings_table 
-     WHERE alliance_earnings_member_id = ${teamMemberProfile.alliance_member_id}::uuid 
+     company_combined_earnings,
+     company_member_wallet,
+     company_member_earnings,
+     company_referral_earnings
+     FROM alliance_schema.company_earnings_table 
+     WHERE company_earnings_member_id = ${teamMemberProfile.company_member_id}::uuid 
      FOR UPDATE`,
-      tx.alliance_referral_table.findUnique({
+      tx.company_referral_table.findUnique({
         where: {
-          alliance_referral_member_id: teamMemberProfile.alliance_member_id,
+          company_referral_member_id: teamMemberProfile.company_member_id,
         },
       }),
     ]);
@@ -51,14 +49,13 @@ export const packagePostModel = async (params: {
     }
 
     const {
-      alliance_olympus_wallet,
-      alliance_olympus_earnings,
-      alliance_referral_bounty,
-      alliance_combined_earnings,
-      alliance_winning_earnings,
+      company_member_wallet,
+      company_member_earnings,
+      company_referral_earnings,
+      company_combined_earnings,
     } = earningsData[0];
 
-    const combinedEarnings = Number(alliance_combined_earnings.toFixed(2));
+    const combinedEarnings = Number(company_combined_earnings.toFixed(2));
     const requestedAmount = Number(amount.toFixed(2));
 
     if (requestedAmount > combinedEarnings) {
@@ -66,19 +63,19 @@ export const packagePostModel = async (params: {
     }
 
     const {
-      olympusWallet,
-      olympusEarnings,
-      referralWallet,
-      winningEarnings,
+      companyWallet,
+      companyEarnings,
+      companyReferralBounty,
+      companyCombinedEarnings,
       updatedCombinedWallet,
       isReinvestment,
     } = deductFromWallets(
       requestedAmount,
       combinedEarnings,
-      Number(alliance_olympus_wallet.toFixed(2)),
-      Number(alliance_olympus_earnings.toFixed(2)),
-      Number(alliance_referral_bounty.toFixed(2)),
-      Number(alliance_winning_earnings.toFixed(2))
+      Number(company_member_wallet.toFixed(2)),
+      Number(company_member_earnings.toFixed(2)),
+      Number(company_referral_earnings.toFixed(2)),
+      Number(company_combined_earnings.toFixed(2))
     );
 
     const packagePercentage = new Prisma.Decimal(
@@ -90,18 +87,17 @@ export const packagePostModel = async (params: {
     );
 
     const referralChain = generateReferralChain(
-      referralData?.alliance_referral_hierarchy ?? null,
-      teamMemberProfile.alliance_member_id,
+      referralData?.company_referral_hierarchy ?? null,
+      teamMemberProfile.company_member_id,
       100
     );
 
     let bountyLogs: Prisma.package_ally_bounty_logCreateManyInput[] = [];
 
-    let transactionLogs: Prisma.alliance_transaction_tableCreateManyInput[] =
-      [];
+    let transactionLogs: Prisma.company_transaction_tableCreateManyInput[] = [];
     const connectionData = await tx.package_member_connection_table.create({
       data: {
-        package_member_member_id: teamMemberProfile.alliance_member_id,
+        package_member_member_id: teamMemberProfile.company_member_id,
         package_member_package_id: packageId,
         package_member_amount: Number(requestedAmount.toFixed(2)),
         package_amount_earnings: Number(packageAmountEarnings.toFixed(2)),
@@ -116,48 +112,23 @@ export const packagePostModel = async (params: {
       },
     });
 
-    await tx.alliance_transaction_table.create({
+    await tx.company_transaction_table.create({
       data: {
-        transaction_member_id: teamMemberProfile.alliance_member_id,
-        transaction_amount: Number(requestedAmount.toFixed(2)),
-        transaction_description: `Package Enrolled: ${packageData.package_name}`,
+        company_transaction_member_id: teamMemberProfile.company_member_id,
+        company_transaction_amount: Number(requestedAmount.toFixed(2)),
+        company_transaction_description: `Package Enrolled: ${packageData.package_name}`,
       },
     });
 
-    if (Number(amount) >= 5000) {
-      const baseCount = Math.floor(Number(amount) / 5000) * 2;
-      const count = baseCount > 0 ? baseCount : 2;
-
-      await tx.alliance_wheel_log_table.update({
-        where: {
-          alliance_wheel_member_id: teamMemberProfile.alliance_member_id,
-        },
-        data: {
-          alliance_wheel_spin_count: {
-            increment: count,
-          },
-        },
-      });
-
-      await tx.alliance_transaction_table.create({
-        data: {
-          transaction_member_id: teamMemberProfile.alliance_member_id,
-          transaction_amount: count,
-          transaction_description: `Package Task + ${count} Spins`,
-        },
-      });
-    }
-
-    await tx.alliance_earnings_table.update({
+    await tx.company_earnings_table.update({
       where: {
-        alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
+        company_earnings_member_id: teamMemberProfile.company_member_id,
       },
       data: {
-        alliance_combined_earnings: toNonNegative(updatedCombinedWallet),
-        alliance_olympus_wallet: toNonNegative(olympusWallet),
-        alliance_olympus_earnings: toNonNegative(olympusEarnings),
-        alliance_referral_bounty: toNonNegative(referralWallet),
-        alliance_winning_earnings: toNonNegative(winningEarnings),
+        company_combined_earnings: toNonNegative(updatedCombinedWallet),
+        company_member_wallet: toNonNegative(companyWallet),
+        company_package_earnings: toNonNegative(companyEarnings),
+        company_referral_earnings: toNonNegative(companyReferralBounty),
       },
     });
 
@@ -183,7 +154,7 @@ export const packagePostModel = async (params: {
             package_ally_bounty_type: ref.level === 1 ? "DIRECT" : "INDIRECT",
             package_ally_bounty_connection_id:
               connectionData.package_member_connection_id,
-            package_ally_bounty_from: teamMemberProfile.alliance_member_id,
+            package_ally_bounty_from: teamMemberProfile.company_member_id,
           };
         });
 
@@ -192,9 +163,9 @@ export const packagePostModel = async (params: {
             (Number(amount) * Number(ref.percentage)) / 100;
 
           return {
-            transaction_member_id: ref.referrerId,
-            transaction_amount: calculatedEarnings,
-            transaction_description:
+            company_transaction_member_id: ref.referrerId,
+            company_transaction_amount: calculatedEarnings,
+            company_transaction_description:
               ref.level === 1
                 ? "Direct Referral"
                 : `Multiple Referral Level ${ref.level}`,
@@ -208,13 +179,13 @@ export const packagePostModel = async (params: {
             const calculatedEarnings =
               (Number(amount) * Number(ref.percentage)) / 100;
 
-            await tx.alliance_earnings_table.update({
-              where: { alliance_earnings_member_id: ref.referrerId },
+            await tx.company_earnings_table.update({
+              where: { company_earnings_member_id: ref.referrerId },
               data: {
-                alliance_referral_bounty: {
+                company_referral_earnings: {
                   increment: calculatedEarnings,
                 },
-                alliance_combined_earnings: {
+                company_combined_earnings: {
                   increment: calculatedEarnings,
                 },
               },
@@ -229,17 +200,17 @@ export const packagePostModel = async (params: {
     }
 
     if (transactionLogs.length > 0) {
-      await tx.alliance_transaction_table.createMany({
+      await tx.company_transaction_table.createMany({
         data: transactionLogs,
       });
     }
 
-    if (!teamMemberProfile?.alliance_member_is_active) {
-      await tx.alliance_member_table.update({
-        where: { alliance_member_id: teamMemberProfile.alliance_member_id },
+    if (!teamMemberProfile?.company_member_is_active) {
+      await tx.company_member_table.update({
+        where: { company_member_id: teamMemberProfile.company_member_id },
         data: {
-          alliance_member_is_active: true,
-          alliance_member_date_updated: new Date(),
+          company_member_is_active: true,
+          company_member_date_updated: new Date(),
         },
       });
     }
@@ -363,7 +334,7 @@ export const claimPackagePostModel = async (params: {
   amount: number;
   earnings: number;
   packageConnectionId: string;
-  teamMemberProfile: alliance_member_table;
+  teamMemberProfile: company_member_table;
 }) => {
   const { amount, earnings, packageConnectionId, teamMemberProfile } = params;
   const currentTimestamp = new Date();
@@ -373,7 +344,7 @@ export const claimPackagePostModel = async (params: {
       await tx.package_member_connection_table.findUnique({
         where: {
           package_member_connection_id: packageConnectionId,
-          package_member_member_id: teamMemberProfile.alliance_member_id,
+          package_member_member_id: teamMemberProfile.company_member_id,
         },
       });
 
@@ -383,7 +354,7 @@ export const claimPackagePostModel = async (params: {
 
     if (
       packageConnection.package_member_member_id !==
-      teamMemberProfile.alliance_member_id
+      teamMemberProfile.company_member_id
     ) {
       throw new Error("Invalid request.");
     }
@@ -460,21 +431,21 @@ export const claimPackagePostModel = async (params: {
       },
     });
 
-    await tx.alliance_earnings_table.update({
+    await tx.company_earnings_table.update({
       where: {
-        alliance_earnings_member_id: teamMemberProfile.alliance_member_id,
+        company_earnings_member_id: teamMemberProfile.company_member_id,
       },
       data: {
-        alliance_olympus_earnings: { increment: totalClaimedAmount },
-        alliance_combined_earnings: { increment: totalClaimedAmount },
+        company_package_earnings: { increment: totalClaimedAmount },
+        company_combined_earnings: { increment: totalClaimedAmount },
       },
     });
 
-    await tx.alliance_transaction_table.create({
+    await tx.company_transaction_table.create({
       data: {
-        transaction_member_id: teamMemberProfile.alliance_member_id,
-        transaction_amount: totalClaimedAmount,
-        transaction_description: ` ${packageDetails.package_name} Package Claimed`,
+        company_transaction_member_id: teamMemberProfile.company_member_id,
+        company_transaction_amount: totalClaimedAmount,
+        company_transaction_description: ` ${packageDetails.package_name} Package Claimed`,
       },
     });
 
@@ -482,7 +453,7 @@ export const claimPackagePostModel = async (params: {
       data: {
         package_member_connection_id: packageConnectionId,
         package_member_package_id: packageConnection.package_member_package_id,
-        package_member_member_id: teamMemberProfile.alliance_member_id,
+        package_member_member_id: teamMemberProfile.company_member_id,
         package_member_connection_created:
           packageConnection.package_member_connection_created,
         package_member_amount: packageConnection.package_member_amount,
@@ -494,7 +465,7 @@ export const claimPackagePostModel = async (params: {
 };
 
 export const packageListGetModel = async (params: {
-  teamMemberProfile: alliance_member_table;
+  teamMemberProfile: company_member_table;
 }) => {
   const { teamMemberProfile } = params;
 
@@ -503,7 +474,7 @@ export const packageListGetModel = async (params: {
   const chartData = await prisma.package_member_connection_table.findMany({
     where: {
       package_member_status: "ACTIVE",
-      package_member_member_id: teamMemberProfile.alliance_member_id,
+      package_member_member_id: teamMemberProfile.company_member_id,
     },
     orderBy: {
       package_member_connection_created: "desc",
@@ -630,10 +601,10 @@ function getBonusPercentage(level: number): number {
 function deductFromWallets(
   amount: number,
   combinedWallet: number,
-  olympusWallet: number,
-  olympusEarnings: number,
-  referralWallet: number,
-  winningEarnings: number
+  companyWallet: number,
+  companyEarnings: number,
+  companyReferralBounty: number,
+  companyCombinedEarnings: number
 ) {
   let remaining = amount;
   let isReinvestment = false;
@@ -644,45 +615,45 @@ function deductFromWallets(
   }
 
   // Deduct from Olympus Wallet first
-  if (olympusWallet >= remaining) {
-    olympusWallet -= remaining;
+  if (companyWallet >= remaining) {
+    companyWallet -= remaining;
     remaining = 0;
   } else {
-    remaining -= olympusWallet;
-    olympusWallet = 0;
+    remaining -= companyWallet;
+    companyWallet = 0;
   }
 
   // Deduct from Olympus Earnings next
   if (remaining > 0) {
-    if (olympusEarnings >= remaining) {
+    if (companyEarnings >= remaining) {
       isReinvestment = true;
-      olympusEarnings -= remaining;
+      companyEarnings -= remaining;
       remaining = 0;
     } else {
       isReinvestment = true;
-      remaining -= olympusEarnings;
-      olympusEarnings = 0;
+      remaining -= companyEarnings;
+      companyEarnings = 0;
     }
   }
 
   // Deduct from Referral Wallet
   if (remaining > 0) {
-    if (referralWallet >= remaining) {
-      referralWallet -= remaining;
+    if (companyReferralBounty >= remaining) {
+      companyReferralBounty -= remaining;
       remaining = 0;
     } else {
-      remaining -= referralWallet;
-      referralWallet = 0;
+      remaining -= companyReferralBounty;
+      companyReferralBounty = 0;
     }
   }
 
   if (remaining > 0) {
-    if (winningEarnings >= remaining) {
-      winningEarnings -= remaining;
+    if (companyCombinedEarnings >= remaining) {
+      companyCombinedEarnings -= remaining;
       remaining = 0;
     } else {
-      remaining -= winningEarnings;
-      winningEarnings = 0;
+      remaining -= companyCombinedEarnings;
+      companyCombinedEarnings = 0;
     }
   }
 
@@ -692,10 +663,10 @@ function deductFromWallets(
 
   // Return updated balances and remaining combined wallet
   return {
-    olympusWallet,
-    olympusEarnings,
-    referralWallet,
-    winningEarnings,
+    companyWallet,
+    companyEarnings,
+    companyReferralBounty,
+    companyCombinedEarnings,
     updatedCombinedWallet: combinedWallet - amount,
     isReinvestment,
   };

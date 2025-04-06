@@ -16,7 +16,7 @@ export const transactionPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:transaction-post`, 100, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:transaction-post`, 100, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }

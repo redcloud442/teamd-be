@@ -21,14 +21,14 @@ export const userModelPut = async (params) => {
     if (!userCompare) {
         return { success: false, error: "Invalid request." };
     }
-    const teamMemberProfile = await prisma.alliance_member_table.findFirst({
-        where: { alliance_member_user_id: user?.user_id },
+    const teamMemberProfile = await prisma.company_member_table.findFirst({
+        where: { company_member_user_id: user?.user_id },
     });
     if (!teamMemberProfile) {
         return { success: false, error: "Invalid request." };
     }
-    if (teamMemberProfile.alliance_member_restricted ||
-        !teamMemberProfile.alliance_member_alliance_id) {
+    if (teamMemberProfile.company_member_restricted ||
+        !teamMemberProfile.company_member_company_id) {
         return { success: false, error: "Access restricted" };
     }
     prisma.user_table.update({
@@ -39,7 +39,7 @@ export const userModelPut = async (params) => {
             user_password: password,
         },
     });
-    if (teamMemberProfile?.alliance_member_role !== "ADMIN") {
+    if (teamMemberProfile?.company_member_role !== "ADMIN") {
         const supabase = supabaseClient;
         const { error } = await supabase.auth.updateUser({
             email: email,
@@ -72,23 +72,21 @@ export const userModelPost = async (params) => {
             indirect_referral_count: true,
         },
     });
-    const userEarnings = await prisma.alliance_earnings_table.findUnique({
+    const userEarnings = await prisma.company_earnings_table.findUnique({
         where: {
-            alliance_earnings_member_id: memberId,
+            company_earnings_member_id: memberId,
         },
         select: {
-            alliance_olympus_wallet: true,
-            alliance_olympus_earnings: true,
-            alliance_combined_earnings: true,
-            alliance_referral_bounty: true,
-            alliance_winning_earnings: true,
+            company_member_wallet: true,
+            company_package_earnings: true,
+            company_combined_earnings: true,
+            company_referral_earnings: true,
         },
     });
     const totalEarnings = {
         directReferralAmount: user?.direct_referral_amount,
         indirectReferralAmount: user?.indirect_referral_amount,
         totalEarnings: user?.total_earnings,
-        winningEarnings: userEarnings?.alliance_winning_earnings,
         withdrawalAmount: user?.total_withdrawals,
         directReferralCount: user?.direct_referral_count,
         indirectReferralCount: user?.indirect_referral_count,
@@ -103,40 +101,40 @@ export const userModelGet = async (params) => {
     let canUserDeposit = false;
     const todayStart = getPhilippinesTime(new Date(), "start");
     const todayEnd = getPhilippinesTime(new Date(), "end");
-    const existingPackageWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
+    const existingPackageWithdrawal = await prisma.company_withdrawal_request_table.findFirst({
         where: {
-            alliance_withdrawal_request_member_id: memberId,
-            alliance_withdrawal_request_status: {
+            company_withdrawal_request_member_id: memberId,
+            company_withdrawal_request_status: {
                 in: ["PENDING", "APPROVED"],
             },
-            alliance_withdrawal_request_withdraw_type: "PACKAGE",
-            alliance_withdrawal_request_date: {
+            company_withdrawal_request_withdraw_type: "PACKAGE",
+            company_withdrawal_request_date: {
                 gte: todayStart, // Start of the day
                 lte: todayEnd, // End of the day
             },
         },
     });
-    const existingReferralWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
+    const existingReferralWithdrawal = await prisma.company_withdrawal_request_table.findFirst({
         where: {
-            alliance_withdrawal_request_member_id: memberId,
-            alliance_withdrawal_request_status: {
+            company_withdrawal_request_member_id: memberId,
+            company_withdrawal_request_status: {
                 in: ["PENDING", "APPROVED"],
             },
-            alliance_withdrawal_request_withdraw_type: "REFERRAL",
-            alliance_withdrawal_request_date: {
+            company_withdrawal_request_withdraw_type: "REFERRAL",
+            company_withdrawal_request_date: {
                 gte: getPhilippinesTime(new Date(new Date()), "start"),
                 lte: getPhilippinesTime(new Date(new Date()), "end"),
             },
         },
     });
-    const existingWinningWithdrawal = await prisma.alliance_withdrawal_request_table.findFirst({
+    const existingWinningWithdrawal = await prisma.company_withdrawal_request_table.findFirst({
         where: {
-            alliance_withdrawal_request_member_id: memberId,
-            alliance_withdrawal_request_status: {
+            company_withdrawal_request_member_id: memberId,
+            company_withdrawal_request_status: {
                 in: ["PENDING", "APPROVED"],
             },
-            alliance_withdrawal_request_withdraw_type: "WINNING",
-            alliance_withdrawal_request_date: {
+            company_withdrawal_request_withdraw_type: "WINNING",
+            company_withdrawal_request_date: {
                 gte: getPhilippinesTime(new Date(new Date()), "start"),
                 lte: getPhilippinesTime(new Date(new Date()), "end"),
             },
@@ -151,76 +149,49 @@ export const userModelGet = async (params) => {
     if (existingWinningWithdrawal !== null) {
         canWithdrawWinning = true;
     }
-    const existingDeposit = await prisma.alliance_top_up_request_table.findFirst({
+    const existingDeposit = await prisma.company_deposit_request_table.findFirst({
         where: {
-            alliance_top_up_request_member_id: memberId,
-            alliance_top_up_request_status: "PENDING",
+            company_deposit_request_member_id: memberId,
+            company_deposit_request_status: "PENDING",
         },
         take: 1,
         orderBy: {
-            alliance_top_up_request_date: "desc",
+            company_deposit_request_date: "desc",
         },
     });
     if (existingDeposit !== null) {
         canUserDeposit = true;
     }
-    const wheelLog = await prisma.alliance_wheel_log_table.upsert({
-        where: {
-            alliance_wheel_member_id: memberId,
-        },
-        update: {},
-        create: {
-            alliance_wheel_member_id: memberId,
-        },
-    });
-    const dailyTask = await prisma.alliance_wheel_table.upsert({
-        where: {
-            alliance_wheel_date_alliance_wheel_member_id: {
-                alliance_wheel_date: todayStart,
-                alliance_wheel_member_id: memberId,
-            },
-        },
-        update: {},
-        create: {
-            alliance_wheel_date: todayStart,
-            alliance_wheel_member_id: memberId,
-        },
-    });
-    const response = {
-        wheelLog,
-        dailyTask,
-    };
     const data = {
         canWithdrawPackage,
         canWithdrawReferral,
         canWithdrawWinning,
         canUserDeposit,
-        response,
     };
     return { data };
 };
 export const userPatchModel = async (params) => {
     const { memberId, action, role, type } = params;
     if (action === "updateRole") {
-        await prisma.alliance_member_table.update({
-            where: { alliance_member_id: memberId },
+        await prisma.company_member_table.update({
+            where: { company_member_id: memberId },
             data: {
-                alliance_member_role: role,
-                alliance_member_date_updated: new Date(),
-                alliance_member_is_active: role &&
+                company_member_role: role,
+                company_member_date_updated: new Date(),
+                company_member_is_active: role &&
                     ["ADMIN", "MERCHANT", "ACCOUNTING"].some((r) => role.includes(r))
                     ? true
                     : undefined, // Stay as is if no role is included
             },
         });
         if (role === "ADMIN" || role === "ACCOUNTING" || role === "MERCHANT") {
-            await prisma.alliance_earnings_table.upsert({
+            await prisma.company_earnings_table.upsert({
                 where: {
-                    alliance_earnings_member_id: memberId,
+                    company_earnings_member_id: memberId,
                 },
                 update: {},
                 create: {
-                    alliance_earnings_member_id: memberId,
+                    company_earnings_member_id: memberId,
                 },
             });
         }
@@ -238,15 +209,15 @@ export const userPatchModel = async (params) => {
     }
     if (action === "banUser") {
         if (type === "BAN") {
-            await prisma.alliance_member_table.update({
-                where: { alliance_member_id: memberId },
-                data: { alliance_member_restricted: true },
+            await prisma.company_member_table.update({
+                where: { company_member_id: memberId },
+                data: { company_member_restricted: true },
             });
         }
         else if (type === "UNBAN") {
-            await prisma.alliance_member_table.update({
-                where: { alliance_member_id: memberId },
-                data: { alliance_member_restricted: false },
+            await prisma.company_member_table.update({
+                where: { company_member_id: memberId },
+                data: { company_member_restricted: false },
             });
         }
         return {
@@ -299,7 +270,7 @@ export const userListModel = async (params, teamMemberProfile) => {
     const { page, limit, search, columnAccessor, isAscendingSort, userRole, dateCreated, bannedUser, } = params;
     const offset = (page - 1) * limit;
     const whereCondition = {
-        alliance_member_alliance_id: teamMemberProfile.alliance_member_alliance_id,
+        company_member_company_id: teamMemberProfile.company_member_company_id,
     };
     if (search) {
         whereCondition.OR = [
@@ -358,7 +329,7 @@ export const userListModel = async (params, teamMemberProfile) => {
             };
         }
     }
-    const userRequest = await prisma.alliance_member_table.findMany({
+    const userRequest = await prisma.company_member_table.findMany({
         where: whereCondition,
         include: {
             user_table: true,
@@ -368,18 +339,18 @@ export const userListModel = async (params, teamMemberProfile) => {
         take: limit,
         skip: offset,
     });
-    const totalCount = await prisma.alliance_member_table.count({
+    const totalCount = await prisma.company_member_table.count({
         where: whereCondition,
     });
     const formattedData = userRequest.map((entry) => ({
-        alliance_member_id: entry.alliance_member_id,
-        alliance_member_role: entry.alliance_member_role,
-        alliance_member_date_created: entry.alliance_member_date_created.toISOString(),
-        alliance_member_alliance_id: entry.alliance_member_alliance_id,
-        alliance_member_user_id: entry.alliance_member_user_id,
-        alliance_member_restricted: entry.alliance_member_restricted,
-        alliance_member_date_updated: entry.alliance_member_date_updated?.toISOString() || "",
-        alliance_member_is_active: entry.alliance_member_is_active,
+        company_member_id: entry.company_member_id,
+        company_member_role: entry.company_member_role,
+        company_member_date_created: entry.company_member_date_created.toISOString(),
+        company_member_company_id: entry.company_member_company_id,
+        company_member_user_id: entry.company_member_user_id,
+        company_member_restricted: entry.company_member_restricted,
+        company_member_date_updated: entry.company_member_date_updated?.toISOString() || "",
+        company_member_is_active: entry.company_member_is_active,
         user_id: entry.user_table.user_id,
         user_username: entry.user_table.user_username || "",
         user_first_name: entry.user_table.user_first_name || "",
@@ -413,14 +384,14 @@ export const userActiveListModel = async (params) => {
       ut.user_username,
       ut.user_first_name,
       ut.user_last_name,
-      am.alliance_member_is_active
+      am.company_member_is_active
     FROM user_schema.user_table ut
-    JOIN alliance_schema.alliance_member_table am
-      ON ut.user_id = am.alliance_member_user_id
-    LEFT JOIN alliance_schema.alliance_earnings_table ae
-      ON ae.alliance_earnings_member_id = am.alliance_member_id
+    JOIN company_schema.company_member_table am
+      ON ut.user_id = am.company_member_user_id
+    LEFT JOIN company_schema.company_earnings_table ae
+      ON ae.company_earnings_member_id = am.company_member_id
     WHERE
-      ae.alliance_olympus_wallet > 0
+      ae.company_olympus_wallet > 0
       ${searchCondition}
       ${orderBy}
     LIMIT ${limit}
@@ -430,12 +401,12 @@ export const userActiveListModel = async (params) => {
     SELECT
       COUNT(*)
     FROM user_schema.user_table ut
-    JOIN alliance_schema.alliance_member_table am
-      ON ut.user_id = am.alliance_member_user_id
-    LEFT JOIN alliance_schema.alliance_earnings_table ae
-      ON ae.alliance_earnings_member_id = am.alliance_member_id
+    JOIN company_schema.company_member_table am
+      ON ut.user_id = am.company_member_user_id
+    LEFT JOIN company_schema.company_earnings_table ae
+      ON ae.company_earnings_member_id = am.company_member_id
       WHERE
-      ae.alliance_olympus_wallet > 0
+      ae.company_olympus_wallet > 0
       ${searchCondition}
     `;
     return {
@@ -483,10 +454,10 @@ export const userListReinvestedModel = async (params) => {
       FROM packages_schema.package_member_connection_table pml
       JOIN packages_schema.package_earnings_log pol
           ON pol.package_member_member_id = pml.package_member_member_id
-      JOIN alliance_schema.alliance_member_table am
+      JOIN company_schema.company_member_table am
           ON am.alliance_member_id = pml.package_member_member_id
       JOIN user_schema.user_table u
-          ON u.user_id = am.alliance_member_user_id
+          ON u.user_id = am.company_member_user_id
       WHERE pml.package_member_is_reinvestment = true AND pml.package_member_connection_created::timestamptz
           BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
       GROUP BY
@@ -509,10 +480,10 @@ export const userListReinvestedModel = async (params) => {
           FROM packages_schema.package_member_connection_table pml
           JOIN packages_schema.package_earnings_log pol
           ON pol.package_member_member_id = pml.package_member_member_id
-          JOIN alliance_schema.alliance_member_table am
+          JOIN company_schema.company_member_table am
               ON am.alliance_member_id = pml.package_member_member_id
           JOIN user_schema.user_table u
-              ON u.user_id = am.alliance_member_user_id
+              ON u.user_id = am.company_member_user_id
           WHERE pml.package_member_is_reinvestment = true
             AND pml.package_member_connection_created::timestamptz
           BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
@@ -535,25 +506,25 @@ export const userTreeModel = async (params) => {
     if (cachedData) {
         return cachedData;
     }
-    const userTree = await prisma.alliance_referral_table.findUnique({
-        where: { alliance_referral_member_id: memberId },
+    const userTree = await prisma.company_referral_table.findUnique({
+        where: { company_referral_member_id: memberId },
         select: {
-            alliance_referral_hierarchy: true,
+            company_referral_hierarchy: true,
         },
     });
-    if (!userTree || !userTree.alliance_referral_hierarchy) {
+    if (!userTree || !userTree.company_referral_hierarchy) {
         return { success: false, error: "User not found" };
     }
-    const rawHierarchy = userTree.alliance_referral_hierarchy.split(".");
+    const rawHierarchy = userTree.company_referral_hierarchy.split(".");
     const orderedHierarchy = [
         memberId,
         ...rawHierarchy.filter((id) => id !== memberId).reverse(),
     ];
     // Fetch user data from alliance_member_table
-    const userTreeData = await prisma.alliance_member_table.findMany({
-        where: { alliance_member_id: { in: orderedHierarchy } },
+    const userTreeData = await prisma.company_member_table.findMany({
+        where: { company_member_id: { in: orderedHierarchy } },
         select: {
-            alliance_member_id: true,
+            company_member_id: true,
             user_table: {
                 select: {
                     user_username: true,
@@ -564,10 +535,10 @@ export const userTreeModel = async (params) => {
     });
     const formattedUserTreeData = orderedHierarchy
         .map((id) => {
-        const user = userTreeData.find((user) => user.alliance_member_id === id);
+        const user = userTreeData.find((user) => user.company_member_id === id);
         return user
             ? {
-                alliance_member_id: user.alliance_member_id,
+                company_member_id: user.company_member_id,
                 user_id: user.user_table.user_id,
                 user_username: user.user_table.user_username,
             }
@@ -593,12 +564,12 @@ export const userGetSearchModel = async (params) => {
             user_username: true,
             user_first_name: true,
             user_last_name: true,
-            alliance_member_table: {
+            company_member_table: {
                 select: {
-                    alliance_member_id: true,
-                    alliance_member_is_active: true,
-                    alliance_member_role: true,
-                    alliance_member_restricted: true,
+                    company_member_id: true,
+                    company_member_is_active: true,
+                    company_member_role: true,
+                    company_member_restricted: true,
                 },
             },
         },
@@ -606,15 +577,15 @@ export const userGetSearchModel = async (params) => {
     if (!users || users.length === 0) {
         return { data: [] };
     }
-    const formattedUsers = users.flatMap((user) => user.alliance_member_table.map((member) => ({
+    const formattedUsers = users.flatMap((user) => user.company_member_table.map((member) => ({
         user_id: user.user_id,
-        alliance_member_id: member.alliance_member_id,
+        company_member_id: member.company_member_id,
         user_username: user.user_username,
         user_first_name: user.user_first_name,
         user_last_name: user.user_last_name,
-        alliance_member_is_active: member.alliance_member_is_active,
-        alliance_member_role: member.alliance_member_role,
-        alliance_member_restricted: member.alliance_member_restricted,
+        company_member_is_active: member.company_member_is_active,
+        company_member_role: member.company_member_role,
+        company_member_restricted: member.company_member_restricted,
     })));
     return { data: formattedUsers };
 };

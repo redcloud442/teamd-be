@@ -27,7 +27,7 @@ export const referralDirectMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile?.alliance_member_id}:direct-get`,
+    `rate-limit:${teamMemberProfile?.company_member_id}:direct-get`,
     50,
     "1m",
     c
@@ -74,7 +74,7 @@ export const referralIndirectMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile?.alliance_member_id}:indirect-get`,
+    `rate-limit:${teamMemberProfile?.company_member_id}:indirect-get`,
     50,
     "1m",
     c
@@ -120,7 +120,7 @@ export const referralTotalGetMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile?.alliance_member_id}:total-get`,
+    `rate-limit:${teamMemberProfile?.company_member_id}:total-get`,
     100,
     "1m",
     c

@@ -38,7 +38,7 @@ export const userPutMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-put`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-put`,
     100,
     "1m",
     c
@@ -75,7 +75,7 @@ export const userPostMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-post`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-post`,
     100,
     "1m",
     c
@@ -112,7 +112,7 @@ export const userGetMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-get`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-get`,
     100,
     "1m",
     c
@@ -143,7 +143,7 @@ export const userPatchMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-patch`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-patch`,
     100,
     "1m",
     c
@@ -184,7 +184,7 @@ export const userSponsorMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-sponsor`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-sponsor`,
     50,
     "1m",
     c
@@ -223,7 +223,7 @@ export const userProfilePutMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-profile-update`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-profile-update`,
     50,
     "1m",
     c
@@ -267,7 +267,7 @@ export const userGenerateLinkMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-generate-link`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-generate-link`,
     100,
     "1m",
     c
@@ -308,7 +308,7 @@ export const userListMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-list`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-list`,
     100,
     "1m",
     c
@@ -366,7 +366,7 @@ export const userActiveListMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-active-list`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-active-list`,
     100,
     "1m",
     c
@@ -424,7 +424,7 @@ export const userChangePasswordMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-profile-update`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-profile-update`,
     50,
     "1m",
     c
@@ -469,7 +469,7 @@ export const userListReinvestedMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-list-reinvested`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-list-reinvested`,
     50,
     "1m",
     c
@@ -512,7 +512,7 @@ export const userTreeMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-tree`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-tree`,
     50,
     "1m",
     c
@@ -553,7 +553,7 @@ export const userGetSearchMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.alliance_member_id}:user-get-search`,
+    `rate-limit:${teamMemberProfile.company_member_id}:user-get-search`,
     50,
     "1m",
     c
@@ -579,40 +579,39 @@ export const userGetSearchMiddleware = async (c: Context, next: Next) => {
 };
 
 export const userReferralMiddleware = async (c: Context, next: Next) => {
-    const user = c.get("user");
+  const user = c.get("user");
 
-    const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user.id, prisma);
 
-    if (response instanceof Response) {
-      return response;
-    }
+  if (response instanceof Response) {
+    return response;
+  }
 
-    const { teamMemberProfile } = response;
+  const { teamMemberProfile } = response;
 
-    if (!teamMemberProfile) {
-      return sendErrorResponse("Unauthorized", 401);
-    }
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
 
-    const isAllowed = await rateLimit(
-      `rate-limit:${teamMemberProfile.alliance_member_id}:user-referral`,
-      50,
-      "1m",
-      c
-    );
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.company_member_id}:user-referral`,
+    50,
+    "1m",
+    c
+  );
 
-    if (!isAllowed) {
-      return sendErrorResponse("Too Many Requests", 429);
-    }
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
 
-    const { id } = c.req.param();
+  const { id } = c.req.param();
 
-    const { dateFilter } = await c.req.json();
+  const { dateFilter } = await c.req.json();
 
-
-    const validate = userGetReferralSchema.safeParse({
-      memberId: id,
-      dateFilter,
-    });
+  const validate = userGetReferralSchema.safeParse({
+    memberId: id,
+    dateFilter,
+  });
 
   if (!validate.success) {
     console.log(validate.error);
@@ -623,4 +622,4 @@ export const userReferralMiddleware = async (c: Context, next: Next) => {
   c.set("params", validate.data);
 
   await next();
-  };
+};

@@ -13,7 +13,7 @@ export const withdrawPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-post`, 50, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:withdraw-post`, 50, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -43,7 +43,7 @@ export const withdrawHistoryPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-history-get`, 50, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:withdraw-history-get`, 50, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -73,7 +73,7 @@ export const updateWithdrawMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:update-withdraw`, 100, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:update-withdraw`, 100, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -100,7 +100,7 @@ export const withdrawListPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-list-post`, 100, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:withdraw-list-post`, 100, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -133,7 +133,7 @@ export const withdrawHistoryReportPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-history-report-post`, 100, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:withdraw-history-report-post`, 100, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -156,7 +156,7 @@ export const withdrawTotalReportPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-history-report-post`, 100, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:withdraw-history-report-post`, 100, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
@@ -183,7 +183,7 @@ export const withdrawHideUserPostMiddleware = async (c, next) => {
     if (!teamMemberProfile) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.alliance_member_id}:withdraw-hide-user-post`, 100, "1m", c);
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:withdraw-hide-user-post`, 100, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }

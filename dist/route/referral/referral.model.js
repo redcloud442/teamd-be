@@ -3,22 +3,22 @@ import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
 export const referralDirectModelPost = async (params) => {
     const { page, limit, search, columnAccessor, isAscendingSort, teamMemberProfile, } = params;
-    const cacheKey = `referral-direct-${teamMemberProfile.alliance_member_id}-${page}-${limit}-${search}-${columnAccessor}`;
+    const cacheKey = `referral-direct-${teamMemberProfile.company_member_id}-${page}-${limit}-${search}-${columnAccessor}`;
     // const cachedData = await redis.get(cacheKey);
     // if (cachedData) {
     //   return cachedData;
     // }
     const offset = Math.max((page - 1) * limit, 0);
-    const directReferrals = await prisma.alliance_referral_table.findMany({
+    const directReferrals = await prisma.company_referral_table.findMany({
         where: {
-            alliance_referral_from_member_id: teamMemberProfile.alliance_member_id,
+            company_referral_from_member_id: teamMemberProfile.company_member_id,
         },
         select: {
-            alliance_referral_member_id: true,
-            alliance_referral_date: true,
+            company_referral_member_id: true,
+            company_referral_date: true,
         },
     });
-    const directReferralIds = directReferrals.map((ref) => ref.alliance_referral_member_id);
+    const directReferralIds = directReferrals.map((ref) => ref.company_referral_member_id);
     if (directReferralIds.length === 0) {
         return { data: [], totalCount: 0 };
     }
@@ -32,26 +32,26 @@ export const referralDirectModelPost = async (params) => {
       u.user_last_name,
       u.user_username,
       pa.package_ally_bounty_log_date_created,
-      ar.alliance_referral_date,
+      ar.company_referral_date,
       COALESCE(SUM(pa.package_ally_bounty_earnings), 0) AS total_bounty_earnings
     FROM alliance_schema.alliance_member_table m
     JOIN user_schema.user_table u ON u.user_id = m.alliance_member_user_id
     JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.alliance_member_id
-    JOIN alliance_schema.alliance_referral_table ar ON ar.alliance_referral_member_id = pa.package_ally_bounty_from
-    WHERE pa.package_ally_bounty_member_id = ${teamMemberProfile.alliance_member_id}::uuid AND pa.package_ally_bounty_type = 'DIRECT'
+    JOIN company_schema.company_referral_table ar ON ar.company_referral_member_id = pa.package_ally_bounty_from
+    WHERE pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid AND pa.package_ally_bounty_type = 'DIRECT'
       ${searchCondition}
-    GROUP BY u.user_first_name, u.user_last_name, u.user_username, pa.package_ally_bounty_log_date_created, ar.alliance_referral_date
-    ORDER BY pa.package_ally_bounty_log_date_created DESC, ar.alliance_referral_date DESC
+    GROUP BY u.user_first_name, u.user_last_name, u.user_username, pa.package_ally_bounty_log_date_created, ar.company_referral_date
+    ORDER BY pa.package_ally_bounty_log_date_created DESC, ar.company_referral_date DESC
     LIMIT ${limit} OFFSET ${offset}
   `;
     const totalCount = await prisma.$queryRaw `
    SELECT COUNT(*) AS count
     FROM (
         SELECT 1
-        FROM alliance_schema.alliance_member_table m
-        JOIN user_schema.user_table u ON u.user_id = m.alliance_member_user_id
-        JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.alliance_member_id
-        WHERE pa.package_ally_bounty_member_id = ${teamMemberProfile.alliance_member_id}::uuid AND pa.package_ally_bounty_type = 'DIRECT'
+        FROM company_schema.company_member_table m
+        JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
+        JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.company_member_id
+        WHERE pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid AND pa.package_ally_bounty_type = 'DIRECT'
           ${searchCondition}
         GROUP BY u.user_first_name, u.user_last_name, u.user_username, pa.package_ally_bounty_log_date_created
     ) AS subquery;
@@ -65,41 +65,39 @@ export const referralDirectModelPost = async (params) => {
 };
 export const referralIndirectModelPost = async (params) => {
     const { page, limit, search, columnAccessor, isAscendingSort, teamMemberProfile, } = params;
-    const cacheKey = `referral-indirect-${teamMemberProfile.alliance_member_id}-${page}-${limit}-${search}-${columnAccessor}-${isAscendingSort}`;
+    const cacheKey = `referral-indirect-${teamMemberProfile.company_member_id}-${page}-${limit}-${search}-${columnAccessor}-${isAscendingSort}`;
     const cachedData = await redis.get(cacheKey);
     if (cachedData) {
         return cachedData;
     }
-    const directReferrals = await prisma.alliance_referral_table.findMany({
+    const directReferrals = await prisma.company_referral_table.findMany({
         where: {
-            alliance_referral_from_member_id: teamMemberProfile.alliance_member_id,
+            company_referral_from_member_id: teamMemberProfile.company_member_id,
         },
         select: {
-            alliance_referral_member_id: true,
-            alliance_referral_date: true,
+            company_referral_member_id: true,
+            company_referral_date: true,
         },
     });
-    const directReferralIds = directReferrals.map((ref) => ref.alliance_referral_member_id);
+    const directReferralIds = directReferrals.map((ref) => ref.company_referral_member_id);
     let indirectReferrals = new Set();
-    let currentLevelReferrals = [teamMemberProfile.alliance_member_id];
+    let currentLevelReferrals = [teamMemberProfile.company_member_id];
     let currentLevel = 0;
     const maxLevel = 10;
     while (currentLevel < maxLevel && currentLevelReferrals.length > 0) {
         const referrerData = await prisma.$queryRaw `
-    SELECT ar.alliance_referral_hierarchy
-    FROM alliance_schema.alliance_referral_table ar
-    JOIN alliance_schema.alliance_referral_link_table al
-      ON al.alliance_referral_link_id = ar.alliance_referral_link_id
-    WHERE al.alliance_referral_link_member_id = ANY (${currentLevelReferrals}::uuid[])
+    SELECT ar.company_referral_hierarchy
+    FROM company_schema.company_referral_table ar
+    JOIN company_schema.company_referral_link_table al
+      ON al.company_referral_link_id = ar.company_referral_link_id
+    WHERE al.company_referral_link_member_id = ANY (${currentLevelReferrals}::uuid[])
   `;
         let nextLevelReferrals = [];
         referrerData.forEach((ref) => {
-            const hierarchyArray = ref.alliance_referral_hierarchy
-                .split(".")
-                .slice(1);
+            const hierarchyArray = ref.company_referral_hierarchy.split(".").slice(1);
             hierarchyArray.forEach((id) => {
                 if (!indirectReferrals.has(id) &&
-                    id !== teamMemberProfile.alliance_member_id) {
+                    id !== teamMemberProfile.company_member_id) {
                     indirectReferrals.add(id);
                     nextLevelReferrals.push(id);
                 }
@@ -122,17 +120,17 @@ export const referralIndirectModelPost = async (params) => {
     ut.user_last_name, 
     ut.user_username, 
     pa.package_ally_bounty_log_date_created,
-    ar.alliance_referral_date,
+    ar.company_referral_date,
     COALESCE(SUM(pa.package_ally_bounty_earnings), 0) AS total_bounty_earnings
-  FROM alliance_schema.alliance_member_table am
+  FROM company_schema.company_member_table am
   JOIN user_schema.user_table ut
     ON ut.user_id = am.alliance_member_user_id
   JOIN packages_schema.package_ally_bounty_log pa
     ON am.alliance_member_id = pa.package_ally_bounty_from
-  JOIN alliance_schema.alliance_referral_table ar
-    ON ar.alliance_referral_member_id = pa.package_ally_bounty_from
+  JOIN company_schema.company_referral_table ar
+    ON ar.company_referral_member_id = pa.package_ally_bounty_from
   WHERE pa.package_ally_bounty_from = ANY(${finalIndirectReferralIds}::uuid[])
-    AND pa.package_ally_bounty_member_id = ${teamMemberProfile.alliance_member_id}::uuid
+    AND pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid
     ${searchCondition}
   GROUP BY 
     ut.user_first_name, 
@@ -140,8 +138,8 @@ export const referralIndirectModelPost = async (params) => {
     ut.user_username, 
     ut.user_date_created,
     pa.package_ally_bounty_log_date_created,
-    ar.alliance_referral_date
-  ORDER BY pa.package_ally_bounty_log_date_created DESC, ar.alliance_referral_date DESC
+    ar.company_referral_date
+  ORDER BY pa.package_ally_bounty_log_date_created DESC, ar.company_referral_date DESC
   LIMIT ${limit} OFFSET ${offset}
 `;
     const totalCountResult = await prisma.$queryRaw `
@@ -149,13 +147,13 @@ export const referralIndirectModelPost = async (params) => {
     COUNT(*) AS count
   FROM (
     SELECT pa.package_ally_bounty_from
-    FROM alliance_schema.alliance_member_table am
+    FROM company_schema.company_member_table am
     JOIN user_schema.user_table ut
-      ON ut.user_id = am.alliance_member_user_id
+      ON ut.user_id = am.company_member_user_id
     JOIN packages_schema.package_ally_bounty_log pa
       ON am.alliance_member_id = pa.package_ally_bounty_from
     WHERE pa.package_ally_bounty_from = ANY(${finalIndirectReferralIds}::uuid[])
-      AND pa.package_ally_bounty_member_id = ${teamMemberProfile.alliance_member_id}::uuid
+      AND pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid
       ${searchCondition}
     GROUP BY 
       pa.package_ally_bounty_from,
@@ -183,7 +181,7 @@ export const referralTotalGetModel = async (params) => {
         SUM(package_ally_bounty_earnings) AS totalamount,
         COUNT(DISTINCT package_ally_bounty_from) AS totalreferral
       FROM packages_schema.package_ally_bounty_log
-      WHERE package_ally_bounty_member_id::uuid = ${teamMemberProfile.alliance_member_id}::uuid
+        WHERE package_ally_bounty_member_id::uuid = ${teamMemberProfile.company_member_id}::uuid
       GROUP BY package_ally_bounty_member_id
     `;
         return {

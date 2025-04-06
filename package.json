@@ -1,5 +1,5 @@
 {
-  "name": "prime-server",
+  "name": "starter-server",
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",

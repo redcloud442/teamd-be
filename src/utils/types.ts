@@ -1,18 +1,18 @@
 import type {
-  alliance_top_up_request_table,
-  alliance_withdrawal_request_table,
+  company_deposit_request_table,
+  company_withdrawal_request_table,
   package_member_connection_table,
 } from "@prisma/client";
 
 export type UserRequestdata = {
-  alliance_member_id: string;
-  alliance_member_role: string;
-  alliance_member_date_created: string;
-  alliance_member_alliance_id: string;
-  alliance_member_user_id: string;
-  alliance_member_restricted: boolean;
-  alliance_member_date_updated: string;
-  alliance_member_is_active: boolean;
+  company_member_id: string;
+  company_member_role: string;
+  company_member_date_created: string;
+  company_member_company_id: string;
+  company_member_user_id: string;
+  company_member_restricted: boolean;
+  company_member_date_updated: string;
+  company_member_is_active: boolean;
   user_id: string;
   user_username: string;
   user_first_name: string;
@@ -20,23 +20,23 @@ export type UserRequestdata = {
   user_date_created: string;
 };
 
-export type TopUpRequestData = alliance_top_up_request_table & {
+export type TopUpRequestData = company_deposit_request_table & {
   user_username: string;
   user_first_name: string;
   user_last_name: string;
   user_email: string;
   user_id: string;
   approver_username: string;
-  alliance_member_id: string;
+  company_member_id: string;
   count: number;
 };
 
-export type WithdrawalRequestData = alliance_withdrawal_request_table & {
+export type WithdrawalRequestData = company_withdrawal_request_table & {
   user_first_name: string;
   user_last_name: string;
   user_id: string;
   user_email: string;
-  alliance_member_id: string;
+  company_member_id: string;
   approver_username?: string;
 };
 

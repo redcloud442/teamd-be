@@ -6,62 +6,53 @@ export const withdrawModel = async (params) => {
     await prisma.$transaction(async (tx) => {
         const startDate = getPhilippinesTime(new Date(), "start");
         const endDate = getPhilippinesTime(new Date(), "end");
-        const existingPackageWithdrawal = await tx.alliance_withdrawal_request_table.findFirst({
+        const existingPackageWithdrawal = await tx.company_withdrawal_request_table.findFirst({
             where: {
-                alliance_withdrawal_request_member_id: teamMemberProfile.alliance_member_id,
-                alliance_withdrawal_request_status: {
+                company_withdrawal_request_member_id: teamMemberProfile.company_member_id,
+                company_withdrawal_request_status: {
                     in: ["PENDING", "APPROVED"],
                 },
-                alliance_withdrawal_request_withdraw_type: earnings,
-                alliance_withdrawal_request_date: {
+                company_withdrawal_request_withdraw_type: earnings,
+                company_withdrawal_request_date: {
                     gte: getPhilippinesTime(new Date(new Date()), "start"),
                     lte: getPhilippinesTime(new Date(new Date()), "end"),
                 },
             },
         });
         if (existingPackageWithdrawal) {
-            throw new Error(`You have already made a ${existingPackageWithdrawal.alliance_withdrawal_request_withdraw_type} withdrawal today. Please try again tomorrow.`);
+            throw new Error(`You have already made a ${existingPackageWithdrawal.company_withdrawal_request_withdraw_type} withdrawal today. Please try again tomorrow.`);
         }
         const amountMatch = await tx.$queryRaw `SELECT 
-alliance_combined_earnings,
-alliance_olympus_wallet,
-alliance_olympus_earnings,
-alliance_referral_bounty,
-alliance_winning_earnings
-FROM alliance_schema.alliance_earnings_table 
-WHERE alliance_earnings_member_id = ${teamMemberProfile.alliance_member_id}::uuid 
+company_combined_earnings,
+company_member_wallet,
+company_package_earnings,
+company_referral_earnings,
+FROM company_schema.company_earnings_table 
+WHERE company_earnings_member_id = ${teamMemberProfile.company_member_id}::uuid 
 FOR UPDATE`;
         if (!amountMatch[0]) {
             throw new Error("Invalid request.");
         }
-        const { alliance_olympus_earnings, alliance_referral_bounty, alliance_winning_earnings, } = amountMatch[0];
+        const { company_package_earnings, company_referral_earnings } = amountMatch[0];
         const amountValue = Math.round(Number(amount) * 100) / 100;
         const earningsType = earnings === "PACKAGE"
-            ? "alliance_olympus_earnings"
-            : earnings === "REFERRAL"
-                ? "alliance_referral_bounty"
-                : "alliance_winning_earnings";
+            ? "company_package_earnings"
+            : "company_referral_earnings";
         const earningsWithdrawalType = earnings === "PACKAGE"
-            ? "alliance_withdrawal_request_earnings_amount"
-            : earnings === "REFERRAL"
-                ? "alliance_withdrawal_request_referral_amount"
-                : "alliance_withdrawal_request_winning_amount";
+            ? "company_withdrawal_request_earnings_amount"
+            : "company_withdrawal_request_referral_amount";
         const earningsValue = Math.round(Number(amountMatch[0][earningsType]) * 100) / 100;
         if (amountValue > earningsValue) {
             throw new Error("Insufficient balance.");
         }
         let remainingAmount = Number(amount);
         if (earnings === "PACKAGE") {
-            const olympusDeduction = Math.min(remainingAmount, Number(alliance_olympus_earnings));
+            const olympusDeduction = Math.min(remainingAmount, Number(company_package_earnings));
             remainingAmount -= olympusDeduction;
         }
         if (earnings === "REFERRAL") {
-            const referralDeduction = Math.min(remainingAmount, Number(alliance_referral_bounty));
+            const referralDeduction = Math.min(remainingAmount, Number(company_referral_earnings));
             remainingAmount -= referralDeduction;
-        }
-        if (earnings === "WINNING") {
-            const winningDeduction = Math.min(remainingAmount, Number(alliance_winning_earnings));
-            remainingAmount -= winningDeduction;
         }
         const finalAmount = calculateFinalAmount(Number(amount), earnings);
         const fee = calculateFee(Number(amount), earnings);
@@ -94,40 +85,36 @@ FROM approver_pool
 ORDER BY request_count ASC
 LIMIT 1;
     `;
-        await tx.alliance_withdrawal_request_table.create({
+        await tx.company_withdrawal_request_table.create({
             data: {
-                alliance_withdrawal_request_amount: Number(amount),
-                alliance_withdrawal_request_type: bank,
-                alliance_withdrawal_request_account: accountNumber,
-                alliance_withdrawal_request_fee: fee,
-                alliance_withdrawal_request_withdraw_amount: finalAmount,
-                alliance_withdrawal_request_bank_name: accountName,
-                alliance_withdrawal_request_status: "PENDING",
+                company_withdrawal_request_amount: Number(amount),
+                company_withdrawal_request_type: bank,
+                company_withdrawal_request_account: accountNumber,
+                company_withdrawal_request_fee: fee,
+                company_withdrawal_request_withdraw_amount: finalAmount,
+                company_withdrawal_request_bank_name: accountName,
+                company_withdrawal_request_status: "PENDING",
                 [earningsWithdrawalType]: finalAmount,
-                alliance_withdrawal_request_member_id: teamMemberProfile.alliance_member_id,
-                alliance_withdrawal_request_withdraw_type: earnings,
-                alliance_withdrawal_request_approved_by: countAllRequests[0]?.approver_id ?? null,
+                company_withdrawal_request_member_id: teamMemberProfile.company_member_id,
+                company_withdrawal_request_withdraw_type: earnings,
+                company_withdrawal_request_approved_by: countAllRequests[0]?.approver_id ?? null,
             },
         });
         // Update the earnings
         await tx.$executeRaw(Prisma.sql `
-        UPDATE alliance_schema.alliance_earnings_table
+        UPDATE company_schema.company_earnings_table
         SET 
           ${Prisma.raw(earningsType)} = GREATEST(0, ${Prisma.raw(earningsType)} - ${Math.trunc(Number(amount) * 100) / 100}),
-          alliance_combined_earnings = GREATEST(0, alliance_combined_earnings - ${Math.trunc(Number(amount) * 100) / 100})
-        WHERE alliance_earnings_member_id = ${teamMemberProfile.alliance_member_id}::uuid;
+          company_combined_earnings = GREATEST(0, company_combined_earnings - ${Math.trunc(Number(amount) * 100) / 100})
+        WHERE company_earnings_member_id = ${teamMemberProfile.company_member_id}::uuid;
       `);
         // Log the transaction
-        await tx.alliance_transaction_table.create({
+        await tx.company_transaction_table.create({
             data: {
-                transaction_amount: finalAmount,
-                transaction_description: `Withdrawal ${earnings === "PACKAGE"
-                    ? "Package"
-                    : earnings === "REFERRAL"
-                        ? "Referral"
-                        : "Winning"} Ongoing.`,
-                transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
-                transaction_member_id: teamMemberProfile.alliance_member_id,
+                company_transaction_amount: finalAmount,
+                company_transaction_description: `Withdrawal ${earnings === "PACKAGE" ? "Package" : "Referral"} Ongoing.`,
+                company_transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
+                company_transaction_member_id: teamMemberProfile.company_member_id,
             },
         });
     });
@@ -140,7 +127,7 @@ export const withdrawHistoryModel = async (params, teamMemberProfile) => {
         ? Prisma.sql `ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
         : Prisma.empty;
     const commonConditions = [
-        Prisma.raw(`m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid AND m.alliance_member_user_id = '${userId}'::uuid`),
+        Prisma.raw(`m.company_member_company_id = '${teamMemberProfile.company_member_company_id}'::uuid AND m.company_member_user_id = '${userId}'::uuid`),
     ];
     if (search) {
         commonConditions.push(Prisma.raw(`(
@@ -184,55 +171,57 @@ export const withdrawHistoryModel = async (params, teamMemberProfile) => {
 export const updateWithdrawModel = async (params) => {
     const { status, note, requestId, teamMemberProfile } = params;
     const result = await prisma.$transaction(async (tx) => {
-        const existingRequest = await tx.alliance_withdrawal_request_table.findUnique({
-            where: { alliance_withdrawal_request_id: requestId },
+        const existingRequest = await tx.company_withdrawal_request_table.findUnique({
+            where: { company_withdrawal_request_id: requestId },
         });
         if (!existingRequest) {
             throw new Error("Request not found.");
         }
-        if (existingRequest.alliance_withdrawal_request_status !== "PENDING") {
+        if (existingRequest.company_withdrawal_request_status !== "PENDING") {
             throw new Error("Request has already been processed.");
         }
-        if (teamMemberProfile.alliance_member_id !==
-            existingRequest.alliance_withdrawal_request_approved_by &&
-            teamMemberProfile.alliance_member_role === "ACCOUNTING") {
+        if (teamMemberProfile.company_member_id !==
+            existingRequest.company_withdrawal_request_approved_by &&
+            teamMemberProfile.company_member_role === "ACCOUNTING") {
             throw new Error("You are not authorized to update this request.");
         }
-        const updatedRequest = await tx.alliance_withdrawal_request_table.update({
-            where: { alliance_withdrawal_request_id: requestId },
+        const updatedRequest = await tx.company_withdrawal_request_table.update({
+            where: { company_withdrawal_request_id: requestId },
             data: {
-                alliance_withdrawal_request_status: status,
-                alliance_withdrawal_request_approved_by: teamMemberProfile.alliance_member_role === "ADMIN"
-                    ? teamMemberProfile.alliance_member_id
+                company_withdrawal_request_status: status,
+                company_withdrawal_request_approved_by: teamMemberProfile.company_member_role === "ADMIN"
+                    ? teamMemberProfile.company_member_id
                     : undefined,
-                alliance_withdrawal_request_reject_note: note ?? null,
-                alliance_withdrawal_request_date_updated: new Date(),
+                company_withdrawal_request_reject_note: note ?? null,
+                company_withdrawal_request_date_updated: new Date(),
             },
         });
         if (status === "REJECTED") {
-            const earningsType = updatedRequest.alliance_withdrawal_request_withdraw_type === "PACKAGE"
-                ? "alliance_olympus_earnings"
-                : "alliance_referral_bounty";
-            await tx.alliance_earnings_table.update({
+            const earningsType = updatedRequest.company_withdrawal_request_withdraw_type === "PACKAGE"
+                ? "company_package_earnings"
+                : "company_referral_earnings";
+            await tx.company_earnings_table.update({
                 where: {
-                    alliance_earnings_member_id: updatedRequest.alliance_withdrawal_request_member_id,
+                    company_earnings_member_id: updatedRequest.company_withdrawal_request_member_id,
                 },
                 data: {
                     [earningsType]: {
-                        increment: updatedRequest.alliance_withdrawal_request_amount,
+                        increment: updatedRequest.company_withdrawal_request_amount,
                     },
-                    alliance_combined_earnings: {
-                        increment: updatedRequest.alliance_withdrawal_request_amount,
+                    company_combined_earnings: {
+                        increment: updatedRequest.company_withdrawal_request_amount,
                     },
                 },
             });
         }
-        await tx.alliance_transaction_table.create({
+        await tx.company_transaction_table.create({
             data: {
-                transaction_description: `Withdrawal ${status.slice(0, 1).toUpperCase() + status.slice(1).toLowerCase()} ${note ? `(${note})` : ""}`,
-                transaction_details: `Account Name: ${updatedRequest.alliance_withdrawal_request_bank_name}, Account Number: ${updatedRequest.alliance_withdrawal_request_account}`,
-                transaction_amount: updatedRequest.alliance_withdrawal_request_amount,
-                transaction_member_id: updatedRequest.alliance_withdrawal_request_member_id,
+                company_transaction_description: `Withdrawal ${status.slice(0, 1).toUpperCase() + status.slice(1).toLowerCase()} ${note ? `(${note})` : ""}`,
+                company_transaction_details: `Account Name: ${updatedRequest.company_withdrawal_request_bank_name}, Account Number: ${updatedRequest.company_withdrawal_request_account}`,
+                company_transaction_amount: status === "APPROVED"
+                    ? updatedRequest.company_withdrawal_request_withdraw_amount
+                    : updatedRequest.company_withdrawal_request_amount,
+                company_transaction_member_id: updatedRequest.company_withdrawal_request_member_id,
             },
         });
         return updatedRequest;
@@ -260,10 +249,10 @@ export const withdrawListPostModel = async (params) => {
         ? Prisma.sql `ORDER BY ${Prisma.raw(columnAccessor)} ${Prisma.raw(sortBy)}`
         : Prisma.empty;
     const commonConditions = [
-        Prisma.raw(`m.alliance_member_alliance_id = '${teamMemberProfile.alliance_member_alliance_id}'::uuid AND t.alliance_withdrawal_request_member_id ${showHiddenUser ? "IN" : "NOT IN"} (SELECT alliance_hidden_user_member_id FROM alliance_schema.alliance_hidden_user_table)`),
+        Prisma.raw(`m.company_member_company_id = '${teamMemberProfile.company_member_company_id}'::uuid AND t.company_withdrawal_request_member_id ${showHiddenUser ? "IN" : "NOT IN"} (SELECT company_hidden_user_member_id FROM company_schema.company_hidden_user_table)`),
     ];
-    if (teamMemberProfile.alliance_member_role === "ACCOUNTING") {
-        commonConditions.push(Prisma.raw(`t.alliance_withdrawal_request_approved_by = '${teamMemberProfile.alliance_member_id}'::uuid`));
+    if (teamMemberProfile.company_member_role === "ACCOUNTING") {
+        commonConditions.push(Prisma.raw(`t.company_withdrawal_request_approved_by = '${teamMemberProfile.company_member_id}'::uuid`));
     }
     if (userFilter) {
         commonConditions.push(Prisma.raw(`u.user_id::TEXT = '${userFilter}'`));
@@ -327,38 +316,38 @@ export const withdrawListPostModel = async (params) => {
       WHERE ${countWhereClause}
       GROUP BY t.alliance_withdrawal_request_status
     `;
-    if (teamMemberProfile.alliance_member_role === "ACCOUNTING_HEAD") {
-        const aggregateResult = await prisma.alliance_withdrawal_request_table.aggregate({
+    if (teamMemberProfile.company_member_role === "ACCOUNTING_HEAD") {
+        const aggregateResult = await prisma.company_withdrawal_request_table.aggregate({
             where: {
-                alliance_withdrawal_request_status: "PENDING",
-                alliance_withdrawal_request_date: {
+                company_withdrawal_request_status: "PENDING",
+                company_withdrawal_request_date: {
                     gte: getPhilippinesTime(new Date(new Date()), "start"),
                     lte: getPhilippinesTime(new Date(new Date()), "end"),
                 },
             },
             _sum: {
-                alliance_withdrawal_request_amount: true,
-                alliance_withdrawal_request_fee: true,
+                company_withdrawal_request_amount: true,
+                company_withdrawal_request_fee: true,
             },
         });
-        const totalApprovedCount = await prisma.alliance_withdrawal_request_table.aggregate({
+        const totalApprovedCount = await prisma.company_withdrawal_request_table.aggregate({
             where: {
-                alliance_withdrawal_request_status: "APPROVED",
-                alliance_withdrawal_request_date: {
+                company_withdrawal_request_status: "APPROVED",
+                company_withdrawal_request_date: {
                     gte: getPhilippinesTime(new Date(new Date()), "start"),
                     lte: getPhilippinesTime(new Date(new Date()), "end"),
                 },
             },
             _sum: {
-                alliance_withdrawal_request_amount: true,
-                alliance_withdrawal_request_fee: true,
+                company_withdrawal_request_amount: true,
+                company_withdrawal_request_fee: true,
             },
         });
         returnData.totalWithdrawals = {
-            amount: Number(aggregateResult._sum.alliance_withdrawal_request_amount || 0) -
-                Number(aggregateResult._sum.alliance_withdrawal_request_fee || 0),
-            approvedAmount: Number(totalApprovedCount._sum.alliance_withdrawal_request_amount || 0) -
-                Number(totalApprovedCount._sum.alliance_withdrawal_request_fee || 0),
+            amount: Number(aggregateResult._sum.company_withdrawal_request_amount || 0) -
+                Number(aggregateResult._sum.company_withdrawal_request_fee || 0),
+            approvedAmount: Number(totalApprovedCount._sum.company_withdrawal_request_amount || 0) -
+                Number(totalApprovedCount._sum.company_withdrawal_request_fee || 0),
         };
     }
     ["APPROVED", "REJECTED", "PENDING"].forEach((status) => {
@@ -368,7 +357,7 @@ export const withdrawListPostModel = async (params) => {
             : BigInt(0);
     });
     withdrawals.forEach((request) => {
-        const status = request.alliance_withdrawal_request_status;
+        const status = request.company_withdrawal_request_status;
         if (returnData.data[status]) {
             returnData.data[status].data.push(request);
         }
@@ -444,19 +433,19 @@ export const withdrawHistoryReportPostTotalModel = async (params) => {
         SELECT 
           t.alliance_withdrawal_request_id,
           CASE 
-            WHEN mr.alliance_member_role = 'ADMIN' THEN 'ADMIN'
-            WHEN mt.alliance_member_role = 'ACCOUNTING' THEN 'ACCOUNTING'
+            WHEN mr.company_member_role = 'ADMIN' THEN 'ADMIN'
+            WHEN mt.company_member_role = 'ACCOUNTING' THEN 'ACCOUNTING'
           END AS approver_role,
-          t.alliance_withdrawal_request_amount - t.alliance_withdrawal_request_fee AS net_approved_amount
-        FROM alliance_schema.alliance_withdrawal_request_table t
-        LEFT JOIN alliance_schema.alliance_member_table mt 
-          ON mt.alliance_member_id = t.alliance_withdrawal_request_approved_by
-          AND mt.alliance_member_role = 'ACCOUNTING'
-        LEFT JOIN alliance_schema.alliance_member_table mr 
-          ON mr.alliance_member_id = t.alliance_withdrawal_request_approved_by
-          AND mr.alliance_member_role = 'ADMIN'
-        WHERE t.alliance_withdrawal_request_date_updated::timestamptz BETWEEN ${interval.start}::timestamptz AND ${interval.end}::timestamptz
-          AND t.alliance_withdrawal_request_status = 'APPROVED'
+          t.company_withdrawal_request_amount - t.company_withdrawal_request_fee AS net_approved_amount
+        FROM company_schema.company_withdrawal_request_table t
+        LEFT JOIN company_schema.company_member_table mt 
+          ON mt.company_member_id = t.company_withdrawal_request_approved_by
+          AND mt.company_member_role = 'ACCOUNTING'
+        LEFT JOIN company_schema.company_member_table mr 
+          ON mr.company_member_id = t.company_withdrawal_request_approved_by
+          AND mr.company_member_role = 'ADMIN'
+        WHERE t.company_withdrawal_request_date_updated::timestamptz BETWEEN ${interval.start}::timestamptz AND ${interval.end}::timestamptz
+          AND t.company_withdrawal_request_status = 'APPROVED'
       ),
       role_aggregates AS (
         SELECT 
@@ -501,9 +490,9 @@ export const withdrawHistoryReportPostTotalModel = async (params) => {
 export const withdrawHistoryReportPostModel = async (params) => {
     const { dateFilter } = params;
     const { startDate, endDate } = dateFilter;
-    const withdrawalData = await prisma.alliance_withdrawal_request_table.aggregate({
+    const withdrawalData = await prisma.company_withdrawal_request_table.aggregate({
         where: {
-            alliance_withdrawal_request_date: {
+            company_withdrawal_request_date: {
                 gte: dateFilter.startDate
                     ? getPhilippinesTime(new Date(startDate), "start")
                     : undefined,
@@ -511,35 +500,35 @@ export const withdrawHistoryReportPostModel = async (params) => {
                     ? getPhilippinesTime(new Date(endDate), "end")
                     : undefined,
             },
-            alliance_withdrawal_request_status: "APPROVED",
+            company_withdrawal_request_status: "APPROVED",
         },
         _count: true,
         _sum: {
-            alliance_withdrawal_request_amount: true,
-            alliance_withdrawal_request_fee: true,
+            company_withdrawal_request_amount: true,
+            company_withdrawal_request_fee: true,
         },
     });
     const returnData = {
         total_request: withdrawalData._count,
-        total_amount: (withdrawalData._sum.alliance_withdrawal_request_amount || 0) -
-            (withdrawalData._sum.alliance_withdrawal_request_fee || 0),
+        total_amount: (withdrawalData._sum.company_withdrawal_request_amount || 0) -
+            (withdrawalData._sum.company_withdrawal_request_fee || 0),
     };
     return returnData;
 };
 export const withdrawHideUserModel = async (params) => {
     const { id, type, teamMemberProfile } = params;
     if (type === "add") {
-        await prisma.alliance_hidden_user_table.create({
+        await prisma.company_hidden_user_table.create({
             data: {
-                alliance_hidden_user_member_id: id,
-                alliance_hidden_user_action_by: teamMemberProfile.alliance_member_id,
+                company_hidden_user_member_id: id,
+                company_hidden_user_action_by: teamMemberProfile.company_member_id,
             },
         });
     }
     else if (type === "remove") {
-        await prisma.alliance_hidden_user_table.delete({
+        await prisma.company_hidden_user_table.delete({
             where: {
-                alliance_hidden_user_member_id: id,
+                company_hidden_user_member_id: id,
             },
         });
     }
