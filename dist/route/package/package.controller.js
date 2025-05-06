@@ -9,13 +9,9 @@ export const packagePostController = async (c) => {
             packageId,
             teamMemberProfile: teamMemberProfile,
         });
-        // await packageDailytaskGetModel({
-        //   bountyLogs: result,
-        // });
         return c.json({ message: "Package Created" }, 200);
     }
     catch (error) {
-        console.log(error);
         return sendErrorResponse("Internal Server Error", 500);
     }
 };

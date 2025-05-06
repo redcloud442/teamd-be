@@ -343,7 +343,6 @@ export const userReferralMiddleware = async (c, next) => {
         dateFilter,
     });
     if (!validate.success) {
-        console.log(validate.error);
         return sendErrorResponse("Invalid Request", 400);
     }
     c.set("teamMemberProfile", teamMemberProfile);

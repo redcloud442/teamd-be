@@ -90,10 +90,10 @@ export const dashboardPostModel = async (params) => {
             }),
             tx.$queryRaw `
         WITH daily_earnings AS (
-          SELECT DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
-                 SUM(COALESCE(alliance_top_up_request_amount, 0)) AS earnings
-          FROM alliance_schema.alliance_top_up_request_table
-          WHERE alliance_top_up_request_date_updated BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
+          SELECT DATE_TRUNC('day', company_deposit_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
+                 SUM(COALESCE(company_deposit_request_amount, 0)) AS earnings
+          FROM company_schema.company_deposit_request_table
+          WHERE company_deposit_request_date_updated BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
           AND alliance_top_up_request_status = 'APPROVED'
           GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila')
         ),
@@ -161,32 +161,17 @@ export const dashboardGetModel = async () => {
     if (cachedData) {
         return cachedData;
     }
-    const [totalActivatedPackage, numberOfRegisteredUser, totalActivatedUser, totalSpinPurchase, totalWinningWithdrawal,] = await prisma.$transaction([
+    const [totalActivatedPackage, numberOfRegisteredUser, totalActivatedUser,] = await prisma.$transaction([
         prisma.package_member_connection_table.count(),
         prisma.company_member_table.count(),
         prisma.company_member_table.count({
             where: { company_member_is_active: true },
         }),
-        prisma.company_transaction_table.aggregate({
-            _sum: { company_transaction_amount: true },
-            _count: { company_transaction_member_id: true },
-        }),
-        prisma.company_withdrawal_request_table.aggregate({
-            where: {
-                company_withdrawal_request_status: "APPROVED",
-                company_withdrawal_request_withdraw_type: "WINNING",
-            },
-            _sum: { company_withdrawal_request_amount: true },
-        }),
     ]);
-    // ✅ Format the response
     const response = {
         numberOfRegisteredUser,
         totalActivatedPackage,
         totalActivatedUser,
-        totalSpinPurchase: totalSpinPurchase._sum.company_transaction_amount || 0,
-        totalSpinPurchaseCount: totalSpinPurchase._count.company_transaction_member_id || 0,
-        totalWinningWithdrawal: totalWinningWithdrawal._sum.company_withdrawal_request_amount || 0,
     };
     await redis.set(cacheKey, JSON.stringify(response), { ex: 1000 });
     return response;

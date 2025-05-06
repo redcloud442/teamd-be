@@ -178,16 +178,16 @@ export const depositHistoryPostModel = async (params, teamMemberProfile) => {
     const dataQueryConditions = [...commonConditions];
     const dataWhereClause = Prisma.sql `${Prisma.join(dataQueryConditions, " AND ")}`;
     const depositHistory = await prisma.$queryRaw `
-      SELECT 
+      SELECT
         u.user_first_name,
         u.user_last_name,
         u.user_email,
         m.company_member_id,
         t.*
       FROM alliance_schema.company_deposit_request_table t
-      JOIN alliance_schema.company_member_table m 
+      JOIN alliance_schema.company_member_table m
         ON t.company_deposit_request_member_id = m.company_member_id
-      JOIN user_schema.user_table u 
+      JOIN user_schema.user_table u
         ON u.user_id = m.company_member_user_id
       WHERE ${dataWhereClause}
       ${orderBy}
@@ -195,12 +195,12 @@ export const depositHistoryPostModel = async (params, teamMemberProfile) => {
       OFFSET ${Prisma.raw(offset.toString())}
     `;
     const totalCount = await prisma.$queryRaw `
-        SELECT 
+        SELECT
           COUNT(*) AS count
         FROM alliance_schema.company_deposit_request_table t
-        JOIN alliance_schema.company_member_table m 
+        JOIN alliance_schema.company_member_table m
           ON t.company_deposit_request_member_id = m.company_member_id
-        JOIN user_schema.user_table u 
+        JOIN user_schema.user_table u
         ON u.user_id = m.company_member_user_id
       WHERE ${dataWhereClause}
     `;
@@ -252,7 +252,7 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
     const dataWhereClause = Prisma.sql `${Prisma.join(dataQueryConditions, " AND ")}`;
     const countWhereClause = Prisma.sql `${Prisma.join(commonConditions, " AND ")}`;
     const topUpRequests = await prisma.$queryRaw `
-    SELECT 
+    SELECT
       u.user_id,
       u.user_first_name,
       u.user_last_name,
@@ -262,13 +262,13 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
       t.*,
       approver.user_username AS approver_username
     FROM alliance_schema.company_deposit_request_table t
-    JOIN alliance_schema.company_member_table m 
+    JOIN alliance_schema.company_member_table m
       ON t.company_deposit_request_member_id = m.company_member_id
-    JOIN user_schema.user_table u 
+    JOIN user_schema.user_table u
       ON u.user_id = m.company_member_user_id
-    LEFT JOIN alliance_schema.company_member_table mt 
+    LEFT JOIN alliance_schema.company_member_table mt
       ON mt.company_member_id = t.company_deposit_request_approved_by
-    LEFT JOIN user_schema.user_table approver 
+    LEFT JOIN user_schema.user_table approver
       ON approver.user_id = mt.company_member_user_id
     WHERE ${dataWhereClause}
     ${orderBy}
@@ -276,17 +276,17 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
     OFFSET ${Prisma.raw(offset.toString())}
   `;
     const statusCounts = await prisma.$queryRaw `
-      SELECT 
-        t.company_deposit_request_status AS status, 
+      SELECT
+        t.company_deposit_request_status AS status,
         COUNT(*) AS count
       FROM alliance_schema.company_deposit_request_table t
-      JOIN alliance_schema.company_member_table m 
+      JOIN alliance_schema.company_member_table m
         ON t.company_deposit_request_member_id = m.company_member_id
-      JOIN user_schema.user_table u 
+      JOIN user_schema.user_table u
         ON u.user_id = m.company_member_user_id
-      LEFT JOIN alliance_schema.company_member_table mt 
+      LEFT JOIN alliance_schema.company_member_table mt
         ON mt.company_member_id = t.company_deposit_request_approved_by
-      LEFT JOIN user_schema.user_table approver 
+      LEFT JOIN user_schema.user_table approver
         ON approver.user_id = mt.company_member_user_id
       WHERE ${countWhereClause}
       GROUP BY t.company_deposit_request_status
@@ -360,8 +360,8 @@ export const depositReportPostModel = async (params) => {
         },
     });
     const depositDailyIncome = await prisma.$queryRaw `
-    SELECT 
-      DATE_TRUNC('day', company_deposit_request_date_updated) AS date, 
+    SELECT
+      DATE_TRUNC('day', company_deposit_request_date_updated) AS date,
       SUM(company_deposit_request_amount) AS amount
     FROM alliance_schema.company_deposit_request_table
     WHERE company_deposit_request_date_updated::Date BETWEEN ${startDate.toISOString().split("T")[0]}::Date AND ${endDate.toISOString().split("T")[0]}::Date

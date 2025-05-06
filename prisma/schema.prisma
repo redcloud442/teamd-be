@@ -33,7 +33,6 @@ model user_table {
   user_first_name       String?
   user_last_name        String?
   user_email            String          @unique
-  user_password         String
   user_profile_picture  String?
   user_bot_field        String?
 
@@ -141,6 +140,7 @@ model dashboard_earnings_summary {
   @@map("dashboard_earnings_summary")
   @@schema("company_schema")
 }
+
 model company_earnings_table {
   company_earnings_id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   company_member_wallet      Float    @default(0.0)
@@ -214,7 +214,7 @@ model company_withdrawal_request_table {
   @@index([company_withdrawal_request_approved_by], name: "idx_company_withdrawal_request_approved_by")
   @@index([company_withdrawal_request_status], name: "idx_company_withdrawal_request_status")
 }
-
+    
 model company_transaction_table {
   company_transaction_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   company_transaction_date DateTime @default(now())
@@ -231,7 +231,6 @@ model company_transaction_table {
   @@schema("company_schema")
   @@index([company_transaction_member_id], name: "idx_company_transaction_member_id")
 }
-
 
 model company_hidden_user_table {
   company_hidden_user_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
@@ -308,7 +307,6 @@ model package_earnings_log {
 
 }
 
-
 model package_ally_bounty_log {
   package_ally_bounty_log_id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   package_ally_bounty_log_date_created    DateTime @default(now())  @db.Timestamptz(3)
@@ -349,7 +347,6 @@ model merchant_balance_log {
   @@schema("merchant_schema")
 }
 
-
 model merchant_member_table {
   merchant_member_id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   merchant_member_date_created     DateTime @default(now())  @db.Timestamptz(3)
@@ -360,7 +357,6 @@ model merchant_member_table {
 
   @@schema("merchant_schema")
 }
-
 
 model error_table {
   error_id                String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid

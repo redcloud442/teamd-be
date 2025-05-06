@@ -5,6 +5,6 @@ import { authGetMiddleware, authMiddleware, registerUserMiddleware, } from "./au
 const auth = new Hono();
 auth.get("/", authGetMiddleware, loginGetController);
 auth.post("/", authMiddleware, loginController);
-auth.post("/securedPrime", authMiddleware, adminController);
+auth.post("/securedStarter", authMiddleware, adminController);
 auth.post("/register", protectionMiddleware, registerUserMiddleware, registerUserController);
 export default auth;
