@@ -32,11 +32,6 @@ export const userModelPut = async (params: {
     return { success: false, error: "User not found." };
   }
 
-  const userCompare = await bcryptjs.compare(password, user?.user_password);
-
-  if (!userCompare) {
-    return { success: false, error: "Invalid request." };
-  }
 
   const teamMemberProfile = await prisma.company_member_table.findFirst({
     where: { company_member_user_id: user?.user_id },
@@ -53,14 +48,7 @@ export const userModelPut = async (params: {
     return { success: false, error: "Access restricted" };
   }
 
-  prisma.user_table.update({
-    where: {
-      user_id: userId,
-    },
-    data: {
-      user_password: password,
-    },
-  });
+ 
 
   if (teamMemberProfile?.company_member_role !== "ADMIN") {
     const supabase = supabaseClient;
@@ -271,10 +259,19 @@ export const userPatchModel = async (params: {
         where: { company_member_id: memberId },
         data: { company_member_restricted: true },
       });
+
+      await supabaseClient.auth.admin.updateUserById(memberId, {
+        ban_duration: "400 days",
+      });
+
     } else if (type === "UNBAN") {
       await prisma.company_member_table.update({
         where: { company_member_id: memberId },
         data: { company_member_restricted: false },
+      });
+
+      await supabaseClient.auth.admin.updateUserById(memberId, {
+        ban_duration: "none",
       });
     }
 
@@ -292,14 +289,14 @@ export const userSponsorModel = async (params: { userId: string }) => {
   SELECT
         ut2.user_username
       FROM user_schema.user_table ut
-      JOIN alliance_schema.alliance_member_table am
-        ON am.alliance_member_user_id = ut.user_id
-      JOIN alliance_schema.alliance_referral_table art
-        ON art.alliance_referral_member_id = am.alliance_member_id
-      JOIN alliance_schema.alliance_member_table am2
-        ON am2.alliance_member_id = art.alliance_referral_from_member_id
+      JOIN company_schema.company_member_table am
+        ON am.company_member_user_id = ut.user_id
+      JOIN company_schema.company_referral_table art
+        ON art.company_referral_member_id = am.company_member_id
+      JOIN company_schema.company_member_table am2
+        ON am2.company_member_id = art.company_referral_from_member_id
       JOIN user_schema.user_table ut2
-        ON ut2.user_id = am2.alliance_member_user_id
+        ON ut2.user_id = am2.company_member_user_id
       WHERE ut.user_id = ${userId}::uuid
   `;
 
@@ -540,25 +537,8 @@ export const userChangePasswordModel = async (params: {
 }) => {
   const { password, userId } = params;
 
-  await prisma.$transaction(async (tx) => {
-    const user = await tx.user_table.findUnique({
-      where: { user_id: userId },
-    });
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const hashedPassword = await bcryptjs.hash(password, 10);
-
-    await tx.user_table.update({
-      where: { user_id: userId },
-      data: { user_password: hashedPassword },
-    });
-
-    await supabaseClient.auth.admin.updateUserById(userId, {
-      password: password,
-    });
+  await supabaseClient.auth.admin.updateUserById(userId, {
+    password: password,
   });
 };
 

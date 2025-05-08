@@ -94,16 +94,16 @@ export const dashboardPostModel = async (params) => {
                  SUM(COALESCE(company_deposit_request_amount, 0)) AS earnings
           FROM company_schema.company_deposit_request_table
           WHERE company_deposit_request_date_updated BETWEEN ${new Date(startDate || new Date()).toISOString()}::timestamptz AND ${new Date(endDate || new Date()).toISOString()}::timestamptz
-          AND alliance_top_up_request_status = 'APPROVED'
-          GROUP BY DATE_TRUNC('day', alliance_top_up_request_date_updated AT TIME ZONE 'Asia/Manila')
+          AND company_deposit_request_status = 'APPROVED'
+          GROUP BY DATE_TRUNC('day', company_deposit_request_date_updated AT TIME ZONE 'Asia/Manila')
         ),
-        daily_withdraw AS (
-          SELECT DATE_TRUNC('day', alliance_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
-                 SUM(COALESCE(alliance_withdrawal_request_amount, 0) - COALESCE(alliance_withdrawal_request_fee, 0)) AS withdraw
-          FROM alliance_schema.alliance_withdrawal_request_table
-          WHERE alliance_withdrawal_request_date_updated BETWEEN ${new Date(startDate).toISOString()}::timestamptz AND ${new Date(endDate).toISOString()}::timestamptz
-          AND alliance_withdrawal_request_status = 'APPROVED'
-          GROUP BY DATE_TRUNC('day', alliance_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila')
+          daily_withdraw AS (
+            SELECT DATE_TRUNC('day', company_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila') AS date,
+                 SUM(COALESCE(company_withdrawal_request_amount, 0) - COALESCE(company_withdrawal_request_fee, 0)) AS withdraw
+          FROM company_schema.company_withdrawal_request_table
+          WHERE company_withdrawal_request_date_updated BETWEEN ${new Date(startDate).toISOString()}::timestamptz AND ${new Date(endDate).toISOString()}::timestamptz
+          AND company_withdrawal_request_status = 'APPROVED'
+          GROUP BY DATE_TRUNC('day', company_withdrawal_request_date_updated AT TIME ZONE 'Asia/Manila')
         )
         SELECT COALESCE(e.date, w.date) AS date,
                COALESCE(e.earnings, 0) AS earnings,

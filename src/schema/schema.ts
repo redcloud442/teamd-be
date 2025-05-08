@@ -42,7 +42,6 @@ export const registerUserSchema = z.object({
       /^[a-zA-Z][a-zA-Z0-9._]*$/,
       "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
     ),
-  password: z.string().min(6),
   firstName: z.string().min(2),
   lastName: z.string().min(2),
   referalLink: z.string().min(2),

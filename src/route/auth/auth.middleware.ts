@@ -87,7 +87,6 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
 
   const {
     userName,
-    password,
     firstName,
     lastName,
     referalLink,
@@ -97,7 +96,6 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
 
   const parsed = registerUserSchema.safeParse({
     userName,
-    password,
     firstName,
     userId: user?.id,
     lastName,

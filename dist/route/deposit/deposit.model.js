@@ -184,8 +184,8 @@ export const depositHistoryPostModel = async (params, teamMemberProfile) => {
         u.user_email,
         m.company_member_id,
         t.*
-      FROM alliance_schema.company_deposit_request_table t
-      JOIN alliance_schema.company_member_table m
+      FROM company_schema.company_deposit_request_table t
+      JOIN company_schema.company_member_table m
         ON t.company_deposit_request_member_id = m.company_member_id
       JOIN user_schema.user_table u
         ON u.user_id = m.company_member_user_id
@@ -197,8 +197,8 @@ export const depositHistoryPostModel = async (params, teamMemberProfile) => {
     const totalCount = await prisma.$queryRaw `
         SELECT
           COUNT(*) AS count
-        FROM alliance_schema.company_deposit_request_table t
-        JOIN alliance_schema.company_member_table m
+        FROM company_schema.company_deposit_request_table t
+        JOIN company_schema.company_member_table m
           ON t.company_deposit_request_member_id = m.company_member_id
         JOIN user_schema.user_table u
         ON u.user_id = m.company_member_user_id
@@ -235,7 +235,7 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
             " 00:00:00.000";
         const endDate = new Date(dateFilter.end || new Date()).toISOString().split("T")[0] +
             " 23:59:59.999";
-        commonConditions.push(Prisma.raw(`t.alliance_top_up_request_date_updated::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
+        commonConditions.push(Prisma.raw(`t.company_deposit_request_date_updated::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
     }
     if (search) {
         commonConditions.push(Prisma.raw(`(
@@ -247,7 +247,7 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
     }
     const dataQueryConditions = [...commonConditions];
     if (statusFilter) {
-        dataQueryConditions.push(Prisma.raw(`t.alliance_top_up_request_status = '${statusFilter}'`));
+        dataQueryConditions.push(Prisma.raw(`t.company_deposit_request_status = '${statusFilter}'`));
     }
     const dataWhereClause = Prisma.sql `${Prisma.join(dataQueryConditions, " AND ")}`;
     const countWhereClause = Prisma.sql `${Prisma.join(commonConditions, " AND ")}`;
@@ -261,12 +261,12 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
       m.company_member_id,
       t.*,
       approver.user_username AS approver_username
-    FROM alliance_schema.company_deposit_request_table t
-    JOIN alliance_schema.company_member_table m
+    FROM company_schema.company_deposit_request_table t
+    JOIN company_schema.company_member_table m
       ON t.company_deposit_request_member_id = m.company_member_id
     JOIN user_schema.user_table u
       ON u.user_id = m.company_member_user_id
-    LEFT JOIN alliance_schema.company_member_table mt
+    LEFT JOIN company_schema.company_member_table mt
       ON mt.company_member_id = t.company_deposit_request_approved_by
     LEFT JOIN user_schema.user_table approver
       ON approver.user_id = mt.company_member_user_id
@@ -279,12 +279,12 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
       SELECT
         t.company_deposit_request_status AS status,
         COUNT(*) AS count
-      FROM alliance_schema.company_deposit_request_table t
-      JOIN alliance_schema.company_member_table m
+      FROM company_schema.company_deposit_request_table t
+      JOIN company_schema.company_member_table m
         ON t.company_deposit_request_member_id = m.company_member_id
       JOIN user_schema.user_table u
         ON u.user_id = m.company_member_user_id
-      LEFT JOIN alliance_schema.company_member_table mt
+      LEFT JOIN company_schema.company_member_table mt
         ON mt.company_member_id = t.company_deposit_request_approved_by
       LEFT JOIN user_schema.user_table approver
         ON approver.user_id = mt.company_member_user_id
@@ -363,7 +363,7 @@ export const depositReportPostModel = async (params) => {
     SELECT
       DATE_TRUNC('day', company_deposit_request_date_updated) AS date,
       SUM(company_deposit_request_amount) AS amount
-    FROM alliance_schema.company_deposit_request_table
+    FROM company_schema.company_deposit_request_table
     WHERE company_deposit_request_date_updated::Date BETWEEN ${startDate.toISOString().split("T")[0]}::Date AND ${endDate.toISOString().split("T")[0]}::Date
     AND company_deposit_request_status = 'APPROVED'
     GROUP BY date

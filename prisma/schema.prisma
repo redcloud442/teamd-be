@@ -100,6 +100,7 @@ model company_referral_link_table {
   company_referral_link_id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   company_referral_link             String
   company_referral_link_member_id   String    @db.Uuid
+  company_referral_code             String    @unique
 
   company_member_table              company_member_table @relation(fields: [company_referral_link_member_id], references: [company_member_id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -345,6 +346,7 @@ model merchant_balance_log {
   merchant_balance_log_user String
 
   @@schema("merchant_schema")
+  @@index([merchant_balance_log_user], name: "idx_merchant_balance_log_user")
 }
 
 model merchant_member_table {
@@ -356,6 +358,7 @@ model merchant_member_table {
   company_member_table company_member_table @relation(fields: [merchant_member_merchant_id], references: [company_member_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@schema("merchant_schema")
+  @@index([merchant_member_merchant_id], name: "idx_merchant_member_merchant_id")
 }
 
 model error_table {

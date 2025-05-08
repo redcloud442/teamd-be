@@ -34,9 +34,9 @@ export const referralDirectModelPost = async (params) => {
       pa.package_ally_bounty_log_date_created,
       ar.company_referral_date,
       COALESCE(SUM(pa.package_ally_bounty_earnings), 0) AS total_bounty_earnings
-    FROM alliance_schema.alliance_member_table m
-    JOIN user_schema.user_table u ON u.user_id = m.alliance_member_user_id
-    JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.alliance_member_id
+    FROM company_schema.company_member_table m
+    JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
+    JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.company_member_id
     JOIN company_schema.company_referral_table ar ON ar.company_referral_member_id = pa.package_ally_bounty_from
     WHERE pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid AND pa.package_ally_bounty_type = 'DIRECT'
       ${searchCondition}

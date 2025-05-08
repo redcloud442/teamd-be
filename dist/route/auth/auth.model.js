@@ -1,7 +1,9 @@
 import bcrypt from "bcryptjs";
 import prisma from "../../utils/prisma.js";
+import { generateUniqueReferralCode } from "@/utils/function.js";
+import { supabaseClient } from "@/utils/supabase.js";
 export const loginModel = async (params) => {
-    const { userName, password, ip } = params;
+    const { userName, ip } = params;
     const user = await prisma.user_table.findFirst({
         where: {
             user_username: {
@@ -28,10 +30,6 @@ export const loginModel = async (params) => {
         throw new Error("User profile not found or incomplete.");
     if (teamMemberProfile.company_member_restricted) {
         throw new Error("User is banned.");
-    }
-    const comparePassword = await bcrypt.compare(password, user.user_password);
-    if (!comparePassword) {
-        throw new Error("Password Incorrect");
     }
     if (teamMemberProfile.company_member_restricted ||
         !teamMemberProfile.company_member_company_id) {
@@ -75,7 +73,7 @@ export const loginGetModel = async (userName) => {
     return user;
 };
 export const adminModel = async (params) => {
-    const { userName, password } = params;
+    const { userName } = params;
     const user = await prisma.user_table.findFirst({
         where: {
             user_username: {
@@ -99,25 +97,20 @@ export const adminModel = async (params) => {
         throw new Error("User is not an admin");
     }
     const teamMember = user.company_member_table[0];
-    const comparePassword = await bcrypt.compare(password, user.user_password);
-    if (!comparePassword) {
-        throw new Error("Password incorrect");
-    }
     if (!teamMember) {
         throw new Error("User is not an admin");
     }
     return { success: true };
 };
 export const registerUserModel = async (params) => {
-    const { userId, userName, password, firstName, lastName, referalLink, url, ip, botField, } = params;
+    const { userId, userName, firstName, lastName, referalLink, url, ip, botField, } = params;
     if (referalLink) {
-        const DEFAULT_ALLIANCE_ID = "35f77cd9-636a-41fa-a346-9cb711e7a338";
+        const DEFAULT_COMPANY_ID = "a1b9ceb9-cb09-4c09-832d-6e5a017d048b";
         return await prisma.$transaction(async (tx) => {
             const user = await tx.user_table.create({
                 data: {
                     user_id: userId,
                     user_email: `${userName}@gmail.com`,
-                    user_password: password,
                     user_first_name: firstName,
                     user_last_name: lastName,
                     user_username: userName,
@@ -130,7 +123,7 @@ export const registerUserModel = async (params) => {
             const allianceMember = await tx.company_member_table.create({
                 data: {
                     company_member_role: "MEMBER",
-                    company_member_company_id: DEFAULT_ALLIANCE_ID,
+                    company_member_company_id: DEFAULT_COMPANY_ID,
                     company_member_user_id: userId,
                 },
                 select: {
@@ -138,10 +131,12 @@ export const registerUserModel = async (params) => {
                 },
             });
             const referralLinkURL = `${url}?referralLink=${encodeURIComponent(userName)}`;
+            const referralCode = await generateUniqueReferralCode(tx);
             await tx.company_referral_link_table.create({
                 data: {
                     company_referral_link: referralLinkURL,
                     company_referral_link_member_id: allianceMember.company_member_id,
+                    company_referral_code: referralCode,
                 },
             });
             await tx.company_earnings_table.create({
@@ -150,6 +145,15 @@ export const registerUserModel = async (params) => {
                 },
             });
             await handleReferral(tx, referalLink, allianceMember.company_member_id);
+            await supabaseClient.auth.admin.updateUserById(userId, {
+                user_metadata: {
+                    Role: "ADMIN",
+                    ReferralCode: referralCode,
+                    ReferralLink: referralLinkURL,
+                    CompanyId: DEFAULT_COMPANY_ID,
+                    CompanyMemberId: allianceMember.company_member_id,
+                },
+            });
             return {
                 success: true,
                 user,
@@ -169,14 +173,14 @@ async function handleReferral(tx, referalLink, allianceMemberId) {
         rl.company_referral_link_id,
         rt.company_referral_hierarchy,
         am.company_member_id
-      FROM alliance_schema.company_referral_link_table rl
-      LEFT JOIN alliance_schema.company_referral_table rt
+      FROM company_schema.company_referral_link_table rl
+      LEFT JOIN company_schema.company_referral_table rt
         ON rl.company_referral_link_member_id = rt.company_referral_member_id
-      LEFT JOIN alliance_schema.company_member_table am
+      LEFT JOIN company_schema.company_member_table am
         ON am.company_member_id = rl.company_referral_link_member_id
       LEFT JOIN user_schema.user_table ut
         ON ut.user_id = am.company_member_user_id
-      WHERE ut.user_username = ${referalLink}
+      WHERE rl.company_referral_code = ${referalLink}
   `;
     const referrerLinkId = referrerData[0].company_referral_link_id;
     const parentHierarchy = referrerData[0].company_referral_hierarchy;

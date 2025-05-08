@@ -75,3 +75,24 @@ export const getDepositBonus = (amount) => {
         .reduce((prev, curr) => (curr.deposit > prev.deposit ? curr : prev), depositTiers[0]);
     return amount * lowestTier.percentage;
 };
+export const generateRandomCode = (length = 6) => {
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+};
+export const generateUniqueReferralCode = async (prisma, maxAttempts = 5) => {
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+        const code = generateRandomCode();
+        const existing = await prisma.company_referral_link_table.findUnique({
+            where: { company_referral_code: code },
+        });
+        if (!existing)
+            return code;
+        attempts++;
+    }
+    throw new Error('Failed to generate a unique referral code after multiple attempts.');
+};

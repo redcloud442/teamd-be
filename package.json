@@ -9,7 +9,7 @@
     "db": "bun prisma generate && bun prisma db push"
   },
   "dependencies": {
-    "@prisma/client": "^6.2.1",
+    "@prisma/client": "^6.7.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.48.1",
     "@upstash/ratelimit": "^1.2.1",

@@ -37,6 +37,7 @@ export const withdrawHistoryPostController = async (c: Context) => {
 
     return c.json(data, 200);
   } catch (e) {
+
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
@@ -75,6 +76,7 @@ export const withdrawListPostController = async (c: Context) => {
 
     return c.json(data, 200);
   } catch (e) {
+  
     return sendErrorResponse("Internal Server Error", 500);
   }
 };

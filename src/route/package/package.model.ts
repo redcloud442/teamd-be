@@ -26,7 +26,7 @@ export const packagePostModel = async (params: {
      company_member_wallet,
      company_member_earnings,
      company_referral_earnings
-     FROM alliance_schema.company_earnings_table 
+     FROM company_schema.company_earnings_table 
      WHERE company_earnings_member_id = ${teamMemberProfile.company_member_id}::uuid 
      FOR UPDATE`,
       tx.company_referral_table.findUnique({

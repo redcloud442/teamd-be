@@ -1,3 +1,4 @@
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { supabaseClient } from "./supabase.js";
 
 export const sendErrorResponse = (message: string, status: number) =>
@@ -105,3 +106,30 @@ export const getDepositBonus = (amount: number) => {
 
   return amount * lowestTier.percentage;
 };
+
+export const generateRandomCode = (length = 6) => {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
+export const generateUniqueReferralCode = async (
+  prisma: Prisma.TransactionClient,
+  maxAttempts = 5
+) => {
+  let attempts = 0;
+  while (attempts < maxAttempts) {
+    const code = generateRandomCode();
+    const existing = await prisma.company_referral_link_table.findUnique({
+      where: { company_referral_code: code },
+    });
+
+    if (!existing) return code;
+
+    attempts++;
+  }
+  throw new Error('Failed to generate a unique referral code after multiple attempts.');
+}
