@@ -30,7 +30,7 @@ export const loginModel = async (params: {
   });
 
   if (!user) {
-    throw new Error("Invalid username");
+    throw new Error("Invalid username or user is not a member.");
   }
 
   const teamMemberProfile = user.company_member_table[0];

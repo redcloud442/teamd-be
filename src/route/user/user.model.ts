@@ -10,7 +10,7 @@ import type { UserRequestdata } from "../../utils/types.js";
 import bcryptjs from "bcryptjs";
 import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
-import { supabaseClient } from "../../utils/supabase.js";
+import { supabaseAnonClient, supabaseClient } from "../../utils/supabase.js";
 
 export const userModelPut = async (params: {
   userId: string;
@@ -214,6 +214,20 @@ export const userPatchModel = async (params: {
   const { memberId, action, role, type } = params;
 
   if (action === "updateRole") {
+    const userId = await prisma.company_member_table.findFirst({
+      where: { company_member_id: memberId },
+      select: {
+        company_member_user_id: true,
+      },
+    });
+
+    if (!userId) {
+      return {
+        success: false,
+        error: "User not found.",
+      };
+    }
+
     await prisma.company_member_table.update({
       where: { company_member_id: memberId },
       data: {
@@ -247,6 +261,19 @@ export const userPatchModel = async (params: {
       });
     }
 
+    await supabaseClient.auth.admin.updateUserById(userId.company_member_user_id, {
+      user_metadata: {
+        Role: role,
+      },
+    });
+
+
+    await prisma.$executeRaw`
+    DELETE FROM auth.sessions
+    WHERE user_id = ${userId.company_member_user_id}::uuid
+    `
+
+
     return {
       success: true,
       message: "User role updated successfully.",
@@ -254,6 +281,20 @@ export const userPatchModel = async (params: {
   }
 
   if (action === "banUser") {
+    const userId = await prisma.company_member_table.findFirst({
+      where: { company_member_id: memberId },
+      select: {
+        company_member_user_id: true,
+      },
+    });
+
+    if (!userId) {
+      return {
+        success: false,
+        error: "User not found.",
+      };
+    }
+
     if (type === "BAN") {
       await prisma.company_member_table.update({
         where: { company_member_id: memberId },
@@ -274,6 +315,10 @@ export const userPatchModel = async (params: {
         ban_duration: "none",
       });
     }
+    await prisma.$executeRaw`
+    DELETE FROM auth.sessions
+    WHERE user_id = ${userId.company_member_user_id}::uuid
+    `
 
     return {
       success: true,
@@ -289,14 +334,14 @@ export const userSponsorModel = async (params: { userId: string }) => {
   SELECT
         ut2.user_username
       FROM user_schema.user_table ut
-      JOIN company_schema.company_member_table am
-        ON am.company_member_user_id = ut.user_id
-      JOIN company_schema.company_referral_table art
-        ON art.company_referral_member_id = am.company_member_id
-      JOIN company_schema.company_member_table am2
-        ON am2.company_member_id = art.company_referral_from_member_id
+      JOIN alliance_schema.alliance_member_table am
+        ON am.alliance_member_user_id = ut.user_id
+      JOIN alliance_schema.alliance_referral_table art
+        ON art.alliance_referral_member_id = am.alliance_member_id
+      JOIN alliance_schema.alliance_member_table am2
+        ON am2.alliance_member_id = art.alliance_referral_from_member_id
       JOIN user_schema.user_table ut2
-        ON ut2.user_id = am2.company_member_user_id
+        ON ut2.user_id = am2.alliance_member_user_id
       WHERE ut.user_id = ${userId}::uuid
   `;
 

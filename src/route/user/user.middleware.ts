@@ -130,7 +130,7 @@ export const userGetMiddleware = async (c: Context, next: Next) => {
 export const userPatchMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAccountingAdmin(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
