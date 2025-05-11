@@ -86,8 +86,7 @@ export const registerUserController = async (c: Context) => {
     return c.json({ message: "User created" }, 200);
   } catch (error) {
     
- 
-    await supabaseClient.auth.admin.deleteUser(params.userId);
+     await supabaseClient.auth.admin.deleteUser(params.userId);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       
       return c.json({ message: "A database error occurred" }, 500);
@@ -95,9 +94,6 @@ export const registerUserController = async (c: Context) => {
     if (error instanceof Error) {
       return c.json({ message: error.message }, 401);
     }
-  
- 
-
     return c.json({ message: "Internal server error" }, 500);
   }
 };
