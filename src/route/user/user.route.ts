@@ -50,9 +50,10 @@ user.put("/:id", userProfilePutMiddleware, userProfilePutController);
 
 user.get("/:id/tree", userTreeMiddleware, userTreeController);
 
+
 user.put(
   "/:id/change-password",
-  userChangePasswordMiddleware,
+  userChangePasswordMiddleware, 
   userChangePasswordController
 );
 
