@@ -19,6 +19,7 @@ import {
   protectionAccountingAdmin,
   protectionAdmin,
   protectionMemberUser,
+  protectionMerchantAdminAccounting,
 } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 
@@ -503,7 +504,7 @@ export const userListReinvestedMiddleware = async (c: Context, next: Next) => {
 export const userTreeMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAccountingAdmin(user.id, prisma);
+  const response = await protectionMerchantAdminAccounting(user.id, prisma);
 
   if (response instanceof Response) {
     return response;
@@ -574,7 +575,7 @@ export const userGetSearchMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!validate.success) {
-    console.log(validate.error);
+  
     return sendErrorResponse("Invalid Request", 400);
   }
 

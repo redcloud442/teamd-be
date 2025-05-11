@@ -18,10 +18,11 @@ export const packagePostMiddleware = async (c, next) => {
         return sendErrorResponse("Too Many Requests", 429);
     }
     const { amount, packageId } = await c.req.json();
-    const { success } = packagePostSchema.safeParse({ amount, packageId });
+    const { success, data } = packagePostSchema.safeParse({ amount, packageId });
     if (!success) {
         return c.json({ message: "Invalid request" }, 400);
     }
+    c.set("params", data);
     c.set("teamMemberProfile", teamMemberProfile);
     await next();
 };

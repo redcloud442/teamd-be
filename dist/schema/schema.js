@@ -1,5 +1,17 @@
 import { z } from "zod";
 //for auth and register
+const reservedUsernames = [
+    "admin",
+    "root",
+    "support",
+    "superuser",
+    "about",
+    "contact",
+    "user",
+    "null",
+    "undefined",
+    "test",
+];
 export const registerSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
@@ -7,32 +19,65 @@ export const registerSchema = z.object({
 export const LoginSchema = z.object({
     userName: z
         .string()
+        .trim()
         .min(6, "Username must be at least 6 characters long")
-        .max(50, "Username must be at most 50 characters long")
-        .regex(/^[a-zA-Z0-9][a-zA-Z0-9._]*$/, // ✅ Allows letters OR numbers at the start
-    "Username must start with a letter or number and can only contain letters, numbers, dots, and underscores"),
+        .max(20, "Username must be at most 20 characters long")
+        .regex(/^[a-zA-Z][a-zA-Z0-9._]*$/, "Username must start with a letter and can only contain letters, numbers, dots, and underscores")
+        .refine((val) => !/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu.test(val), {
+        message: "Username must not contain emojis",
+    })
+        .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
+        message: "This username is not allowed",
+    }),
     password: z.string().min(6),
 });
 export const loginCheckSchema = z.object({
     userName: z
         .string()
+        .trim()
         .min(6, "Username must be at least 6 characters long")
-        .max(20, "Username must be at most 50 characters long")
-        .regex(/^[a-zA-Z][a-zA-Z0-9._]*$/, "Username must start with a letter and can only contain letters, numbers, dots, and underscores"),
+        .max(20, "Username must be at most 20 characters long")
+        .regex(/^[a-zA-Z][a-zA-Z0-9._]*$/, "Username must start with a letter and can only contain letters, numbers, dots, and underscores")
+        .refine((val) => !/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu.test(val), {
+        message: "Username must not contain emojis",
+    })
+        .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
+        message: "This username is not allowed",
+    }),
 });
 //register
 export const registerUserSchema = z.object({
     userId: z.string().uuid(),
     userName: z
         .string()
+        .trim()
         .min(6, "Username must be at least 6 characters long")
-        .max(20, "Username must be at most 50 characters long")
-        .regex(/^[a-zA-Z][a-zA-Z0-9._]*$/, "Username must start with a letter and can only contain letters, numbers, dots, and underscores"),
-    firstName: z.string().min(2),
-    lastName: z.string().min(2),
+        .max(20, "Username must be at most 20 characters long")
+        .regex(/^[a-zA-Z][a-zA-Z0-9._]*$/, "Username must start with a letter and can only contain letters, numbers, dots, and underscores")
+        .refine((val) => !/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu.test(val), {
+        message: "Username must not contain emojis",
+    })
+        .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
+        message: "This username is not allowed",
+    }),
+    firstName: z
+        .string()
+        .trim()
+        .min(3, "First name is required")
+        .max(50, "First name must be less than 50 characters"),
+    lastName: z
+        .string()
+        .trim()
+        .min(3, "Last name is required")
+        .max(50, "Last name must be less than 50 characters"),
     referalLink: z.string().min(2),
-    email: z.string().email().optional(),
-    phoneNumber: z.string().min(10).max(11).optional(),
+    email: z.preprocess((val) => (val === "" || val == null ? undefined : val), z.string().email("Invalid email address").optional()),
+    phoneNumber: z.preprocess((val) => (val === "" || val == null ? undefined : val), z
+        .string()
+        .regex(/^\d+$/, "Phone number must only contain digits")
+        .min(10, "Phone number must be at least 10 digits")
+        .max(11, "Phone number must be at most 11 digits")
+        .optional()),
     url: z.string().min(2),
     botField: z.string().optional(),
 });
@@ -40,6 +85,7 @@ export const registerUserSchema = z.object({
 export const depositSchema = z.object({
     amount: z
         .string()
+        .trim()
         .min(3, "Amount is required and must be at least 500 pesos")
         .max(6, "Amount must be less than 6 digits")
         .regex(/^\d+$/, "Amount must be a number")
@@ -52,7 +98,7 @@ export const depositSchema = z.object({
 });
 export const updateDepositSchema = z.object({
     status: z.enum(["APPROVED", "REJECTED"]),
-    note: z.string().optional(),
+    note: z.string().trim().optional(),
     requestId: z.string().uuid(),
 });
 export const depositHistoryPostSchema = z.object({

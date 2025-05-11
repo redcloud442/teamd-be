@@ -41,11 +41,13 @@ export const packagePostMiddleware = async (c: Context, next: Next) => {
 
   const { amount, packageId } = await c.req.json();
 
-  const { success } = packagePostSchema.safeParse({ amount, packageId });
+  const { success, data } = packagePostSchema.safeParse({ amount, packageId });
 
   if (!success) {
     return c.json({ message: "Invalid request" }, 400);
   }
+
+  c.set("params", data);
 
   c.set("teamMemberProfile", teamMemberProfile);
 

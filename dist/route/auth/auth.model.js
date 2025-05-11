@@ -148,7 +148,7 @@ export const registerUserModel = async (params) => {
             await handleReferral(tx, referalLink, allianceMember.company_member_id);
             await supabaseClient.auth.admin.updateUserById(userId, {
                 user_metadata: {
-                    Role: "ADMIN",
+                    Role: "MEMBER",
                     ReferralCode: referralCode,
                     ReferralLink: referralLinkURL,
                     CompanyId: DEFAULT_COMPANY_ID,

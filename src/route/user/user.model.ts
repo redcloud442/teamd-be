@@ -116,7 +116,6 @@ export const userModelGet = async ({ memberId }: { memberId: string }) => {
   const todayStart = getPhilippinesTime(new Date(), "start");
   const todayEnd = getPhilippinesTime(new Date(), "end");
 
-  console.log(memberId)
 
   const baseWithdrawFilter = {
     company_withdrawal_request_member_id: memberId,

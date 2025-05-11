@@ -112,7 +112,6 @@ export const packagePostModel = async (params) => {
                     if (!ref.referrerId)
                         return;
                     const calculatedEarnings = (Number(amount) * Number(ref.percentage)) / 100;
-                    console.log(ref.referrerId);
                     await tx.company_earnings_table.update({
                         where: { company_earnings_member_id: ref.referrerId },
                         data: {
@@ -386,6 +385,147 @@ export const packageListGetAdminModel = async () => {
     });
     return result;
 };
+export const packagePostReinvestmentModel = async (params) => {
+    const { amount, packageId, teamMemberProfile } = params;
+    const connectionData = await prisma.$transaction(async (tx) => {
+        const [packageData, earningsData, referralData] = await Promise.all([
+            tx.package_table.findUnique({
+                where: { package_id: packageId },
+                select: {
+                    package_percentage: true,
+                    packages_days: true,
+                    package_is_disabled: true,
+                    package_name: true,
+                },
+            }),
+            tx.$queryRaw `SELECT 
+       company_combined_earnings,
+       company_package_earnings,
+       company_referral_earnings
+       FROM company_schema.company_earnings_table 
+       WHERE company_earnings_member_id = ${teamMemberProfile.company_member_id}::uuid 
+       FOR UPDATE`,
+            tx.company_referral_table.findFirst({
+                where: {
+                    company_referral_member_id: teamMemberProfile.company_member_id,
+                },
+                select: { company_referral_hierarchy: true },
+            }),
+        ]);
+        if (!packageData) {
+            throw new Error("Package not found.");
+        }
+        if (packageData.package_is_disabled) {
+            throw new Error("Package is disabled.");
+        }
+        if (!earningsData) {
+            throw new Error("Earnings record not found.");
+        }
+        const { company_combined_earnings, company_package_earnings, company_referral_earnings, } = earningsData[0];
+        const combinedEarnings = Number(company_combined_earnings.toFixed(2));
+        const requestedAmount = Number(amount.toFixed(2));
+        if (combinedEarnings < requestedAmount) {
+            throw new Error("Insufficient balance in the wallet.");
+        }
+        const finalAmount = requestedAmount;
+        const { olympusEarnings, referralWallet, isReinvestment, updatedCombinedWallet, } = deductFromWalletsReinvestment(requestedAmount, combinedEarnings, Number(company_package_earnings.toFixed(2)), Number(company_referral_earnings.toFixed(2)));
+        const packagePercentage = new Prisma.Decimal(Number(packageData.package_percentage)).div(100);
+        const packageAmountEarnings = new Prisma.Decimal(finalAmount).mul(packagePercentage);
+        const referralChain = generateReferralChain(referralData?.company_referral_hierarchy ?? null, teamMemberProfile.company_member_id, 100);
+        let bountyLogs = [];
+        let transactionLogs = [];
+        const requestedAmountWithBonus = requestedAmount;
+        const connectionData = await tx.package_member_connection_table.create({
+            data: {
+                package_member_member_id: teamMemberProfile.company_member_id,
+                package_member_package_id: packageId,
+                package_member_amount: Number(requestedAmountWithBonus.toFixed(2)),
+                package_amount_earnings: Number(packageAmountEarnings.toFixed(2)),
+                package_member_status: "ACTIVE",
+                package_member_completion_date: new Date(Date.now() + packageData.packages_days * 24 * 60 * 60 * 1000),
+                package_member_is_reinvestment: isReinvestment,
+            },
+        });
+        await tx.company_transaction_table.create({
+            data: {
+                company_transaction_member_id: teamMemberProfile.company_member_id,
+                company_transaction_amount: Number(requestedAmountWithBonus.toFixed(2)),
+                company_transaction_description: `Package Enrolled: ${packageData.package_name}`,
+                company_transaction_type: "EARNINGS",
+            },
+        });
+        await tx.company_earnings_table.update({
+            where: {
+                company_earnings_member_id: teamMemberProfile.company_member_id,
+            },
+            data: {
+                company_combined_earnings: updatedCombinedWallet,
+                company_package_earnings: olympusEarnings,
+                company_referral_earnings: referralWallet,
+            },
+        });
+        if (referralChain.length > 0) {
+            const batchSize = 100;
+            const limitedReferralChain = [];
+            for (let i = 0; i < referralChain.length; i++) {
+                if (referralChain[i].level > 10)
+                    break;
+                limitedReferralChain.push(referralChain[i]);
+            }
+            for (let i = 0; i < limitedReferralChain.length; i += batchSize) {
+                const batch = limitedReferralChain.slice(i, i + batchSize);
+                bountyLogs = batch.map((ref) => {
+                    // Calculate earnings based on ref.percentage and round to the nearest integer
+                    const calculatedEarnings = (Number(finalAmount) * Number(ref.percentage)) / 100;
+                    return {
+                        package_ally_bounty_member_id: ref.referrerId,
+                        package_ally_bounty_percentage: ref.percentage,
+                        package_ally_bounty_earnings: calculatedEarnings,
+                        package_ally_bounty_type: ref.level === 1 ? "DIRECT" : "INDIRECT",
+                        package_ally_bounty_connection_id: connectionData.package_member_connection_id,
+                        package_ally_bounty_from: teamMemberProfile.company_member_id,
+                    };
+                });
+                transactionLogs = batch.map((ref) => {
+                    const calculatedEarnings = (Number(finalAmount) * Number(ref.percentage)) / 100;
+                    return {
+                        company_transaction_member_id: ref.referrerId,
+                        company_transaction_amount: calculatedEarnings,
+                        company_transaction_description: ref.level === 1
+                            ? "Matrix Income"
+                            : `Matrix Income ${ref.level}${ref.level === 2 ? "nd" : ref.level === 3 ? "rd" : "th"} level`,
+                    };
+                });
+                await Promise.all(batch.map(async (ref) => {
+                    if (!ref.referrerId)
+                        return;
+                    const calculatedEarnings = (Number(finalAmount) * Number(ref.percentage)) / 100;
+                    await tx.company_earnings_table.update({
+                        where: { company_earnings_member_id: ref.referrerId },
+                        data: {
+                            company_referral_earnings: {
+                                increment: calculatedEarnings,
+                            },
+                            company_combined_earnings: {
+                                increment: calculatedEarnings,
+                            },
+                        },
+                    });
+                }));
+            }
+            if (bountyLogs.length > 0) {
+                await tx.package_ally_bounty_log.createMany({ data: bountyLogs });
+            }
+            if (transactionLogs.length > 0) {
+                await tx.company_transaction_table.createMany({
+                    data: transactionLogs,
+                });
+            }
+        }
+        return connectionData;
+    });
+    return connectionData;
+};
 function generateReferralChain(hierarchy, teamMemberId, maxDepth = 100) {
     if (!hierarchy)
         return [];
@@ -418,6 +558,49 @@ function getBonusPercentage(level) {
         10: 1,
     };
     return bonusMap[level] || 0;
+}
+function deductFromWalletsReinvestment(amount, combinedWallet, olympusEarnings, referralWallet) {
+    let remaining = amount;
+    let isReinvestment = false;
+    if (combinedWallet < amount) {
+        throw new Error("Insufficient balance in combined wallet.");
+    }
+    // Deduct from Olympus Earnings next
+    if (remaining > 0) {
+        if (olympusEarnings >= remaining) {
+            isReinvestment = true;
+            olympusEarnings -= remaining;
+            remaining = 0;
+        }
+        else {
+            remaining -= olympusEarnings;
+            isReinvestment = true;
+            olympusEarnings = 0;
+        }
+    }
+    // Deduct from Referral Wallet
+    if (remaining > 0) {
+        if (referralWallet >= remaining) {
+            referralWallet -= remaining;
+            remaining = 0;
+        }
+        else {
+            remaining -= referralWallet;
+            referralWallet = 0;
+        }
+    }
+    remaining = Math.round(remaining * 1000000) / 1000000;
+    // If any balance remains, throw an error
+    if (remaining > 0) {
+        throw new Error("Insufficient funds to complete the transaction.");
+    }
+    // Return updated balances and remaining combined wallet
+    return {
+        olympusEarnings,
+        referralWallet,
+        isReinvestment,
+        updatedCombinedWallet: combinedWallet - amount,
+    };
 }
 function deductFromWallets(amount, combinedWallet, companyWallet, companyEarnings, companyReferralBounty, companyCombinedEarnings) {
     let remaining = amount;

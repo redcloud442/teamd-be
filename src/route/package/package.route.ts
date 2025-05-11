@@ -7,6 +7,7 @@ import {
   packagesCreatePostController,
   packagesGetAdminController,
   packagesListPostController,
+  packageReinvestmentPostController,
   packagesUpdatePutController,
 } from "./package.controller.js";
 import {
@@ -40,6 +41,12 @@ packages.post(
   "/claim",
   packagesClaimPostMiddleware,
   packagesClaimPostController
+);
+
+packages.post(
+  "/reinvestment",
+  packagePostMiddleware,
+  packageReinvestmentPostController
 );
 
 export default packages;

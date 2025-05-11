@@ -1,7 +1,7 @@
 import { userChangePasswordSchema, userGenerateLinkSchema, userGetReferralSchema, userGetSearchSchema, userListReinvestedSchema, userListSchema, userProfileSchemaPatch, userSchemaPatch, userSchemaPost, userSchemaPut, userSponsorSchema, userTreeSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
-import { protectionAccountingAdmin, protectionAdmin, protectionMemberUser, } from "../../utils/protection.js";
+import { protectionAccountingAdmin, protectionAdmin, protectionMemberUser, protectionMerchantAdminAccounting, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 export const userPutMiddleware = async (c, next) => {
     const user = c.get("user");
@@ -276,7 +276,7 @@ export const userListReinvestedMiddleware = async (c, next) => {
 };
 export const userTreeMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAccountingAdmin(user.id, prisma);
+    const response = await protectionMerchantAdminAccounting(user.id, prisma);
     if (response instanceof Response) {
         return response;
     }
@@ -317,7 +317,6 @@ export const userGetSearchMiddleware = async (c, next) => {
         userName: search,
     });
     if (!validate.success) {
-        console.log(validate.error);
         return sendErrorResponse("Invalid Request", 400);
     }
     c.set("params", validate.data);
