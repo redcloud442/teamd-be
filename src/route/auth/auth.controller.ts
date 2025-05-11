@@ -85,6 +85,7 @@ export const registerUserController = async (c: Context) => {
 
     return c.json({ message: "User created" }, 200);
   } catch (error) {
+    
  
     await supabaseClient.auth.admin.deleteUser(params.userId);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

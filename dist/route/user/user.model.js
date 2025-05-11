@@ -3,7 +3,7 @@ import { getPhilippinesTime } from "../../utils/function.js";
 import bcryptjs from "bcryptjs";
 import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
-import { supabaseClient } from "../../utils/supabase.js";
+import { supabaseAnonClient, supabaseClient } from "../../utils/supabase.js";
 export const userModelPut = async (params) => {
     const { userId, email, password } = params;
     const user = await prisma.user_table.findFirst({
@@ -57,6 +57,7 @@ export const userModelPost = async (params) => {
             total_earnings: true,
             total_withdrawals: true,
             direct_referral_count: true,
+            package_income: true,
             indirect_referral_count: true,
         },
     });
@@ -76,91 +77,111 @@ export const userModelPost = async (params) => {
         indirectReferralAmount: user?.indirect_referral_amount,
         totalEarnings: user?.total_earnings,
         withdrawalAmount: user?.total_withdrawals,
+        packageEarnings: userEarnings?.company_package_earnings,
         directReferralCount: user?.direct_referral_count,
         indirectReferralCount: user?.indirect_referral_count,
     };
     return { totalEarnings, userEarningsData: userEarnings };
 };
-export const userModelGet = async (params) => {
-    const { memberId } = params;
-    let canWithdrawPackage = false;
-    let canWithdrawReferral = false;
-    let canWithdrawWinning = false;
-    let canUserDeposit = false;
+export const userModelGet = async ({ memberId }) => {
     const todayStart = getPhilippinesTime(new Date(), "start");
     const todayEnd = getPhilippinesTime(new Date(), "end");
-    const existingPackageWithdrawal = await prisma.company_withdrawal_request_table.findFirst({
-        where: {
-            company_withdrawal_request_member_id: memberId,
-            company_withdrawal_request_status: {
-                in: ["PENDING", "APPROVED"],
-            },
-            company_withdrawal_request_withdraw_type: "PACKAGE",
-            company_withdrawal_request_date: {
-                gte: todayStart, // Start of the day
-                lte: todayEnd, // End of the day
-            },
+    console.log(memberId);
+    const baseWithdrawFilter = {
+        company_withdrawal_request_member_id: memberId,
+        company_withdrawal_request_status: {
+            in: ["PENDING", "APPROVED"],
         },
-    });
-    const existingReferralWithdrawal = await prisma.company_withdrawal_request_table.findFirst({
-        where: {
-            company_withdrawal_request_member_id: memberId,
-            company_withdrawal_request_status: {
-                in: ["PENDING", "APPROVED"],
-            },
-            company_withdrawal_request_withdraw_type: "REFERRAL",
-            company_withdrawal_request_date: {
-                gte: getPhilippinesTime(new Date(new Date()), "start"),
-                lte: getPhilippinesTime(new Date(new Date()), "end"),
-            },
+        company_withdrawal_request_date: {
+            gte: todayStart,
+            lte: todayEnd,
         },
-    });
-    const existingWinningWithdrawal = await prisma.company_withdrawal_request_table.findFirst({
-        where: {
-            company_withdrawal_request_member_id: memberId,
-            company_withdrawal_request_status: {
-                in: ["PENDING", "APPROVED"],
-            },
-            company_withdrawal_request_withdraw_type: "WINNING",
-            company_withdrawal_request_date: {
-                gte: getPhilippinesTime(new Date(new Date()), "start"),
-                lte: getPhilippinesTime(new Date(new Date()), "end"),
-            },
-        },
-    });
-    if (existingPackageWithdrawal !== null) {
-        canWithdrawPackage = true;
-    }
-    if (existingReferralWithdrawal !== null) {
-        canWithdrawReferral = true;
-    }
-    if (existingWinningWithdrawal !== null) {
-        canWithdrawWinning = true;
-    }
-    const existingDeposit = await prisma.company_deposit_request_table.findFirst({
-        where: {
-            company_deposit_request_member_id: memberId,
-            company_deposit_request_status: "PENDING",
-        },
-        take: 1,
-        orderBy: {
-            company_deposit_request_date: "desc",
-        },
-    });
-    if (existingDeposit !== null) {
-        canUserDeposit = true;
-    }
-    const data = {
-        canWithdrawPackage,
-        canWithdrawReferral,
-        canWithdrawWinning,
-        canUserDeposit,
     };
-    return { data };
+    // Run queries in parallel
+    const [existingPackageWithdrawal, existingReferralWithdrawal, existingDeposit, user, userEarnings,] = await Promise.all([
+        prisma.company_withdrawal_request_table.findFirst({
+            where: {
+                ...baseWithdrawFilter,
+                company_withdrawal_request_withdraw_type: "PACKAGE",
+            },
+        }),
+        prisma.company_withdrawal_request_table.findFirst({
+            where: {
+                ...baseWithdrawFilter,
+                company_withdrawal_request_withdraw_type: "REFERRAL",
+            },
+        }),
+        prisma.company_deposit_request_table.findFirst({
+            where: {
+                company_deposit_request_member_id: memberId,
+                company_deposit_request_status: "PENDING",
+            },
+            take: 1,
+            orderBy: {
+                company_deposit_request_date: "desc",
+            },
+        }),
+        prisma.dashboard_earnings_summary.findUnique({
+            where: {
+                member_id: memberId,
+            },
+            select: {
+                direct_referral_amount: true,
+                indirect_referral_amount: true,
+                total_earnings: true,
+                total_withdrawals: true,
+                direct_referral_count: true,
+                package_income: true,
+                indirect_referral_count: true,
+            },
+        }),
+        prisma.company_earnings_table.findUnique({
+            where: {
+                company_earnings_member_id: memberId,
+            },
+            select: {
+                company_member_wallet: true,
+                company_package_earnings: true,
+                company_combined_earnings: true,
+                company_referral_earnings: true,
+            },
+        }),
+    ]);
+    const totalEarnings = {
+        directReferralAmount: user?.direct_referral_amount,
+        indirectReferralAmount: user?.indirect_referral_amount,
+        totalEarnings: user?.total_earnings,
+        withdrawalAmount: user?.total_withdrawals,
+        packageEarnings: userEarnings?.company_package_earnings,
+        directReferralCount: user?.direct_referral_count,
+        indirectReferralCount: user?.indirect_referral_count,
+    };
+    const actions = {
+        canWithdrawPackage: !existingPackageWithdrawal,
+        canWithdrawReferral: !existingReferralWithdrawal,
+        canUserDeposit: !existingDeposit,
+    };
+    return {
+        totalEarnings,
+        userEarningsData: userEarnings,
+        actions,
+    };
 };
 export const userPatchModel = async (params) => {
     const { memberId, action, role, type } = params;
     if (action === "updateRole") {
+        const userId = await prisma.company_member_table.findFirst({
+            where: { company_member_id: memberId },
+            select: {
+                company_member_user_id: true,
+            },
+        });
+        if (!userId) {
+            return {
+                success: false,
+                error: "User not found.",
+            };
+        }
         await prisma.company_member_table.update({
             where: { company_member_id: memberId },
             data: {
@@ -190,12 +211,33 @@ export const userPatchModel = async (params) => {
                 },
             });
         }
+        await supabaseClient.auth.admin.updateUserById(userId.company_member_user_id, {
+            user_metadata: {
+                Role: role,
+            },
+        });
+        await prisma.$executeRaw `
+    DELETE FROM auth.sessions
+    WHERE user_id = ${userId.company_member_user_id}::uuid
+    `;
         return {
             success: true,
             message: "User role updated successfully.",
         };
     }
     if (action === "banUser") {
+        const userId = await prisma.company_member_table.findFirst({
+            where: { company_member_id: memberId },
+            select: {
+                company_member_user_id: true,
+            },
+        });
+        if (!userId) {
+            return {
+                success: false,
+                error: "User not found.",
+            };
+        }
         if (type === "BAN") {
             await prisma.company_member_table.update({
                 where: { company_member_id: memberId },
@@ -214,6 +256,10 @@ export const userPatchModel = async (params) => {
                 ban_duration: "none",
             });
         }
+        await prisma.$executeRaw `
+    DELETE FROM auth.sessions
+    WHERE user_id = ${userId.company_member_user_id}::uuid
+    `;
         return {
             success: true,
             message: "User banned successfully.",
@@ -385,7 +431,7 @@ export const userActiveListModel = async (params) => {
     LEFT JOIN company_schema.company_earnings_table ae
       ON ae.company_earnings_member_id = am.company_member_id
     WHERE
-      ae.company_olympus_wallet > 0
+      ae.company_package_earnings > 0
       ${searchCondition}
       ${orderBy}
     LIMIT ${limit}
@@ -400,7 +446,7 @@ export const userActiveListModel = async (params) => {
     LEFT JOIN company_schema.company_earnings_table ae
       ON ae.company_earnings_member_id = am.company_member_id
       WHERE
-      ae.company_olympus_wallet > 0
+      ae.company_package_earnings > 0
       ${searchCondition}
     `;
     return {
@@ -436,7 +482,7 @@ export const userListReinvestedModel = async (params) => {
       JOIN packages_schema.package_earnings_log pol
           ON pol.package_member_member_id = pml.package_member_member_id
       JOIN company_schema.company_member_table am
-          ON am.alliance_member_id = pml.package_member_member_id
+          ON am.company_member_id = pml.package_member_member_id
       JOIN user_schema.user_table u
           ON u.user_id = am.company_member_user_id
       WHERE pml.package_member_is_reinvestment = true AND pml.package_member_connection_created::timestamptz
@@ -462,7 +508,7 @@ export const userListReinvestedModel = async (params) => {
           JOIN packages_schema.package_earnings_log pol
           ON pol.package_member_member_id = pml.package_member_member_id
           JOIN company_schema.company_member_table am
-              ON am.alliance_member_id = pml.package_member_member_id
+              ON am.company_member_id = pml.package_member_member_id
           JOIN user_schema.user_table u
               ON u.user_id = am.company_member_user_id
           WHERE pml.package_member_is_reinvestment = true

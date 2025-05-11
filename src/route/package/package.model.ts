@@ -18,13 +18,13 @@ export const packagePostModel = async (params: {
         {
           company_combined_earnings: number;
           company_member_wallet: number;
-          company_member_earnings: number;
+          company_package_earnings: number;
           company_referral_earnings: number;
         }[]
       >`SELECT 
      company_combined_earnings,
      company_member_wallet,
-     company_member_earnings,
+     company_package_earnings,
      company_referral_earnings
      FROM company_schema.company_earnings_table 
      WHERE company_earnings_member_id = ${teamMemberProfile.company_member_id}::uuid 
@@ -50,7 +50,7 @@ export const packagePostModel = async (params: {
 
     const {
       company_member_wallet,
-      company_member_earnings,
+      company_package_earnings,
       company_referral_earnings,
       company_combined_earnings,
     } = earningsData[0];
@@ -73,7 +73,7 @@ export const packagePostModel = async (params: {
       requestedAmount,
       combinedEarnings,
       Number(company_member_wallet.toFixed(2)),
-      Number(company_member_earnings.toFixed(2)),
+      Number(company_package_earnings.toFixed(2)),
       Number(company_referral_earnings.toFixed(2)),
       Number(company_combined_earnings.toFixed(2))
     );
@@ -117,6 +117,7 @@ export const packagePostModel = async (params: {
         company_transaction_member_id: teamMemberProfile.company_member_id,
         company_transaction_amount: Number(requestedAmount.toFixed(2)),
         company_transaction_description: `Package Enrolled: ${packageData.package_name}`,
+        company_transaction_type: "EARNINGS",
       },
     });
 
@@ -165,10 +166,11 @@ export const packagePostModel = async (params: {
           return {
             company_transaction_member_id: ref.referrerId,
             company_transaction_amount: calculatedEarnings,
+            company_transaction_type: "EARNINGS",
             company_transaction_description:
               ref.level === 1
-                ? "Direct Referral"
-                : `Multiple Referral Level ${ref.level}`,
+                ? "Referral"
+                : `Matrix Referral Level ${ref.level}`,
           };
         });
 
@@ -178,6 +180,8 @@ export const packagePostModel = async (params: {
 
             const calculatedEarnings =
               (Number(amount) * Number(ref.percentage)) / 100;
+
+            console.log(ref.referrerId);
 
             await tx.company_earnings_table.update({
               where: { company_earnings_member_id: ref.referrerId },
@@ -230,7 +234,7 @@ export const packageGetModel = async () => {
         package_percentage: true,
         package_description: true,
         packages_days: true,
-        package_color: true,
+        package_gif: true,
         package_image: true,
       },
     });
@@ -245,7 +249,7 @@ export const packageCreatePostModel = async (params: {
   packageDescription: string;
   packagePercentage: string;
   packageDays: string;
-  packageColor: string;
+  packageGif: string;
   packageImage: string;
 }) => {
   const {
@@ -253,7 +257,7 @@ export const packageCreatePostModel = async (params: {
     packageDescription,
     packagePercentage,
     packageDays,
-    packageColor,
+    packageGif,
     packageImage,
   } = params;
 
@@ -281,7 +285,7 @@ export const packageCreatePostModel = async (params: {
         package_description: packageDescription,
         package_percentage: parsedPackagePercentage,
         packages_days: parsedPackageDays,
-        package_color: packageColor ?? "#000000",
+        package_gif: packageGif,
         package_image: packageImage,
       },
     }),
@@ -296,7 +300,7 @@ export const packageUpdatePutModel = async (params: {
   packagePercentage: string;
   packageIsDisabled: boolean;
   packageDays: string;
-  packageColor: string;
+  packageGif: string;
   packageId: string;
   package_image: string;
 }) => {
@@ -306,7 +310,7 @@ export const packageUpdatePutModel = async (params: {
     packagePercentage,
     packageIsDisabled,
     packageDays,
-    packageColor,
+    packageGif,
     packageId,
     package_image,
   } = params;
@@ -321,7 +325,7 @@ export const packageUpdatePutModel = async (params: {
           package_percentage: parseFloat(packagePercentage),
           packages_days: parseInt(packageDays),
           package_is_disabled: packageIsDisabled,
-          package_color: packageColor,
+          package_gif: packageGif,
           package_image: package_image ? package_image : undefined,
         },
       });
@@ -446,6 +450,7 @@ export const claimPackagePostModel = async (params: {
         company_transaction_member_id: teamMemberProfile.company_member_id,
         company_transaction_amount: totalClaimedAmount,
         company_transaction_description: ` ${packageDetails.package_name} Package Claimed`,
+        company_transaction_type: "EARNINGS",
       },
     });
 
@@ -483,8 +488,10 @@ export const packageListGetModel = async (params: {
       package_table: {
         select: {
           package_name: true,
-          package_color: true,
+          package_gif: true,
           packages_days: true,
+          package_percentage: true,
+          package_image: true,
         },
       },
     },
@@ -525,7 +532,7 @@ export const packageListGetModel = async (params: {
 
       return {
         package: row.package_table.package_name,
-        package_color: row.package_table.package_color || "#FFFFFF",
+        package_gif: row.package_table.package_gif,
         completion_date: completionDate?.toISOString(),
         amount: Number(row.package_member_amount.toFixed(2)),
         completion: Number(percentage.toFixed(2)),
@@ -533,6 +540,10 @@ export const packageListGetModel = async (params: {
         profit_amount: Number(row.package_amount_earnings.toFixed(2)),
         current_amount: Number(Math.trunc(currentAmount)),
         is_ready_to_claim: percentage === 100,
+        package_percentage: row.package_table.package_percentage,
+        package_days: row.package_table.packages_days,
+        package_image: row.package_table.package_image,
+        package_date_created: row.package_member_connection_created,
       };
     })
   );
@@ -548,7 +559,7 @@ export const packageListGetAdminModel = async () => {
       package_percentage: true,
       package_description: true,
       packages_days: true,
-      package_color: true,
+      package_gif: true,
       package_image: true,
     },
   });
@@ -584,10 +595,10 @@ function generateReferralChain(
 function getBonusPercentage(level: number): number {
   const bonusMap: Record<number, number> = {
     1: 10,
-    2: 3,
+    2: 2,
     3: 2,
-    4: 1,
-    5: 1,
+    4: 1.5,
+    5: 1.5,
     6: 1,
     7: 1,
     8: 1,

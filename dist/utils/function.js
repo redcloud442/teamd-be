@@ -1,4 +1,5 @@
 import { supabaseClient } from "./supabase.js";
+import { redis } from "./redis.js";
 export const sendErrorResponse = (message, status) => Response.json({ message: message }, { status });
 export const sendSuccessResponse = (message, status) => Response.json({ message: message }, { status });
 export const getClientIP = (request) => request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
@@ -95,4 +96,12 @@ export const generateUniqueReferralCode = async (prisma, maxAttempts = 5) => {
         attempts++;
     }
     throw new Error('Failed to generate a unique referral code after multiple attempts.');
+};
+export const invalidateTransactionCache = async (memberId, statusTypes = ["PACKAGE", "WITHDRAWAL", "DEPOSIT"]) => {
+    for (const status of statusTypes) {
+        const keys = await redis.keys(`transaction:${memberId}:${status}:*`);
+        if (keys.length > 0) {
+            await redis.del(...keys);
+        }
+    }
 };

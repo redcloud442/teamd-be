@@ -40,7 +40,3 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ghcr.io/redcloud442/starter-hono:prod
-
-     - name: Invoke Web Hook
-        run: |
-          curl -X POST -H "Content-Type: application/json" "Authorization: Bearer ${{ secrets.WEBHOOK_TOKEN }}" -d '{"message": "Docker image pushed"}' ${{ secrets.WEBHOOK_URL_SERVER }}

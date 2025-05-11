@@ -8,6 +8,7 @@ import {
   depositReferencePostModel,
   depositReportPostModel,
 } from "./deposit.model.js";
+import { invalidateTransactionCache } from "../../utils/function.js";
 
 export const depositPostController = async (c: Context) => {
   const supabase = supabaseClient;
@@ -26,6 +27,7 @@ export const depositPostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
+    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["DEPOSIT"]);
     return c.json({ message: "Deposit Created" }, { status: 200 });
   } catch (e) {
     await supabase.storage.from("REQUEST_ATTACHMENTS").remove([publicUrl]);
@@ -44,6 +46,8 @@ export const depositPutController = async (c: Context) => {
       requestId,
       teamMemberProfile,
     });
+    
+    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["DEPOSIT"]);
 
     return c.json({ message: "Deposit Updated" }, { status: 200 });
   } catch (e) {

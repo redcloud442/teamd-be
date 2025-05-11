@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { protectionMiddleware } from "../middleware/protection.middleware.js";
-import auth from "./auth/auth.route.js";
+import access from "./auth/auth.route.js";
 import dashboard from "./dashboard/dashboard.route.js";
 import deposit from "./deposit/deposit.route.js";
 import health from "./health/health.route.js";
@@ -16,7 +16,7 @@ import withdraw from "./withdraw/withdraw.route.js";
 const app = new Hono();
 
 //auth route
-app.route("/auth", auth);
+app.route("/access", access);
 
 //health route
 app.route("/health", health);

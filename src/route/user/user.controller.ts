@@ -45,11 +45,12 @@ export const userGetController = async (c: Context) => {
     const teamMemberProfile = c.get("teamMemberProfile");
 
     const data = await userModelGet({
-      memberId: teamMemberProfile.alliance_member_id,
+      memberId: teamMemberProfile.company_member_id,
     });
 
     return c.json(data, 200);
   } catch (error) {
+    console.log(error)
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }
 };
@@ -76,7 +77,7 @@ export const userSponsorController = async (c: Context) => {
 
     return c.json(data, { status: 200 });
   } catch (error) {
-   
+    console.log(error);
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }
 };

@@ -45,7 +45,7 @@ export const loginCheckMiddleware = async (c, next) => {
 export const registerUserMiddleware = async (c, next) => {
     const user = c.get("user");
     const ip = getClientIP(c.req.raw);
-    const { userName, firstName, lastName, referalLink, url, botField, } = await c.req.json();
+    const { userName, firstName, lastName, referalLink, url, botField, email, phoneNumber, } = await c.req.json();
     const parsed = registerUserSchema.safeParse({
         userName,
         firstName,
@@ -54,8 +54,11 @@ export const registerUserMiddleware = async (c, next) => {
         referalLink,
         url,
         botField,
+        email,
+        phoneNumber,
     });
     if (!parsed.success) {
+        console.log(parsed.error);
         return c.json({ message: "Invalid request" }, 400);
     }
     const isAllowed = await rateLimit(`rate-limit:${userName}:${ip}`, 5, "1m", c);

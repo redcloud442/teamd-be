@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { sendErrorResponse } from "../../utils/function.js";
+import { invalidateTransactionCache, sendErrorResponse } from "../../utils/function.js";
 import {
   claimPackagePostModel,
   packageCreatePostModel,
@@ -22,10 +22,12 @@ export const packagePostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
+    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["PACKAGE"]);
 
 
     return c.json({ message: "Package Created" }, 200);
   } catch (error) {
+    console.log(error);
 
     return sendErrorResponse("Internal Server Error", 500);
   }
@@ -48,7 +50,7 @@ export const packagesCreatePostController = async (c: Context) => {
       packageDescription,
       packagePercentage,
       packageDays,
-      packageColor,
+      packageGif,
       packageImage,
     } = await c.req.json();
 
@@ -57,7 +59,7 @@ export const packagesCreatePostController = async (c: Context) => {
       packageDescription,
       packagePercentage,
       packageDays,
-      packageColor,
+      packageGif,
       packageImage,
     });
 
@@ -77,7 +79,7 @@ export const packagesUpdatePutController = async (c: Context) => {
       packagePercentage,
       packageDays,
       packageIsDisabled,
-      packageColor,
+      packageGif,
       package_image,
     } = packageData;
 
@@ -89,7 +91,7 @@ export const packagesUpdatePutController = async (c: Context) => {
       packagePercentage,
       packageDays,
       packageIsDisabled,
-      packageColor,
+      packageGif,
       package_image,
       packageId: id,
     });
@@ -112,6 +114,8 @@ export const packagesClaimPostController = async (c: Context) => {
       packageConnectionId,
       teamMemberProfile,
     });
+
+    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["PACKAGE"]);
 
     return c.json({ message: "Package Claimed" });
   } catch (error) {

@@ -64,7 +64,7 @@ export const userGetMiddleware = async (c, next) => {
 };
 export const userPatchMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionAccountingAdmin(user.id, prisma);
     if (response instanceof Response) {
         return response;
     }
@@ -317,6 +317,7 @@ export const userGetSearchMiddleware = async (c, next) => {
         userName: search,
     });
     if (!validate.success) {
+        console.log(validate.error);
         return sendErrorResponse("Invalid Request", 400);
     }
     c.set("params", validate.data);

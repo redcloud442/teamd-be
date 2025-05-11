@@ -178,8 +178,9 @@ FOR UPDATE`;
         company_transaction_description: `Withdrawal ${
           earnings === "PACKAGE" ? "Package" : "Referral"
         } Ongoing.`,
-        company_transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
+        company_transaction_details: `Account Na  me: ${accountName}, Account Number: ${accountNumber}`,
         company_transaction_member_id: teamMemberProfile.company_member_id,
+        company_transaction_type: "WITHDRAWAL",
       },
     });
   });
@@ -341,6 +342,7 @@ export const updateWithdrawModel = async (params: {
             : updatedRequest.company_withdrawal_request_amount,
         company_transaction_member_id:
           updatedRequest.company_withdrawal_request_member_id,
+        company_transaction_type: "WITHDRAWAL",
       },
     });
 
@@ -364,10 +366,17 @@ export const withdrawListPostModel = async (params: {
       end: string;
     };
     showHiddenUser: boolean;
+    showAllDays: boolean;
   };
   teamMemberProfile: company_member_table;
 }) => {
   const { parameters, teamMemberProfile } = params;
+  
+
+const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000); // subtract 1 day (in ms)
+
+const philippinesTimeStart = getPhilippinesTime(oneDayAgo, "start");
+const philippinesTimeEnd = getPhilippinesTime(new Date(), "end");
 
   let returnData: WithdrawReturnDataType = {
     data: {
@@ -392,7 +401,9 @@ export const withdrawListPostModel = async (params: {
     isAscendingSort,
     dateFilter,
     showHiddenUser,
+    showAllDays,
   } = parameters;
+
 
   const offset = (page - 1) * limit;
   const sortBy = isAscendingSort ? "DESC" : "ASC";
@@ -410,6 +421,12 @@ export const withdrawListPostModel = async (params: {
       } (SELECT company_hidden_user_member_id FROM company_schema.company_hidden_user_table)`
     ),
   ];
+
+  if (!showAllDays || (!dateFilter?.start && !dateFilter?.end)) {
+    commonConditions.push(
+      Prisma.raw(`t.company_withdrawal_request_date::timestamptz BETWEEN '${philippinesTimeStart}'::timestamptz AND '${philippinesTimeEnd}'::timestamptz`)
+    );
+  }
 
   if (teamMemberProfile.company_member_role === "ACCOUNTING") {
     commonConditions.push(
@@ -664,7 +681,7 @@ export const withdrawHistoryReportPostTotalModel = async (params: {
     }[] = await prisma.$queryRaw`
       WITH approval_summary AS (
         SELECT 
-          t.alliance_withdrawal_request_id,
+          t.company_withdrawal_request_id,
           CASE 
             WHEN mr.company_member_role = 'ADMIN' THEN 'ADMIN'
             WHEN mt.company_member_role = 'ACCOUNTING' THEN 'ACCOUNTING'

@@ -13,19 +13,19 @@ import {
   registerUserMiddleware,
 } from "./auth.middleware.js";
 
-const auth = new Hono();
+const access = new Hono();
 
-auth.get("/", authGetMiddleware, loginGetController);
+access.get("/", authGetMiddleware, loginGetController);
 
-auth.post("/", authMiddleware, loginController);
+access.post("/", authMiddleware, loginController);
 
-auth.post("/securedStarter", authMiddleware, adminController);
+access.post("/securedStarter", authMiddleware, adminController);
 
-auth.post(
+access.post(
   "/register",
   protectionMiddleware,
   registerUserMiddleware,
   registerUserController
 );
 
-export default auth;
+export default access;

@@ -20,12 +20,13 @@ export const transactionPostMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
-    const { limit, page } = await c.req.json();
+    const { limit, page, status } = await c.req.json();
     //test
-    const validate = transactionSchemaPost.safeParse({ limit, page });
+    const validate = transactionSchemaPost.safeParse({ limit, page, status });
     if (!validate.success) {
         return sendErrorResponse(validate.error.message, 400);
     }
     c.set("teamMemberProfile", teamMemberProfile);
+    c.set("params", validate.data);
     await next();
 };

@@ -99,6 +99,8 @@ export const userPostMiddleware = async (c: Context, next: Next) => {
 export const userGetMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
+
+
   const response = await protectionMemberUser(user.id, prisma);
 
   if (response instanceof Response) {
@@ -121,6 +123,8 @@ export const userGetMiddleware = async (c: Context, next: Next) => {
   if (!isAllowed) {
     return sendErrorResponse("Too Many Requests", 429);
   }
+
+
 
   c.set("teamMemberProfile", teamMemberProfile);
 
@@ -570,6 +574,7 @@ export const userGetSearchMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!validate.success) {
+    console.log(validate.error);
     return sendErrorResponse("Invalid Request", 400);
   }
 

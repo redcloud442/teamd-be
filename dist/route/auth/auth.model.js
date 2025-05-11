@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import prisma from "../../utils/prisma.js";
-import { generateUniqueReferralCode } from "@/utils/function.js";
-import { supabaseClient } from "@/utils/supabase.js";
+import { generateUniqueReferralCode } from "../../utils/function.js";
+import { supabaseClient } from "../../utils/supabase.js";
 export const loginModel = async (params) => {
     const { userName, ip } = params;
     const user = await prisma.user_table.findFirst({
@@ -23,13 +23,13 @@ export const loginModel = async (params) => {
         },
     });
     if (!user) {
-        throw new Error("Invalid username");
+        throw new Error("Invalid username or user is not a member.");
     }
     const teamMemberProfile = user.company_member_table[0];
     if (!teamMemberProfile)
         throw new Error("User profile not found or incomplete.");
     if (teamMemberProfile.company_member_restricted) {
-        throw new Error("User is banned.");
+        throw new Error("User is temporarily restricted.");
     }
     if (teamMemberProfile.company_member_restricted ||
         !teamMemberProfile.company_member_company_id) {
@@ -103,18 +103,19 @@ export const adminModel = async (params) => {
     return { success: true };
 };
 export const registerUserModel = async (params) => {
-    const { userId, userName, firstName, lastName, referalLink, url, ip, botField, } = params;
+    const { userId, userName, firstName, lastName, referalLink, url, ip, botField, email, phoneNumber, } = params;
     if (referalLink) {
         const DEFAULT_COMPANY_ID = "a1b9ceb9-cb09-4c09-832d-6e5a017d048b";
         return await prisma.$transaction(async (tx) => {
             const user = await tx.user_table.create({
                 data: {
                     user_id: userId,
-                    user_email: `${userName}@gmail.com`,
+                    user_email: email,
                     user_first_name: firstName,
                     user_last_name: lastName,
                     user_username: userName,
-                    user_bot_field: botField,
+                    user_bot_field: botField === "true" ? true : false,
+                    user_phone_number: phoneNumber,
                 },
             });
             if (!user) {
@@ -130,7 +131,7 @@ export const registerUserModel = async (params) => {
                     company_member_id: true,
                 },
             });
-            const referralLinkURL = `${url}?referralLink=${encodeURIComponent(userName)}`;
+            const referralLinkURL = `${url}?CODE=${encodeURIComponent(referalLink)}`;
             const referralCode = await generateUniqueReferralCode(tx);
             await tx.company_referral_link_table.create({
                 data: {
@@ -162,7 +163,7 @@ export const registerUserModel = async (params) => {
     }
     await prisma.user_history_log.create({
         data: {
-            user_ip_address: ip,
+            user_ip_address: ip || "127.0.0.1",
             user_history_user_id: userId,
         },
     });

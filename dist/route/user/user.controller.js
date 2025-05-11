@@ -23,11 +23,12 @@ export const userGetController = async (c) => {
     try {
         const teamMemberProfile = c.get("teamMemberProfile");
         const data = await userModelGet({
-            memberId: teamMemberProfile.alliance_member_id,
+            memberId: teamMemberProfile.company_member_id,
         });
         return c.json(data, 200);
     }
     catch (error) {
+        console.log(error);
         return c.json({ error: "Internal Server Error" }, { status: 500 });
     }
 };
@@ -39,6 +40,7 @@ export const userPatchController = async (c) => {
         return c.json({ message: "User Updated" });
     }
     catch (error) {
+        console.log(error);
         return c.json({ error: "Internal Server Error" }, { status: 500 });
     }
 };
@@ -49,6 +51,7 @@ export const userSponsorController = async (c) => {
         return c.json(data, { status: 200 });
     }
     catch (error) {
+        console.log(error);
         return c.json({ error: "Internal Server Error" }, { status: 500 });
     }
 };

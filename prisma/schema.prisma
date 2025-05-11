@@ -29,12 +29,13 @@ enum ReferralType {
 model user_table {
   user_id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_date_created     DateTime        @default(now())  @db.Timestamptz(3)
-  user_username         String?
-  user_first_name       String?
-  user_last_name        String?
-  user_email            String          @unique
+  user_username         String
+  user_first_name       String
+  user_last_name        String
+  user_email            String?
+  user_phone_number     String?
   user_profile_picture  String?
-  user_bot_field        String?
+  user_bot_field        Boolean @default(false)
 
   company_member_table company_member_table[]
   user_history_log  user_history_log[]
@@ -66,7 +67,7 @@ model company_member_table {
   company_member_date_created    DateTime  @default(now())  @db.Timestamptz(3)
 
   company_member_company_id     String    @db.Uuid
-  company_member_user_id         String    @db.Uuid
+  company_member_user_id         String    @db.Uuid  @unique
   company_member_restricted      Boolean   @default(false)
   company_member_date_updated    DateTime?  @db.Timestamptz(3)
   company_member_is_active       Boolean   @default(false)
@@ -99,8 +100,8 @@ model company_member_table {
 model company_referral_link_table {
   company_referral_link_id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   company_referral_link             String
-  company_referral_link_member_id   String    @db.Uuid
   company_referral_code             String    @unique
+  company_referral_link_member_id   String    @db.Uuid
 
   company_member_table              company_member_table @relation(fields: [company_referral_link_member_id], references: [company_member_id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -133,6 +134,7 @@ model dashboard_earnings_summary {
   member_id              String   @id @map("member_id") @db.Uuid
   total_earnings         Float    @default(0.0) @map("total_earnings")
   total_withdrawals      Float    @default(0.0) @map("total_withdrawals")
+  package_income         Float    @default(0.0) @map("package_income")
   direct_referral_amount Float    @default(0.0) @map("direct_referral_amount")
   indirect_referral_amount Float  @default(0.0) @map("indirect_referral_amount")
   direct_referral_count  Int      @default(0) @map("direct_referral_count")
@@ -215,7 +217,7 @@ model company_withdrawal_request_table {
   @@index([company_withdrawal_request_approved_by], name: "idx_company_withdrawal_request_approved_by")
   @@index([company_withdrawal_request_status], name: "idx_company_withdrawal_request_status")
 }
-    
+
 model company_transaction_table {
   company_transaction_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   company_transaction_date DateTime @default(now())
@@ -254,7 +256,7 @@ model package_table {
   package_percentage Float    @default(0.0)
   packages_days      Int
   package_is_disabled Boolean @default(false)
-  package_color      String?
+  package_gif      String?
   package_image      String?
 
   package_member_connection_table package_member_connection_table[]
@@ -346,7 +348,6 @@ model merchant_balance_log {
   merchant_balance_log_user String
 
   @@schema("merchant_schema")
-  @@index([merchant_balance_log_user], name: "idx_merchant_balance_log_user")
 }
 
 model merchant_member_table {
@@ -358,7 +359,6 @@ model merchant_member_table {
   company_member_table company_member_table @relation(fields: [merchant_member_merchant_id], references: [company_member_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@schema("merchant_schema")
-  @@index([merchant_member_merchant_id], name: "idx_merchant_member_merchant_id")
 }
 
 model error_table {

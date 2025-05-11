@@ -52,6 +52,7 @@ export const depositPostModel = async (params) => {
                 company_transaction_description: "Deposit Pending",
                 company_transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
                 company_transaction_member_id: params.teamMemberProfile.company_member_id,
+                company_transaction_type: "DEPOSIT",
             },
         });
     });
@@ -108,6 +109,7 @@ export const depositPutModel = async (params) => {
                 company_transaction_details: `Account Name: ${updatedRequest.company_deposit_request_name}, Account Number: ${updatedRequest.company_deposit_request_account}`,
                 company_transaction_amount: updatedRequest.company_deposit_request_amount,
                 company_transaction_member_id: updatedRequest.company_deposit_request_member_id,
+                company_transaction_type: "DEPOSIT",
                 company_transaction_attachment: status === "REJECTED"
                     ? updatedRequest.company_deposit_request_attachment
                     : null,

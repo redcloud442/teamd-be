@@ -1,4 +1,4 @@
-import { sendErrorResponse } from "../../utils/function.js";
+import { invalidateTransactionCache, sendErrorResponse } from "../../utils/function.js";
 import { claimPackagePostModel, packageCreatePostModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packageUpdatePutModel, } from "./package.model.js";
 export const packagePostController = async (c) => {
     try {
@@ -9,9 +9,11 @@ export const packagePostController = async (c) => {
             packageId,
             teamMemberProfile: teamMemberProfile,
         });
+        await invalidateTransactionCache(teamMemberProfile.company_member_id, ["PACKAGE"]);
         return c.json({ message: "Package Created" }, 200);
     }
     catch (error) {
+        console.log(error);
         return sendErrorResponse("Internal Server Error", 500);
     }
 };
@@ -26,13 +28,13 @@ export const packageGetController = async (c) => {
 };
 export const packagesCreatePostController = async (c) => {
     try {
-        const { packageName, packageDescription, packagePercentage, packageDays, packageColor, packageImage, } = await c.req.json();
+        const { packageName, packageDescription, packagePercentage, packageDays, packageGif, packageImage, } = await c.req.json();
         const result = await packageCreatePostModel({
             packageName,
             packageDescription,
             packagePercentage,
             packageDays,
-            packageColor,
+            packageGif,
             packageImage,
         });
         return c.json({ message: "Package Created", data: result });
@@ -44,7 +46,7 @@ export const packagesCreatePostController = async (c) => {
 export const packagesUpdatePutController = async (c) => {
     try {
         const { packageData } = await c.req.json();
-        const { packageName, packageDescription, packagePercentage, packageDays, packageIsDisabled, packageColor, package_image, } = packageData;
+        const { packageName, packageDescription, packagePercentage, packageDays, packageIsDisabled, packageGif, package_image, } = packageData;
         const id = c.req.param("id");
         const result = await packageUpdatePutModel({
             packageName,
@@ -52,7 +54,7 @@ export const packagesUpdatePutController = async (c) => {
             packagePercentage,
             packageDays,
             packageIsDisabled,
-            packageColor,
+            packageGif,
             package_image,
             packageId: id,
         });
@@ -72,6 +74,7 @@ export const packagesClaimPostController = async (c) => {
             packageConnectionId,
             teamMemberProfile,
         });
+        await invalidateTransactionCache(teamMemberProfile.company_member_id, ["PACKAGE"]);
         return c.json({ message: "Package Claimed" });
     }
     catch (error) {

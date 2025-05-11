@@ -194,6 +194,7 @@ export const withdrawListPostMiddleware = async (c: Context, next: Next) => {
     isAscendingSort,
     dateFilter,
     showHiddenUser,
+    showAllDays,
   } = await c.req.json();
 
   const validate = withdrawListPostSchema.safeParse({
@@ -206,6 +207,7 @@ export const withdrawListPostMiddleware = async (c: Context, next: Next) => {
     isAscendingSort,
     dateFilter,
     showHiddenUser,
+    showAllDays,
   });
 
   if (!validate.success) {

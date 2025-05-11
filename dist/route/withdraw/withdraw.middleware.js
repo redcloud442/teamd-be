@@ -104,7 +104,7 @@ export const withdrawListPostMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
-    const { page, limit, search, columnAccessor, userFilter, statusFilter, isAscendingSort, dateFilter, showHiddenUser, } = await c.req.json();
+    const { page, limit, search, columnAccessor, userFilter, statusFilter, isAscendingSort, dateFilter, showHiddenUser, showAllDays, } = await c.req.json();
     const validate = withdrawListPostSchema.safeParse({
         page,
         limit,
@@ -115,6 +115,7 @@ export const withdrawListPostMiddleware = async (c, next) => {
         isAscendingSort,
         dateFilter,
         showHiddenUser,
+        showAllDays,
     });
     if (!validate.success) {
         return sendErrorResponse("Invalid request", 400);

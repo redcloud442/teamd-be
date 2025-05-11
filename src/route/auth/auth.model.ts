@@ -1,8 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import prisma from "../../utils/prisma.js";
-import { generateUniqueReferralCode } from "@/utils/function.js";
-import { supabaseClient } from "@/utils/supabase.js";
+import { generateUniqueReferralCode } from "../../utils/function.js";
+import { supabaseClient } from "../../utils/supabase.js";
 
 export const loginModel = async (params: {
   userName: string;
@@ -39,7 +39,7 @@ export const loginModel = async (params: {
     throw new Error("User profile not found or incomplete.");
 
   if (teamMemberProfile.company_member_restricted) {
-    throw new Error("User is banned.");
+    throw new Error("User is temporarily restricted.");
   }
 
   if (
@@ -144,6 +144,8 @@ export const registerUserModel = async (params: {
   url: string;
   botField: string;
   ip: string;
+  email: string;
+  phoneNumber: string;
 }) => {
   const {
     userId,
@@ -154,6 +156,8 @@ export const registerUserModel = async (params: {
     url,
     ip,
     botField,
+    email,
+    phoneNumber,
   } = params;
 
   if (referalLink) {
@@ -163,11 +167,12 @@ export const registerUserModel = async (params: {
       const user = await tx.user_table.create({
         data: {
           user_id: userId,
-          user_email: `${userName}@gmail.com`,
+          user_email: email,
           user_first_name: firstName,
           user_last_name: lastName,
           user_username: userName,
-          user_bot_field: botField,
+          user_bot_field: botField === "true" ? true : false,
+          user_phone_number: phoneNumber,
         },
       });
 
@@ -186,8 +191,8 @@ export const registerUserModel = async (params: {
         },
       });
 
-      const referralLinkURL = `${url}?referralLink=${encodeURIComponent(
-        userName
+      const referralLinkURL = `${url}?CODE=${encodeURIComponent(
+        referalLink
       )}`;
 
       const referralCode = await generateUniqueReferralCode(tx);
@@ -227,7 +232,7 @@ export const registerUserModel = async (params: {
 
   await prisma.user_history_log.create({
     data: {
-      user_ip_address: ip,
+      user_ip_address: ip || "127.0.0.1",
       user_history_user_id: userId,
     },
   });
