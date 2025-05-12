@@ -335,6 +335,8 @@ export const depositListPostModel = async (
       REJECTED: { data: [], count: BigInt(0) },
       PENDING: { data: [], count: BigInt(0) },
     },
+    totalPendingDeposit: 0,
+    totalApprovedDeposit: 0,
     totalCount: BigInt(0),
   };
 
@@ -362,14 +364,15 @@ export const depositListPostModel = async (
   }
 
   if (dateFilter?.start && dateFilter?.end) {
-    const startDate =
-      new Date(dateFilter.start || new Date()).toISOString().split("T")[0] +
-      " 00:00:00.000";
+    const startDate = getPhilippinesTime(
+      new Date(dateFilter.start || new Date()),
+      "start"
+    );
 
-    const endDate =
-      new Date(dateFilter.end || new Date()).toISOString().split("T")[0] +
-      " 23:59:59.999";
-
+    const endDate = getPhilippinesTime(
+      new Date(dateFilter.end || new Date()),
+      "end"
+    );
     commonConditions.push(
       Prisma.raw(
         `t.company_deposit_request_date_updated::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
@@ -483,6 +486,48 @@ export const depositListPostModel = async (
 
     returnData.merchantBalance = merchant?.merchant_member_balance;
   }
+
+
+  const startDate = dateFilter.start && dateFilter.end ? getPhilippinesTime(new Date(dateFilter.start), "start") : undefined;
+  const endDate = dateFilter.end && dateFilter.start ? getPhilippinesTime(new Date(dateFilter.end), "end") : undefined;
+
+  const totalPendingDeposit =
+  await prisma.company_deposit_request_table.aggregate({
+    _sum: {
+      company_deposit_request_amount: true,
+    },
+    where: {
+        company_deposit_request_status: "PENDING",
+        company_deposit_request_date:
+          {
+            gte: startDate,
+            lte: endDate,
+        },
+      },
+    });
+
+returnData.totalPendingDeposit =
+  totalPendingDeposit._sum.company_deposit_request_amount || 0;
+
+if (teamMemberProfile.company_member_role === "MERCHANT" || teamMemberProfile.company_member_role === "ADMIN") {
+  const totalApprovedDeposit =
+    await prisma.company_deposit_request_table.aggregate({
+      _sum: {
+        company_deposit_request_amount: true,
+      },
+      where: {
+        company_deposit_request_status: "APPROVED",
+        company_deposit_request_date:
+          {
+            gte: startDate,
+            lte: endDate,
+          },
+      },
+    });
+
+  returnData.totalApprovedDeposit =
+    Number(totalApprovedDeposit._sum.company_deposit_request_amount) || 0;
+}
 
   return JSON.parse(
     JSON.stringify(returnData, (key, value) =>

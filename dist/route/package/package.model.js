@@ -61,7 +61,7 @@ export const packagePostModel = async (params) => {
             data: {
                 company_transaction_member_id: teamMemberProfile.company_member_id,
                 company_transaction_amount: Number(requestedAmount.toFixed(2)),
-                company_transaction_description: `Package Enrolled: ${packageData.package_name}`,
+                company_transaction_description: `${packageData.package_name} Activated`,
                 company_transaction_type: "EARNINGS",
             },
         });
@@ -105,7 +105,7 @@ export const packagePostModel = async (params) => {
                         company_transaction_type: "EARNINGS",
                         company_transaction_description: ref.level === 1
                             ? "Referral"
-                            : `Matrix Referral Level ${ref.level}`,
+                            : `Matrix Level ${ref.level}`,
                     };
                 });
                 await Promise.all(batch.map(async (ref) => {
@@ -290,7 +290,7 @@ export const claimPackagePostModel = async (params) => {
             data: {
                 company_transaction_member_id: teamMemberProfile.company_member_id,
                 company_transaction_amount: totalClaimedAmount,
-                company_transaction_description: ` ${packageDetails.package_name} Package Claimed`,
+                company_transaction_description: ` ${packageDetails.package_name} Claimed`,
                 company_transaction_type: "EARNINGS",
             },
         });
@@ -344,7 +344,7 @@ export const packageListGetModel = async (params) => {
         // Calculate current amount
         const initialAmount = row.package_member_amount;
         const profitAmount = row.package_amount_earnings;
-        const currentAmount = initialAmount + (profitAmount * percentage) / 100;
+        const currentAmount = (initialAmount + profitAmount) * percentage;
         if (percentage === 100 && !row.package_member_is_ready_to_claim) {
             await prisma.package_member_connection_table.update({
                 where: {
@@ -450,7 +450,7 @@ export const packagePostReinvestmentModel = async (params) => {
             data: {
                 company_transaction_member_id: teamMemberProfile.company_member_id,
                 company_transaction_amount: Number(requestedAmountWithBonus.toFixed(2)),
-                company_transaction_description: `Package Enrolled: ${packageData.package_name}`,
+                company_transaction_description: `${packageData.package_name} Activated`,
                 company_transaction_type: "EARNINGS",
             },
         });
@@ -492,8 +492,8 @@ export const packagePostReinvestmentModel = async (params) => {
                         company_transaction_member_id: ref.referrerId,
                         company_transaction_amount: calculatedEarnings,
                         company_transaction_description: ref.level === 1
-                            ? "Matrix Income"
-                            : `Matrix Income ${ref.level}${ref.level === 2 ? "nd" : ref.level === 3 ? "rd" : "th"} level`,
+                            ? "Referral"
+                            : `Matrix Level ${ref.level}`
                     };
                 });
                 await Promise.all(batch.map(async (ref) => {

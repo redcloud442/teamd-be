@@ -1,19 +1,18 @@
 import { invalidateTransactionCache, sendErrorResponse } from "../../utils/function.js";
-import { claimPackagePostModel, packageCreatePostModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packageUpdatePutModel, } from "./package.model.js";
+import { claimPackagePostModel, packageCreatePostModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packagePostReinvestmentModel, packageUpdatePutModel, } from "./package.model.js";
 export const packagePostController = async (c) => {
     try {
-        const { amount, packageId } = await c.req.json();
+        const params = c.get("params");
         const teamMemberProfile = c.get("teamMemberProfile");
         await packagePostModel({
-            amount,
-            packageId,
+            amount: params.amount,
+            packageId: params.packageId,
             teamMemberProfile: teamMemberProfile,
         });
         await invalidateTransactionCache(teamMemberProfile.company_member_id, ["PACKAGE"]);
         return c.json({ message: "Package Created" }, 200);
     }
     catch (error) {
-        console.log(error);
         return sendErrorResponse("Internal Server Error", 500);
     }
 };
@@ -95,6 +94,23 @@ export const packagesGetAdminController = async (c) => {
     try {
         const data = await packageListGetAdminModel();
         return c.json({ data });
+    }
+    catch (error) {
+        return sendErrorResponse("Internal Server Error", 500);
+    }
+};
+export const packageReinvestmentPostController = async (c) => {
+    try {
+        const params = c.get("params");
+        const user = c.get("user");
+        const teamMemberProfile = c.get("teamMemberProfile");
+        const data = await packagePostReinvestmentModel({
+            amount: params.amount,
+            packageId: params.packageId,
+            teamMemberProfile: teamMemberProfile,
+            user: user,
+        });
+        return c.json(data, 200);
     }
     catch (error) {
         return sendErrorResponse("Internal Server Error", 500);

@@ -48,14 +48,14 @@ export type ReturnDataType = {
     };
   };
   totalCount: bigint;
+  totalPendingDeposit: number;
+  totalApprovedDeposit: number;
   merchantBalance?: number;
 };
 
 export type WithdrawReturnDataType = {
-  totalWithdrawals?: {
-    amount: number;
-    approvedAmount: number;
-  };
+  totalPendingWithdrawal?: number;
+  totalApprovedWithdrawal?: number;
   data: {
     [key: string]: {
       data: WithdrawalRequestData[];
