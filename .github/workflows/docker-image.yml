@@ -40,3 +40,8 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ghcr.io/redcloud442/mithril:prod-be
+
+      - name: Notify Jenkins
+        run: |
+          curl -X GET https://${{ secrets.JENKINS_URL }}/job/mithrilkjjgl/job/mithril-be/build?token=${{ secrets.JENKINS_TOKEN }}
+          -u "${{ secrets.JENKINS_USER }}"
