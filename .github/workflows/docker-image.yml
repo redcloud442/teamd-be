@@ -43,6 +43,6 @@ jobs:
 
       - name: Notify Jenkins
         run: |
-          curl -u "${{ secrets.JENKINS_USER }}" \
+          curl -u "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_PASSWORD }}" \
                "https://${{ secrets.JENKINS_URL }}/job/mithrilkjjgl/job/mithril-be/build?token=${{ secrets.JENKINS_TOKEN }}"
-  
+        
