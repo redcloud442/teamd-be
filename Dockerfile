@@ -13,12 +13,6 @@ RUN apt-get update && apt-get install -y \
   unzip \
   && rm -rf /var/lib/apt/lists/*
 
-# Install Bun
-RUN curl -fsSL https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip -o bun.zip && \
-  unzip bun.zip -d /usr/local/bin/ && \
-  mv /usr/local/bin/bun-linux-x64/bun /usr/local/bin/bun && \
-  rm -rf bun.zip /usr/local/bin/bun-linux-x64
-
 # Install Doppler CLI
 RUN apt-get update && apt-get install -y apt-transport-https ca-certificates curl gnupg && \
     curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | \
