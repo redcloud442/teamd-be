@@ -1,6 +1,5 @@
-import bcrypt from "bcryptjs";
-import prisma from "../../utils/prisma.js";
 import { generateUniqueReferralCode } from "../../utils/function.js";
+import prisma from "../../utils/prisma.js";
 import { supabaseClient } from "../../utils/supabase.js";
 export const loginModel = async (params) => {
     const { userName, ip } = params;

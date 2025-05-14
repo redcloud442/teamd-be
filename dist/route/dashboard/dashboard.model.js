@@ -161,7 +161,7 @@ export const dashboardGetModel = async () => {
     if (cachedData) {
         return cachedData;
     }
-    const [totalActivatedPackage, numberOfRegisteredUser, totalActivatedUser,] = await prisma.$transaction([
+    const [totalActivatedPackage, numberOfRegisteredUser, totalActivatedUser] = await prisma.$transaction([
         prisma.package_member_connection_table.count(),
         prisma.company_member_table.count(),
         prisma.company_member_table.count({

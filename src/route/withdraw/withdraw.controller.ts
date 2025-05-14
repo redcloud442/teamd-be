@@ -1,5 +1,8 @@
 import type { Context } from "hono";
-import { sendErrorResponse, invalidateTransactionCache   } from "../../utils/function.js";
+import {
+  invalidateTransactionCache,
+  sendErrorResponse,
+} from "../../utils/function.js";
 import {
   updateWithdrawModel,
   withdrawHideUserModel,
@@ -21,7 +24,9 @@ export const withdrawPostController = async (c: Context) => {
       teamMemberProfile,
     });
 
-    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["WITHDRAWAL"]);
+    await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+      "WITHDRAWAL",
+    ]);
     return c.json({ message: "Withdrawal successful" }, 200);
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
@@ -38,7 +43,6 @@ export const withdrawHistoryPostController = async (c: Context) => {
 
     return c.json(data, 200);
   } catch (e) {
-
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
@@ -58,7 +62,9 @@ export const updateWithdrawPostController = async (c: Context) => {
       requestId: id,
     });
 
-    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["WITHDRAWAL"]);
+    await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+      "WITHDRAWAL",
+    ]);
 
     return c.json({ message: "Withdrawal updated" }, 200);
   } catch (e) {
@@ -79,7 +85,6 @@ export const withdrawListPostController = async (c: Context) => {
 
     return c.json(data, 200);
   } catch (e) {
-  
     return sendErrorResponse("Internal Server Error", 500);
   }
 };

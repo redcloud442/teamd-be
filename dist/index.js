@@ -44,7 +44,7 @@ app.get("/", (c) => {
         </style>
     </head>
     <body>
-        <h1>API Status bimbang</h1>
+        <h1>API Status Kalabet</h1>
         <p class="status">✅ API is working perfectly!</p>
         <p>Current Time: ${new Date().toLocaleString()}</p>
     </body>

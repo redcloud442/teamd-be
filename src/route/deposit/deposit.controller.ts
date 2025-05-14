@@ -1,4 +1,5 @@
-import type { Context } from "node:vm";
+import type { Context } from "hono";
+import { invalidateTransactionCache } from "../../utils/function.js";
 import { supabaseClient } from "../../utils/supabase.js";
 import {
   depositHistoryPostModel,
@@ -8,7 +9,6 @@ import {
   depositReferencePostModel,
   depositReportPostModel,
 } from "./deposit.model.js";
-import { invalidateTransactionCache } from "../../utils/function.js";
 
 export const depositPostController = async (c: Context) => {
   const supabase = supabaseClient;
@@ -27,7 +27,9 @@ export const depositPostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
-    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["DEPOSIT"]);
+    await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+      "DEPOSIT",
+    ]);
     return c.json({ message: "Deposit Created" }, { status: 200 });
   } catch (e) {
     await supabase.storage.from("REQUEST_ATTACHMENTS").remove([publicUrl]);
@@ -46,8 +48,10 @@ export const depositPutController = async (c: Context) => {
       requestId,
       teamMemberProfile,
     });
-    
-    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["DEPOSIT"]);
+
+    await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+      "DEPOSIT",
+    ]);
 
     return c.json({ message: "Deposit Updated" }, { status: 200 });
   } catch (e) {
@@ -64,7 +68,6 @@ export const depositHistoryPostController = async (c: Context) => {
 
     return c.json(data, { status: 200 });
   } catch (e) {
-    
     return c.json({ message: "Internal Server Error" }, { status: 500 });
   }
 };
@@ -78,7 +81,6 @@ export const depositListPostController = async (c: Context) => {
 
     return c.json(data, { status: 200 });
   } catch (e) {
-   
     return c.json({ message: "Internal Server Error" }, { status: 500 });
   }
 };

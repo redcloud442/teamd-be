@@ -22,47 +22,45 @@ export const registerSchema = z.object({
 
 export const LoginSchema = z.object({
   userName: z
-  .string()
-  .trim()
-  .min(6, "Username must be at least 6 characters long")
-  .max(20, "Username must be at most 20 characters long")
-  .regex(
-    /^[a-zA-Z][a-zA-Z0-9._]*$/,
-    "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
-  )
-  .refine(
-    (val) =>
-      !/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu.test(val),
-    {
-      message: "Username must not contain emojis",
-    }
-  )
-  .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
-    message: "This username is not allowed",
-  }),
+    .string()
+    .trim()
+    .min(6, "Username must be at least 6 characters long")
+    .max(20, "Username must be at most 20 characters long")
+    .regex(
+      /^[a-zA-Z][a-zA-Z0-9._]*$/,
+      "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
+    )
+    .refine(
+      (val) => !/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu.test(val),
+      {
+        message: "Username must not contain emojis",
+      }
+    )
+    .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
+      message: "This username is not allowed",
+    }),
   password: z.string().min(6),
 });
 
 export const loginCheckSchema = z.object({
   userName: z
-  .string()
-  .trim()
-  .min(6, "Username must be at least 6 characters long")
-  .max(20, "Username must be at most 20 characters long")
-  .regex(
-    /^[a-zA-Z][a-zA-Z0-9._]*$/,
-    "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
-  )
-  .refine(
-    (val) =>
-      !/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu.test(val),
-    {
-      message: "Username must not contain emojis",
-    }
-  )
-  .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
-    message: "This username is not allowed",
-  }),
+    .string()
+    .trim()
+    .min(6, "Username must be at least 6 characters long")
+    .max(20, "Username must be at most 20 characters long")
+    .regex(
+      /^[a-zA-Z][a-zA-Z0-9._]*$/,
+      "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
+    )
+    .refine(
+      (val) => !/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu.test(val),
+      {
+        message: "Username must not contain emojis",
+      }
+    )
+    .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
+      message: "This username is not allowed",
+    }),
 });
 
 //register
@@ -70,34 +68,33 @@ export const loginCheckSchema = z.object({
 export const registerUserSchema = z.object({
   userId: z.string().uuid(),
   userName: z
-  .string()
-  .trim()
-  .min(6, "Username must be at least 6 characters long")
-  .max(20, "Username must be at most 20 characters long")
-  .regex(
-    /^[a-zA-Z][a-zA-Z0-9._]*$/,
-    "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
-  )
-  .refine(
-    (val) =>
-      !/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu.test(val),
-    {
-      message: "Username must not contain emojis",
-    }
-  )
-  .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
-    message: "This username is not allowed",
-  }),
+    .string()
+    .trim()
+    .min(6, "Username must be at least 6 characters long")
+    .max(20, "Username must be at most 20 characters long")
+    .regex(
+      /^[a-zA-Z][a-zA-Z0-9._]*$/,
+      "Username must start with a letter and can only contain letters, numbers, dots, and underscores"
+    )
+    .refine(
+      (val) => !/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu.test(val),
+      {
+        message: "Username must not contain emojis",
+      }
+    )
+    .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
+      message: "This username is not allowed",
+    }),
   firstName: z
-      .string()
-      .trim()
-      .min(3, "First name is required")
-      .max(50, "First name must be less than 50 characters"),
-    lastName: z
-      .string()
-      .trim()
-      .min(3, "Last name is required")
-      .max(50, "Last name must be less than 50 characters"),
+    .string()
+    .trim()
+    .min(3, "First name is required")
+    .max(50, "First name must be less than 50 characters"),
+  lastName: z
+    .string()
+    .trim()
+    .min(3, "Last name is required")
+    .max(50, "Last name must be less than 50 characters"),
   referalLink: z.string().min(2),
   email: z.preprocess(
     (val) => (val === "" || val == null ? undefined : val),

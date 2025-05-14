@@ -1,9 +1,8 @@
 import { Prisma, } from "@prisma/client";
 import { getPhilippinesTime } from "../../utils/function.js";
-import bcryptjs from "bcryptjs";
 import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
-import { supabaseAnonClient, supabaseClient } from "../../utils/supabase.js";
+import { supabaseClient } from "../../utils/supabase.js";
 export const userModelPut = async (params) => {
     const { userId, email, password } = params;
     const user = await prisma.user_table.findFirst({

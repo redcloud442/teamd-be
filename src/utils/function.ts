@@ -1,6 +1,6 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
-import { supabaseClient } from "./supabase.js";
+import type { Prisma } from "@prisma/client";
 import { redis } from "./redis.js";
+import { supabaseClient } from "./supabase.js";
 
 export const sendErrorResponse = (message: string, status: number) =>
   Response.json({ message: message }, { status });
@@ -115,7 +115,7 @@ export const generateRandomCode = (length = 6) => {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
   return result;
-}
+};
 
 export const generateUniqueReferralCode = async (
   prisma: Prisma.TransactionClient,
@@ -132,8 +132,10 @@ export const generateUniqueReferralCode = async (
 
     attempts++;
   }
-  throw new Error('Failed to generate a unique referral code after multiple attempts.');
-}
+  throw new Error(
+    "Failed to generate a unique referral code after multiple attempts."
+  );
+};
 
 export const invalidateTransactionCache = async (
   memberId: string,

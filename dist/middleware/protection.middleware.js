@@ -1,6 +1,6 @@
 import { sendErrorResponse } from "../utils/function.js";
-import { getSupabase } from "./auth.middleware.js";
 import { rateLimit } from "../utils/redis.js";
+import { getSupabase } from "./auth.middleware.js";
 export const protectionMiddleware = async (c, next) => {
     const supabase = getSupabase(c);
     const { data, error } = await supabase.auth.getUser();

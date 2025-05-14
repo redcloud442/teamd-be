@@ -1,9 +1,9 @@
-import type { Context, Next } from "hono";
-import { sendErrorResponse } from "../utils/function.js";
-import { getSupabase } from "./auth.middleware.js";
 import type { User } from "@supabase/supabase-js";
+import type { Context, Next } from "hono";
 import type { ZodSchema } from "node_modules/zod/lib/types.js";
+import { sendErrorResponse } from "../utils/function.js";
 import { rateLimit } from "../utils/redis.js";
+import { getSupabase } from "./auth.middleware.js";
 
 export const protectionMiddleware = async (c: Context, next: Next) => {
   const supabase = getSupabase(c);
@@ -23,8 +23,9 @@ export const protectionMiddleware = async (c: Context, next: Next) => {
   await next();
 };
 
-
-export const createAuthMiddleware = (protectionFn: (user: User) => Promise<any>) => {
+export const createAuthMiddleware = (
+  protectionFn: (user: User) => Promise<any>
+) => {
   return async (c: Context, next: Next) => {
     const user = c.get("user");
     const response = await protectionFn(user);
@@ -37,7 +38,6 @@ export const createAuthMiddleware = (protectionFn: (user: User) => Promise<any>)
     await next();
   };
 };
-
 
 export const validateBody = <T>(schema: ZodSchema<T>, body: T) => {
   return async (c: Context, next: Next) => {
@@ -62,7 +62,7 @@ export const rateLimitByKey = (
     const allowed = await rateLimit(key, limit, window, c);
 
     if (!allowed) return sendErrorResponse("Too Many Requests", 429);
-    
+
     await next();
   };
 };

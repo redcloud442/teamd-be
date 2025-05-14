@@ -1,14 +1,9 @@
 import type { Prisma } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import prisma from "../../utils/prisma.js";
 import { generateUniqueReferralCode } from "../../utils/function.js";
+import prisma from "../../utils/prisma.js";
 import { supabaseClient } from "../../utils/supabase.js";
 
-export const loginModel = async (params: {
-  userName: string;
-  password: string;
-  ip: string;
-}) => {
+export const loginModel = async (params: { userName: string; ip: string }) => {
   const { userName, ip } = params;
   const user = await prisma.user_table.findFirst({
     where: {
@@ -191,13 +186,9 @@ export const registerUserModel = async (params: {
         },
       });
 
-
       const referralCode = await generateUniqueReferralCode(tx);
 
-      const referralLinkURL = `${url}?CODE=${encodeURIComponent(
-        referralCode
-      )}`;
-
+      const referralLinkURL = `${url}?CODE=${encodeURIComponent(referralCode)}`;
 
       await tx.company_referral_link_table.create({
         data: {
@@ -224,7 +215,7 @@ export const registerUserModel = async (params: {
           CompanyMemberId: allianceMember.company_member_id,
         },
       });
-      
+
       return {
         success: true,
         user,

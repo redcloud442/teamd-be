@@ -1,4 +1,4 @@
-import { sendErrorResponse, invalidateTransactionCache } from "../../utils/function.js";
+import { invalidateTransactionCache, sendErrorResponse, } from "../../utils/function.js";
 import { updateWithdrawModel, withdrawHideUserModel, withdrawHistoryModel, withdrawHistoryReportPostModel, withdrawHistoryReportPostTotalModel, withdrawListPostModel, withdrawModel, } from "./withdraw.model.js";
 export const withdrawPostController = async (c) => {
     try {
@@ -8,7 +8,9 @@ export const withdrawPostController = async (c) => {
             ...params,
             teamMemberProfile,
         });
-        await invalidateTransactionCache(teamMemberProfile.company_member_id, ["WITHDRAWAL"]);
+        await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+            "WITHDRAWAL",
+        ]);
         return c.json({ message: "Withdrawal successful" }, 200);
     }
     catch (e) {
@@ -37,7 +39,9 @@ export const updateWithdrawPostController = async (c) => {
             teamMemberProfile,
             requestId: id,
         });
-        await invalidateTransactionCache(teamMemberProfile.company_member_id, ["WITHDRAWAL"]);
+        await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+            "WITHDRAWAL",
+        ]);
         return c.json({ message: "Withdrawal updated" }, 200);
     }
     catch (e) {

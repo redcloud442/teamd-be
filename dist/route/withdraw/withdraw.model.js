@@ -236,7 +236,7 @@ export const withdrawListPostModel = async (params) => {
     const commonConditions = [
         Prisma.raw(`m.company_member_company_id = '${teamMemberProfile.company_member_company_id}'::uuid AND t.company_withdrawal_request_member_id ${showHiddenUser ? "IN" : "NOT IN"} (SELECT company_hidden_user_member_id FROM company_schema.company_hidden_user_table)`),
     ];
-    if (!showAllDays && (!dateFilter?.start && !dateFilter?.end)) {
+    if (!showAllDays && !dateFilter?.start && !dateFilter?.end) {
         commonConditions.push(Prisma.raw(`t.company_withdrawal_request_date::timestamptz BETWEEN '${philippinesTimeStart}'::timestamptz AND '${philippinesTimeEnd}'::timestamptz`));
     }
     if (teamMemberProfile.company_member_role === "ACCOUNTING") {
@@ -302,8 +302,12 @@ export const withdrawListPostModel = async (params) => {
       WHERE ${countWhereClause}
       GROUP BY t.company_withdrawal_request_status
     `;
-    const startDate = dateFilter?.start && dateFilter?.end ? getPhilippinesTime(new Date(dateFilter.start), "start") : undefined;
-    const endDate = dateFilter?.end && dateFilter?.start ? getPhilippinesTime(new Date(dateFilter.end), "end") : undefined;
+    const startDate = dateFilter?.start && dateFilter?.end
+        ? getPhilippinesTime(new Date(dateFilter.start), "start")
+        : undefined;
+    const endDate = dateFilter?.end && dateFilter?.start
+        ? getPhilippinesTime(new Date(dateFilter.end), "end")
+        : undefined;
     if (teamMemberProfile.company_member_role === "ACCOUNTING_HEAD") {
         const totalApprovedWithdrawal = await prisma.company_withdrawal_request_table.aggregate({
             where: {

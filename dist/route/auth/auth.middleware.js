@@ -58,7 +58,6 @@ export const registerUserMiddleware = async (c, next) => {
         phoneNumber,
     });
     if (!parsed.success) {
-        console.log(parsed.error);
         return c.json({ message: "Invalid request" }, 400);
     }
     const isAllowed = await rateLimit(`rate-limit:${userName}:${ip}`, 5, "1m", c);

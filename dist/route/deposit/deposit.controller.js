@@ -1,6 +1,6 @@
+import { invalidateTransactionCache } from "../../utils/function.js";
 import { supabaseClient } from "../../utils/supabase.js";
 import { depositHistoryPostModel, depositListPostModel, depositPostModel, depositPutModel, depositReferencePostModel, depositReportPostModel, } from "./deposit.model.js";
-import { invalidateTransactionCache } from "../../utils/function.js";
 export const depositPostController = async (c) => {
     const supabase = supabaseClient;
     const { publicUrl } = await c.req.json();
@@ -14,7 +14,9 @@ export const depositPostController = async (c) => {
             publicUrl: publicUrl,
             teamMemberProfile: teamMemberProfile,
         });
-        await invalidateTransactionCache(teamMemberProfile.company_member_id, ["DEPOSIT"]);
+        await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+            "DEPOSIT",
+        ]);
         return c.json({ message: "Deposit Created" }, { status: 200 });
     }
     catch (e) {
@@ -32,7 +34,9 @@ export const depositPutController = async (c) => {
             requestId,
             teamMemberProfile,
         });
-        await invalidateTransactionCache(teamMemberProfile.company_member_id, ["DEPOSIT"]);
+        await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+            "DEPOSIT",
+        ]);
         return c.json({ message: "Deposit Updated" }, { status: 200 });
     }
     catch (e) {

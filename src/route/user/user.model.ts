@@ -5,12 +5,10 @@ import {
   type user_table,
 } from "@prisma/client";
 import { getPhilippinesTime } from "../../utils/function.js";
-import type { UserRequestdata } from "../../utils/types.js";
-
-import bcryptjs from "bcryptjs";
 import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
-import { supabaseAnonClient, supabaseClient } from "../../utils/supabase.js";
+import { supabaseClient } from "../../utils/supabase.js";
+import type { UserRequestdata } from "../../utils/types.js";
 
 export const userModelPut = async (params: {
   userId: string;
@@ -32,7 +30,6 @@ export const userModelPut = async (params: {
     return { success: false, error: "User not found." };
   }
 
-
   const teamMemberProfile = await prisma.company_member_table.findFirst({
     where: { company_member_user_id: user?.user_id },
   });
@@ -47,8 +44,6 @@ export const userModelPut = async (params: {
   ) {
     return { success: false, error: "Access restricted" };
   }
-
- 
 
   if (teamMemberProfile?.company_member_role !== "ADMIN") {
     const supabase = supabaseClient;
@@ -115,7 +110,6 @@ export const userModelPost = async (params: { memberId: string }) => {
 export const userModelGet = async ({ memberId }: { memberId: string }) => {
   const todayStart = getPhilippinesTime(new Date(), "start");
   const todayEnd = getPhilippinesTime(new Date(), "end");
-
 
   const baseWithdrawFilter = {
     company_withdrawal_request_member_id: memberId,
@@ -208,7 +202,6 @@ export const userModelGet = async ({ memberId }: { memberId: string }) => {
   };
 };
 
-
 export const userPatchModel = async (params: {
   memberId: string;
   action: string;
@@ -265,18 +258,19 @@ export const userPatchModel = async (params: {
       });
     }
 
-    await supabaseClient.auth.admin.updateUserById(userId.company_member_user_id, {
-      user_metadata: {
-        Role: role,
-      },
-    });
-
+    await supabaseClient.auth.admin.updateUserById(
+      userId.company_member_user_id,
+      {
+        user_metadata: {
+          Role: role,
+        },
+      }
+    );
 
     await prisma.$executeRaw`
     DELETE FROM auth.sessions
     WHERE user_id = ${userId.company_member_user_id}::uuid
-    `
-
+    `;
 
     return {
       success: true,
@@ -308,7 +302,6 @@ export const userPatchModel = async (params: {
       await supabaseClient.auth.admin.updateUserById(memberId, {
         ban_duration: "400 days",
       });
-
     } else if (type === "UNBAN") {
       await prisma.company_member_table.update({
         where: { company_member_id: memberId },
@@ -322,7 +315,7 @@ export const userPatchModel = async (params: {
     await prisma.$executeRaw`
     DELETE FROM auth.sessions
     WHERE user_id = ${userId.company_member_user_id}::uuid
-    `
+    `;
 
     return {
       success: true,
