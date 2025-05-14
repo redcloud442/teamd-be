@@ -6,7 +6,6 @@ import {
   updatePackageSchema,
 } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import {
   protectionAdmin,
   protectionMemberUser,
@@ -16,7 +15,7 @@ import { rateLimit } from "../../utils/redis.js";
 export const packagePostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -39,11 +38,17 @@ export const packagePostMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse("Too Many Requests", 429);
   }
 
-  const { amount, packageId } = await c.req.json();
+  const { packageData } = await c.req.json();
 
-  const { success, data } = packagePostSchema.safeParse({ amount, packageId });
+  const { amount, packageId } = packageData;
+
+  const { success, data, error } = packagePostSchema.safeParse({
+    amount,
+    packageId,
+  });
 
   if (!success) {
+    console.log(error);
     return c.json({ message: "Invalid request" }, 400);
   }
 
@@ -57,7 +62,7 @@ export const packagePostMiddleware = async (c: Context, next: Next) => {
 export const packagePostListMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -88,7 +93,7 @@ export const packagePostListMiddleware = async (c: Context, next: Next) => {
 export const packageGetMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -119,7 +124,7 @@ export const packageGetMiddleware = async (c: Context, next: Next) => {
 export const packageCreatePostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -170,7 +175,7 @@ export const packageCreatePostMiddleware = async (c: Context, next: Next) => {
 export const packageUpdatePutMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -228,7 +233,7 @@ export const packageUpdatePutMiddleware = async (c: Context, next: Next) => {
 export const packagesClaimPostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -271,7 +276,7 @@ export const packagesClaimPostMiddleware = async (c: Context, next: Next) => {
 export const packagesGetListMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;

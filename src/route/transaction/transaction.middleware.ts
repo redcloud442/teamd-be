@@ -1,7 +1,6 @@
 import type { Context, Next } from "hono";
 import { transactionSchemaPost } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import { protectionMemberUser } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 
@@ -12,7 +11,7 @@ export const transactionPostMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse("Unauthorized", 401);
   }
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;

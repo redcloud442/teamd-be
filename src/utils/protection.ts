@@ -1,198 +1,143 @@
-import type { company_member_table, PrismaClient } from "@prisma/client";
+import type { User } from "@supabase/supabase-js";
 import { sendErrorResponse } from "./function.js";
 
-export const protectionMemberUser = async (
-  userId: string,
-  prisma: PrismaClient
-) => {
+export const protectionMemberUser = async (user: User) => {
   try {
-    const user = await prisma.user_table.findUnique({
-      where: { user_id: userId },
-      select: {
-        company_member_table: {
-          select: {
-            company_member_id: true,
-            company_member_role: true,
-            company_member_company_id: true,
-            company_member_restricted: true,
-          },
-        },
-      },
-    });
+    const userData = user.user_metadata;
 
-    if (!user) {
+    if (!userData) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
     if (
-      !user?.company_member_table?.[0]?.company_member_company_id ||
       ![
         "MEMBER",
         "MERCHANT",
         "ACCOUNTING",
         "ADMIN",
         "ACCOUNTING_HEAD",
-      ].includes(user.company_member_table[0].company_member_role)
+      ].includes(userData.Role)
     ) {
       return sendErrorResponse("Unauthorized", 401);
     }
 
-    if (user.company_member_table[0].company_member_restricted) {
-      return sendErrorResponse("Internal Server Error", 500);
-    }
+    const teamMemberProfile = {
+      company_member_id: userData.CompanyMemberId,
+      company_member_role: userData.Role,
+      company_member_company_id: userData.CompanyId,
+      company_user_id: userData.UserId,
+    };
 
     return {
-      teamMemberProfile: user.company_member_table[0] as company_member_table,
+      teamMemberProfile: teamMemberProfile,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
 
-export const protectionMerchantAdmin = async (
-  userId: string,
-  prisma: PrismaClient
-) => {
+export const protectionMerchantAdmin = async (user: User) => {
   try {
-    const user = await prisma.user_table.findUnique({
-      where: { user_id: userId },
-      select: {
-        company_member_table: {
-          select: {
-            company_member_id: true,
-            company_member_role: true,
-            company_member_company_id: true,
-            company_member_restricted: true,
-          },
-        },
-      },
-    });
+    const userData = user.user_metadata;
 
-    if (!user) {
+    if (!userData) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
-    if (
-      !user?.company_member_table?.[0]?.company_member_company_id ||
-      !["MERCHANT", "ADMIN"].includes(
-        user?.company_member_table?.[0]?.company_member_role
-      )
-    ) {
+    if (!["MERCHANT", "ADMIN"].includes(userData.Role)) {
       return sendErrorResponse("Unauthorized", 401);
     }
 
-    if (user.company_member_table[0].company_member_restricted) {
-      return sendErrorResponse("Internal Server Error", 500);
-    }
+    const teamMemberProfile = {
+      company_member_id: userData.CompanyMemberId,
+      company_member_role: userData.Role,
+      company_member_company_id: userData.CompanyId,
+      company_user_id: userData.UserId,
+    };
 
     return {
-      teamMemberProfile: user.company_member_table[0] as company_member_table,
+      teamMemberProfile: teamMemberProfile,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
 
-export const protectionAccountingAdmin = async (
-  userId: string,
-  prisma: PrismaClient
-) => {
+export const protectionAccountingAdmin = async (user: User) => {
   try {
-    const user = await prisma.user_table.findUnique({
-      where: { user_id: userId },
-      include: {
-        company_member_table: true,
-      },
-    });
+    const userData = user.user_metadata;
 
-    if (!user) {
+    if (!userData) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
-    if (
-      !user?.company_member_table?.[0]?.company_member_company_id ||
-      !["ACCOUNTING", "ADMIN", "ACCOUNTING_HEAD"].includes(
-        user?.company_member_table?.[0]?.company_member_role
-      )
-    ) {
+    if (!["ACCOUNTING", "ADMIN", "ACCOUNTING_HEAD"].includes(userData.Role)) {
       return sendErrorResponse("Unauthorized", 401);
     }
 
-    if (user.company_member_table[0].company_member_restricted) {
-      return sendErrorResponse("Internal Server Error", 500);
-    }
+    const teamMemberProfile = {
+      company_member_id: userData.CompanyMemberId,
+      company_member_role: userData.Role,
+      company_member_company_id: userData.CompanyId,
+      company_user_id: userData.UserId,
+    };
 
     return {
-      teamMemberProfile: user.company_member_table[0] as company_member_table,
+      teamMemberProfile: teamMemberProfile,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
 
-export const protectionAdmin = async (userId: string, prisma: PrismaClient) => {
+export const protectionAdmin = async (user: User) => {
   try {
-    const user = await prisma.user_table.findUnique({
-      where: { user_id: userId },
-      include: {
-        company_member_table: true,
-      },
-    });
+    const userData = user.user_metadata;
 
-    if (!user) {
+    if (!userData) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
-    if (
-      !user?.company_member_table?.[0]?.company_member_company_id ||
-      !["ADMIN"].includes(user?.company_member_table?.[0]?.company_member_role)
-    ) {
+    if (!userData.CompanyId || !["ADMIN"].includes(userData.Role)) {
       return sendErrorResponse("Unauthorized", 401);
     }
 
-    if (user.company_member_table[0].company_member_restricted) {
-      return sendErrorResponse("Internal Server Error", 500);
-    }
+    const teamMemberProfile = {
+      company_member_id: userData.CompanyMemberId,
+      company_member_role: userData.Role,
+      company_member_company_id: userData.CompanyId,
+      company_user_id: userData.UserId,
+    };
 
     return {
-      teamMemberProfile: user.company_member_table[0] as company_member_table,
+      teamMemberProfile: teamMemberProfile,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
 
-export const protectionMerchantAdminAccounting = async (
-  userId: string,
-  prisma: PrismaClient
-) => {
+export const protectionMerchantAdminAccounting = async (user: User) => {
   try {
-    const user = await prisma.user_table.findUnique({
-      where: { user_id: userId },
-      include: {
-        company_member_table: true,
-      },
-    });
+    const userData = user.user_metadata;
 
-    if (!user) {
+    if (!userData) {
       return sendErrorResponse("Internal Server Error", 500);
     }
 
-    if (
-      !user?.company_member_table?.[0]?.company_member_company_id ||
-      !["MERCHANT", "ACCOUNTING", "ADMIN"].includes(
-        user.company_member_table[0].company_member_role
-      )
-    ) {
+    if (!["MERCHANT", "ACCOUNTING", "ADMIN"].includes(userData.Role)) {
       return sendErrorResponse("Unauthorized", 401);
     }
 
-    if (user.company_member_table[0].company_member_restricted) {
-      return sendErrorResponse("Internal Server Error", 500);
-    }
+    const teamMemberProfile = {
+      company_member_id: userData.CompanyMemberId,
+      company_member_role: userData.Role,
+      company_member_company_id: userData.CompanyId,
+      company_user_id: userData.UserId,
+    };
 
     return {
-      teamMemberProfile: user.company_member_table[0] as company_member_table,
+      teamMemberProfile: teamMemberProfile,
     };
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);

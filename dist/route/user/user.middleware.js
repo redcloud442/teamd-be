@@ -1,11 +1,10 @@
 import { userChangePasswordSchema, userGenerateLinkSchema, userGetReferralSchema, userGetSearchSchema, userListReinvestedSchema, userListSchema, userProfileSchemaPatch, userSchemaPatch, userSchemaPost, userSchemaPut, userSponsorSchema, userTreeSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import { protectionAccountingAdmin, protectionAdmin, protectionMemberUser, protectionMerchantAdminAccounting, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 export const userPutMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }
@@ -26,7 +25,7 @@ export const userPutMiddleware = async (c, next) => {
 };
 export const userPostMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }
@@ -47,7 +46,7 @@ export const userPostMiddleware = async (c, next) => {
 };
 export const userGetMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }
@@ -64,7 +63,7 @@ export const userGetMiddleware = async (c, next) => {
 };
 export const userPatchMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAccountingAdmin(user.id, prisma);
+    const response = await protectionAccountingAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -87,7 +86,7 @@ export const userPatchMiddleware = async (c, next) => {
 };
 export const userSponsorMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }
@@ -109,7 +108,7 @@ export const userSponsorMiddleware = async (c, next) => {
 };
 export const userProfilePutMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }
@@ -135,7 +134,7 @@ export const userProfilePutMiddleware = async (c, next) => {
 };
 export const userGenerateLinkMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -159,7 +158,7 @@ export const userGenerateLinkMiddleware = async (c, next) => {
 };
 export const userListMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAccountingAdmin(user.id, prisma);
+    const response = await protectionAccountingAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -191,7 +190,7 @@ export const userListMiddleware = async (c, next) => {
 };
 export const userActiveListMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -223,7 +222,7 @@ export const userActiveListMiddleware = async (c, next) => {
 };
 export const userChangePasswordMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }
@@ -250,7 +249,7 @@ export const userChangePasswordMiddleware = async (c, next) => {
 };
 export const userListReinvestedMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -276,7 +275,7 @@ export const userListReinvestedMiddleware = async (c, next) => {
 };
 export const userTreeMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMerchantAdminAccounting(user.id, prisma);
+    const response = await protectionMerchantAdminAccounting(user);
     if (response instanceof Response) {
         return response;
     }
@@ -300,7 +299,7 @@ export const userTreeMiddleware = async (c, next) => {
 };
 export const userGetSearchMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -324,7 +323,7 @@ export const userGetSearchMiddleware = async (c, next) => {
 };
 export const userReferralMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionAdmin(user);
     if (response instanceof Response) {
         return response;
     }

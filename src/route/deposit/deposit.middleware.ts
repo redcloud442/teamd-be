@@ -8,7 +8,6 @@ import {
   updateDepositSchema,
 } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import {
   protectionAdmin,
   protectionMemberUser,
@@ -19,7 +18,7 @@ import { rateLimit } from "../../utils/redis.js";
 export const depositMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -73,7 +72,7 @@ export const depositMiddleware = async (c: Context, next: Next) => {
 export const depositPutMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMerchantAdmin(user.id, prisma);
+  const response = await protectionMerchantAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -119,7 +118,7 @@ export const depositPutMiddleware = async (c: Context, next: Next) => {
 export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMerchantAdmin(user.id, prisma);
+  const response = await protectionMerchantAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -176,7 +175,7 @@ export const depositHistoryPostMiddleware = async (c: Context, next: Next) => {
 export const depositListPostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMerchantAdmin(user.id, prisma);
+  const response = await protectionMerchantAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -236,7 +235,7 @@ export const depositListPostMiddleware = async (c: Context, next: Next) => {
 export const depositReferenceMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -278,7 +277,7 @@ export const depositReferenceMiddleware = async (c: Context, next: Next) => {
 export const depositReportPostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;

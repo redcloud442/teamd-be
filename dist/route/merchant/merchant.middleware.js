@@ -1,11 +1,10 @@
 import { merchantBankSchema, merchantDeleteSchema, merchantPatchSchema, merchantPostSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import { protectionAdmin, protectionMemberUser, protectionMerchantAdmin, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 export const merchantGetMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }
@@ -21,7 +20,7 @@ export const merchantGetMiddleware = async (c, next) => {
 };
 export const merchantDeleteMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMerchantAdmin(user.id, prisma);
+    const response = await protectionMerchantAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -42,7 +41,7 @@ export const merchantDeleteMiddleware = async (c, next) => {
 };
 export const merchantPostMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMerchantAdmin(user.id, prisma);
+    const response = await protectionMerchantAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -68,7 +67,7 @@ export const merchantPostMiddleware = async (c, next) => {
 };
 export const merchantPatchMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMerchantAdmin(user.id, prisma);
+    const response = await protectionMerchantAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -94,7 +93,7 @@ export const merchantPatchMiddleware = async (c, next) => {
 };
 export const merchantBankMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMerchantAdmin(user.id, prisma);
+    const response = await protectionMerchantAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -119,7 +118,7 @@ export const merchantBankMiddleware = async (c, next) => {
 };
 export const merchantBalanceMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionAdmin(user);
     if (response instanceof Response) {
         return response;
     }

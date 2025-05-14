@@ -14,7 +14,6 @@ import {
   userTreeSchema,
 } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import {
   protectionAccountingAdmin,
   protectionAdmin,
@@ -26,7 +25,7 @@ import { rateLimit } from "../../utils/redis.js";
 export const userPutMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -63,7 +62,7 @@ export const userPutMiddleware = async (c: Context, next: Next) => {
 export const userPostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -100,9 +99,7 @@ export const userPostMiddleware = async (c: Context, next: Next) => {
 export const userGetMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-
-
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -125,8 +122,6 @@ export const userGetMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse("Too Many Requests", 429);
   }
 
-
-
   c.set("teamMemberProfile", teamMemberProfile);
 
   await next();
@@ -135,7 +130,7 @@ export const userGetMiddleware = async (c: Context, next: Next) => {
 export const userPatchMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAccountingAdmin(user.id, prisma);
+  const response = await protectionAccountingAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -176,7 +171,7 @@ export const userPatchMiddleware = async (c: Context, next: Next) => {
 export const userSponsorMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -215,7 +210,7 @@ export const userSponsorMiddleware = async (c: Context, next: Next) => {
 export const userProfilePutMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -259,7 +254,7 @@ export const userProfilePutMiddleware = async (c: Context, next: Next) => {
 export const userGenerateLinkMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -300,7 +295,7 @@ export const userGenerateLinkMiddleware = async (c: Context, next: Next) => {
 export const userListMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAccountingAdmin(user.id, prisma);
+  const response = await protectionAccountingAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -358,7 +353,7 @@ export const userListMiddleware = async (c: Context, next: Next) => {
 export const userActiveListMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -416,7 +411,7 @@ export const userActiveListMiddleware = async (c: Context, next: Next) => {
 export const userChangePasswordMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -461,7 +456,7 @@ export const userChangePasswordMiddleware = async (c: Context, next: Next) => {
 export const userListReinvestedMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -504,7 +499,7 @@ export const userListReinvestedMiddleware = async (c: Context, next: Next) => {
 export const userTreeMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMerchantAdminAccounting(user.id, prisma);
+  const response = await protectionMerchantAdminAccounting(user);
 
   if (response instanceof Response) {
     return response;
@@ -545,7 +540,7 @@ export const userTreeMiddleware = async (c: Context, next: Next) => {
 export const userGetSearchMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -575,7 +570,6 @@ export const userGetSearchMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!validate.success) {
-  
     return sendErrorResponse("Invalid Request", 400);
   }
 
@@ -587,7 +581,7 @@ export const userGetSearchMiddleware = async (c: Context, next: Next) => {
 export const userReferralMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -620,7 +614,6 @@ export const userReferralMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!validate.success) {
-
     return sendErrorResponse("Invalid Request", 400);
   }
 

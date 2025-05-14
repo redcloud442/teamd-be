@@ -1,14 +1,13 @@
 import type { Context, Next } from "hono";
 import { userOptionsPostSchema } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import { protectionMerchantAdminAccounting } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 
 export const userOptionsPostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMerchantAdminAccounting(user.id, prisma);
+  const response = await protectionMerchantAdminAccounting(user);
 
   if (response instanceof Response) {
     return response;

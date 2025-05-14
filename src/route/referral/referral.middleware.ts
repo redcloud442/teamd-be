@@ -4,7 +4,6 @@ import {
   indirectReferralsSchemaPost,
 } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import {
   protectionAdmin,
   protectionMemberUser,
@@ -14,7 +13,7 @@ import { rateLimit } from "../../utils/redis.js";
 export const referralDirectMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -61,7 +60,7 @@ export const referralDirectMiddleware = async (c: Context, next: Next) => {
 export const referralIndirectMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -107,7 +106,7 @@ export const referralIndirectMiddleware = async (c: Context, next: Next) => {
 export const referralTotalGetMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAdmin(user.id, prisma);
+  const response = await protectionAdmin(user);
 
   if (response instanceof Response) {
     return response;

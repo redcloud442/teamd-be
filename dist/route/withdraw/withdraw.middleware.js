@@ -1,11 +1,10 @@
 import { updateWithdrawSchema, withdrawHideUserPostSchema, withdrawHistoryPostSchema, withdrawHistoryReportPostSchema, withdrawListPostSchema, withdrawPostSchema, withdrawTotalReportPostSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import { protectionAccountingAdmin, protectionMemberUser, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 export const withdrawPostMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }
@@ -35,7 +34,7 @@ export const withdrawPostMiddleware = async (c, next) => {
 };
 export const withdrawHistoryPostMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }
@@ -65,7 +64,7 @@ export const withdrawHistoryPostMiddleware = async (c, next) => {
 };
 export const updateWithdrawMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAccountingAdmin(user.id, prisma);
+    const response = await protectionAccountingAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -92,7 +91,7 @@ export const updateWithdrawMiddleware = async (c, next) => {
 };
 export const withdrawListPostMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAccountingAdmin(user.id, prisma);
+    const response = await protectionAccountingAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -126,7 +125,7 @@ export const withdrawListPostMiddleware = async (c, next) => {
 };
 export const withdrawHistoryReportPostMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAccountingAdmin(user.id, prisma);
+    const response = await protectionAccountingAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -149,7 +148,7 @@ export const withdrawHistoryReportPostMiddleware = async (c, next) => {
 };
 export const withdrawTotalReportPostMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAccountingAdmin(user.id, prisma);
+    const response = await protectionAccountingAdmin(user);
     if (response instanceof Response) {
         return response;
     }
@@ -176,7 +175,7 @@ export const withdrawTotalReportPostMiddleware = async (c, next) => {
 };
 export const withdrawHideUserPostMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAccountingAdmin(user.id, prisma);
+    const response = await protectionAccountingAdmin(user);
     if (response instanceof Response) {
         return response;
     }

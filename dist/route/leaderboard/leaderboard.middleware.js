@@ -1,11 +1,10 @@
 import { leaderboardPostSchema } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import { protectionAdmin } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
 export const leaderboardPostMiddleware = async (c, next) => {
     const user = c.get("user");
-    const response = await protectionAdmin(user.id, prisma);
+    const response = await protectionAdmin(user);
     if (response instanceof Response) {
         return response;
     }
