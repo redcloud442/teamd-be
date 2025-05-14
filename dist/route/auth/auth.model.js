@@ -131,8 +131,8 @@ export const registerUserModel = async (params) => {
                     company_member_id: true,
                 },
             });
-            const referralLinkURL = `${url}?CODE=${encodeURIComponent(referalLink)}`;
             const referralCode = await generateUniqueReferralCode(tx);
+            const referralLinkURL = `${url}?CODE=${encodeURIComponent(referralCode)}`;
             await tx.company_referral_link_table.create({
                 data: {
                     company_referral_link: referralLinkURL,
