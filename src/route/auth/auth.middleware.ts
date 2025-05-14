@@ -109,7 +109,6 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!parsed.success) {
-    console.log(parsed.error);
     return c.json({ message: "Invalid request" }, 400);
   }
 

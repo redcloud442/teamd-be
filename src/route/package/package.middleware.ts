@@ -48,7 +48,6 @@ export const packagePostMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!success) {
-    console.log(error);
     return c.json({ message: "Invalid request" }, 400);
   }
 
