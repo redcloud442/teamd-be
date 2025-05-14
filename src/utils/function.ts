@@ -135,7 +135,6 @@ export const generateUniqueReferralCode = async (
   throw new Error('Failed to generate a unique referral code after multiple attempts.');
 }
 
-
 export const invalidateTransactionCache = async (
   memberId: string,
   statusTypes: string[] = ["PACKAGE", "WITHDRAWAL", "DEPOSIT"]

@@ -170,9 +170,9 @@ FOR UPDATE`;
       data: {
         company_transaction_amount: finalAmount,
         company_transaction_description: `Withdrawal ${
-          earnings === "PACKAGE" ? "Package" : "Referral"
+          earnings === "PACKAGE" ? "Trading" : "Referral & Matrix"
         } Ongoing.`,
-        company_transaction_details: `Account Na  me: ${accountName}, Account Number: ${accountNumber}`,
+        company_transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
         company_transaction_member_id: teamMemberProfile.company_member_id,
         company_transaction_type: "WITHDRAWAL",
       },
@@ -367,10 +367,10 @@ export const withdrawListPostModel = async (params: {
   const { parameters, teamMemberProfile } = params;
   
 
-const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000); // subtract 1 day (in ms)
+const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
 const philippinesTimeStart = getPhilippinesTime(oneDayAgo, "start");
-const philippinesTimeEnd = getPhilippinesTime(new Date(), "end");
+const philippinesTimeEnd = getPhilippinesTime(oneDayAgo, "end");
 
   let returnData: WithdrawReturnDataType = {
     data: {
@@ -414,7 +414,7 @@ const philippinesTimeEnd = getPhilippinesTime(new Date(), "end");
     ),
   ];
 
-  if (!showAllDays || (!dateFilter?.start && !dateFilter?.end)) {
+  if (!showAllDays && (!dateFilter?.start && !dateFilter?.end)) {
     commonConditions.push(
       Prisma.raw(`t.company_withdrawal_request_date::timestamptz BETWEEN '${philippinesTimeStart}'::timestamptz AND '${philippinesTimeEnd}'::timestamptz`)
     );

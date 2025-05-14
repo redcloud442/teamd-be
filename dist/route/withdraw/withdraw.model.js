@@ -26,7 +26,7 @@ export const withdrawModel = async (params) => {
 company_combined_earnings,
 company_member_wallet,
 company_package_earnings,
-company_referral_earnings,
+company_referral_earnings
 FROM company_schema.company_earnings_table 
 WHERE company_earnings_member_id = ${teamMemberProfile.company_member_id}::uuid 
 FOR UPDATE`;
@@ -38,9 +38,6 @@ FOR UPDATE`;
         const earningsType = earnings === "PACKAGE"
             ? "company_package_earnings"
             : "company_referral_earnings";
-        const earningsWithdrawalType = earnings === "PACKAGE"
-            ? "company_withdrawal_request_earnings_amount"
-            : "company_withdrawal_request_referral_amount";
         const earningsValue = Math.round(Number(amountMatch[0][earningsType]) * 100) / 100;
         if (amountValue > earningsValue) {
             throw new Error("Insufficient balance.");
@@ -80,7 +77,6 @@ FOR UPDATE`;
                 company_withdrawal_request_withdraw_amount: finalAmount,
                 company_withdrawal_request_bank_name: accountName,
                 company_withdrawal_request_status: "PENDING",
-                [earningsWithdrawalType]: finalAmount,
                 company_withdrawal_request_member_id: teamMemberProfile.company_member_id,
                 company_withdrawal_request_withdraw_type: earnings,
                 company_withdrawal_request_approved_by: countAllRequests[0]?.approverId ?? null,
@@ -98,8 +94,8 @@ FOR UPDATE`;
         await tx.company_transaction_table.create({
             data: {
                 company_transaction_amount: finalAmount,
-                company_transaction_description: `Withdrawal ${earnings === "PACKAGE" ? "Package" : "Referral"} Ongoing.`,
-                company_transaction_details: `Account Na  me: ${accountName}, Account Number: ${accountNumber}`,
+                company_transaction_description: `Withdrawal ${earnings === "PACKAGE" ? "Trading" : "Referral & Matrix"} Ongoing.`,
+                company_transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
                 company_transaction_member_id: teamMemberProfile.company_member_id,
                 company_transaction_type: "WITHDRAWAL",
             },
@@ -218,9 +214,9 @@ export const updateWithdrawModel = async (params) => {
 };
 export const withdrawListPostModel = async (params) => {
     const { parameters, teamMemberProfile } = params;
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000); // subtract 1 day (in ms)
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const philippinesTimeStart = getPhilippinesTime(oneDayAgo, "start");
-    const philippinesTimeEnd = getPhilippinesTime(new Date(), "end");
+    const philippinesTimeEnd = getPhilippinesTime(oneDayAgo, "end");
     let returnData = {
         data: {
             APPROVED: { data: [], count: BigInt(0) },
@@ -240,7 +236,7 @@ export const withdrawListPostModel = async (params) => {
     const commonConditions = [
         Prisma.raw(`m.company_member_company_id = '${teamMemberProfile.company_member_company_id}'::uuid AND t.company_withdrawal_request_member_id ${showHiddenUser ? "IN" : "NOT IN"} (SELECT company_hidden_user_member_id FROM company_schema.company_hidden_user_table)`),
     ];
-    if (!showAllDays || (!dateFilter?.start && !dateFilter?.end)) {
+    if (!showAllDays && (!dateFilter?.start && !dateFilter?.end)) {
         commonConditions.push(Prisma.raw(`t.company_withdrawal_request_date::timestamptz BETWEEN '${philippinesTimeStart}'::timestamptz AND '${philippinesTimeEnd}'::timestamptz`));
     }
     if (teamMemberProfile.company_member_role === "ACCOUNTING") {

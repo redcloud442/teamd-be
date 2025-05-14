@@ -290,7 +290,7 @@ export const claimPackagePostModel = async (params) => {
             data: {
                 company_transaction_member_id: teamMemberProfile.company_member_id,
                 company_transaction_amount: totalClaimedAmount,
-                company_transaction_description: ` ${packageDetails.package_name} Claimed`,
+                company_transaction_description: `${packageDetails.package_name} Claimed`,
                 company_transaction_type: "EARNINGS",
             },
         });
