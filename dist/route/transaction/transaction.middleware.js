@@ -8,7 +8,7 @@ export const transactionPostMiddleware = async (c, next) => {
     if (user.error) {
         return sendErrorResponse("Unauthorized", 401);
     }
-    const response = await protectionMemberUser(user.id, prisma);
+    const response = await protectionMemberUser(user);
     if (response instanceof Response) {
         return response;
     }

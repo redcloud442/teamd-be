@@ -1,5 +1,5 @@
 # Stage 1: Base image with Bun and Doppler
-FROM node:20.10-slim AS base
+FROM oven/bun:1.2.6 AS base
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \

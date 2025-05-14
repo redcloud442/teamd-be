@@ -9,7 +9,6 @@ import {
   withdrawTotalReportPostSchema,
 } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
-import prisma from "../../utils/prisma.js";
 import {
   protectionAccountingAdmin,
   protectionMemberUser,
@@ -19,7 +18,7 @@ import { rateLimit } from "../../utils/redis.js";
 export const withdrawPostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -68,7 +67,7 @@ export const withdrawPostMiddleware = async (c: Context, next: Next) => {
 export const withdrawHistoryPostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionMemberUser(user.id, prisma);
+  const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {
     return response;
@@ -116,7 +115,7 @@ export const withdrawHistoryPostMiddleware = async (c: Context, next: Next) => {
 export const updateWithdrawMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAccountingAdmin(user.id, prisma);
+  const response = await protectionAccountingAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -161,7 +160,7 @@ export const updateWithdrawMiddleware = async (c: Context, next: Next) => {
 export const withdrawListPostMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
 
-  const response = await protectionAccountingAdmin(user.id, prisma);
+  const response = await protectionAccountingAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -226,7 +225,7 @@ export const withdrawHistoryReportPostMiddleware = async (
 ) => {
   const user = c.get("user");
 
-  const response = await protectionAccountingAdmin(user.id, prisma);
+  const response = await protectionAccountingAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -269,7 +268,7 @@ export const withdrawTotalReportPostMiddleware = async (
 ) => {
   const user = c.get("user");
 
-  const response = await protectionAccountingAdmin(user.id, prisma);
+  const response = await protectionAccountingAdmin(user);
 
   if (response instanceof Response) {
     return response;
@@ -316,7 +315,7 @@ export const withdrawHideUserPostMiddleware = async (
 ) => {
   const user = c.get("user");
 
-  const response = await protectionAccountingAdmin(user.id, prisma);
+  const response = await protectionAccountingAdmin(user);
 
   if (response instanceof Response) {
     return response;
