@@ -66,7 +66,7 @@ export const withdrawModel = async (params: {
 company_combined_earnings,
 company_member_wallet,
 company_package_earnings,
-company_referral_earnings,
+company_referral_earnings
 FROM company_schema.company_earnings_table 
 WHERE company_earnings_member_id = ${teamMemberProfile.company_member_id}::uuid 
 FOR UPDATE`;
@@ -84,11 +84,6 @@ FOR UPDATE`;
       earnings === "PACKAGE"
         ? "company_package_earnings"
         : "company_referral_earnings";
-
-    const earningsWithdrawalType =
-      earnings === "PACKAGE"
-        ? "company_withdrawal_request_earnings_amount"
-        : "company_withdrawal_request_referral_amount";
 
     const earningsValue =
       Math.round(Number(amountMatch[0][earningsType]) * 100) / 100;
@@ -146,7 +141,6 @@ FOR UPDATE`;
         company_withdrawal_request_withdraw_amount: finalAmount,
         company_withdrawal_request_bank_name: accountName,
         company_withdrawal_request_status: "PENDING",
-        [earningsWithdrawalType]: finalAmount,
         company_withdrawal_request_member_id:
           teamMemberProfile.company_member_id,
         company_withdrawal_request_withdraw_type: earnings,

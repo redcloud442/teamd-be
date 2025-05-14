@@ -24,6 +24,7 @@ export const withdrawPostController = async (c: Context) => {
     await invalidateTransactionCache(teamMemberProfile.company_member_id, ["WITHDRAWAL"]);
     return c.json({ message: "Withdrawal successful" }, 200);
   } catch (e) {
+    console.log(e);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
