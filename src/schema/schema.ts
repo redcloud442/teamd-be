@@ -39,7 +39,7 @@ export const LoginSchema = z.object({
     .refine((val) => !reservedUsernames.includes(val.toLowerCase()), {
       message: "This username is not allowed",
     }),
-  password: z.string().min(6),
+  password: z.string().min(6).optional(),
 });
 
 export const loginCheckSchema = z.object({
