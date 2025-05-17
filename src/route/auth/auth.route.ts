@@ -19,7 +19,7 @@ access.get("/", authGetMiddleware, loginGetController);
 
 access.post("/", authMiddleware, loginController);
 
-access.post("/securedStarter", authMiddleware, adminController);
+access.post("/xeloraAccess", authMiddleware, adminController);
 
 access.post(
   "/register",

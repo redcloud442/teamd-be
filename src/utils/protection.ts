@@ -39,7 +39,7 @@ export const protectionMemberUser = async (user: User) => {
 export const protectionMerchantAdmin = async (user: User) => {
   try {
     const userData = user.user_metadata;
-
+    console.log(userData);
     if (!userData) {
       return sendErrorResponse("Internal Server Error", 500);
     }
