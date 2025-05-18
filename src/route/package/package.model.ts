@@ -1,4 +1,8 @@
-import { Prisma, type company_member_table, type user_table } from "@prisma/client";
+import {
+  Prisma,
+  type company_member_table,
+  type user_table,
+} from "@prisma/client";
 import { toNonNegative } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 
@@ -168,9 +172,7 @@ export const packagePostModel = async (params: {
             company_transaction_amount: calculatedEarnings,
             company_transaction_type: "EARNINGS",
             company_transaction_description:
-              ref.level === 1
-                ? "Referral"
-                : `Matrix Level ${ref.level}`,
+              ref.level === 1 ? "Referral" : `Matrix Level ${ref.level}`,
           };
         });
 
@@ -181,7 +183,6 @@ export const packagePostModel = async (params: {
             const calculatedEarnings =
               (Number(amount) * Number(ref.percentage)) / 100;
 
-   
             await tx.company_earnings_table.update({
               where: { company_earnings_member_id: ref.referrerId },
               data: {
@@ -657,13 +658,11 @@ export const packagePostReinvestmentModel = async (params: {
     const referralChain = generateReferralChain(
       referralData?.company_referral_hierarchy ?? null,
       teamMemberProfile.company_member_id,
-      100,
-  
+      100
     );
 
     let bountyLogs: Prisma.package_ally_bounty_logCreateManyInput[] = [];
-    let transactionLogs: Prisma.company_transaction_tableCreateManyInput[] =
-      [];
+    let transactionLogs: Prisma.company_transaction_tableCreateManyInput[] = [];
 
     const requestedAmountWithBonus = requestedAmount;
 
@@ -681,16 +680,14 @@ export const packagePostReinvestmentModel = async (params: {
       },
     });
 
-      await tx.company_transaction_table.create({
-        data: {
-          company_transaction_member_id: teamMemberProfile.company_member_id,
-          company_transaction_amount: Number(requestedAmountWithBonus.toFixed(2)),
-          company_transaction_description: `${
-            packageData.package_name
-          } Activated`,
-          company_transaction_type: "EARNINGS",
-        },
-      });
+    await tx.company_transaction_table.create({
+      data: {
+        company_transaction_member_id: teamMemberProfile.company_member_id,
+        company_transaction_amount: Number(requestedAmountWithBonus.toFixed(2)),
+        company_transaction_description: `${packageData.package_name} Activated`,
+        company_transaction_type: "EARNINGS",
+      },
+    });
 
     await tx.company_earnings_table.update({
       where: {
@@ -738,13 +735,10 @@ export const packagePostReinvestmentModel = async (params: {
             company_transaction_member_id: ref.referrerId,
             company_transaction_amount: calculatedEarnings,
             company_transaction_description:
-              ref.level === 1
-                ? "Referral"
-                : `Matrix Level ${ref.level}`
+              ref.level === 1 ? "Referral" : `Matrix Level ${ref.level}`,
           };
-        }); 
+        });
 
-       
         await Promise.all(
           batch.map(async (ref) => {
             if (!ref.referrerId) return;
@@ -812,10 +806,10 @@ function generateReferralChain(
 function getBonusPercentage(level: number): number {
   const bonusMap: Record<number, number> = {
     1: 10,
-    2: 2,
-    3: 2,
+    2: 1.5,
+    3: 1.5,
     4: 1.5,
-    5: 1.5,
+    5: 1,
     6: 1,
     7: 1,
     8: 1,
@@ -825,7 +819,6 @@ function getBonusPercentage(level: number): number {
 
   return bonusMap[level] || 0;
 }
-
 
 function deductFromWalletsReinvestment(
   amount: number,
@@ -879,7 +872,6 @@ function deductFromWalletsReinvestment(
     updatedCombinedWallet: combinedWallet - amount,
   };
 }
-
 
 function deductFromWallets(
   amount: number,

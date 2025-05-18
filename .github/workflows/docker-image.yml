@@ -29,7 +29,7 @@ jobs:
 
       - name: Build Docker image for prod
         run: |
-          docker build -t ghcr.io/redcloud442/mithril:prod-be .
+          docker build -t ghcr.io/redcloud442/aurora:prod-be .
 
       - name: Verify Docker login
         run: docker info
@@ -39,10 +39,9 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push ghcr.io/redcloud442/mithril:prod-be
+          docker push ghcr.io/redcloud442/aurora:prod-be
 
       - name: Notify Jenkins
         run: |
           curl -u "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_PASSWORD }}" \
                "https://${{ secrets.JENKINS_URL }}?token=${{ secrets.JENKINS_TOKEN }}"
-        
