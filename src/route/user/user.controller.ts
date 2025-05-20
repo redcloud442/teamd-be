@@ -7,6 +7,8 @@ import {
   userListModel,
   userListReinvestedModel,
   userModelGet,
+  userModelGetById,
+  userModelGetByUserId,
   userModelPost,
   userModelPut,
   userPatchModel,
@@ -47,6 +49,31 @@ export const userGetController = async (c: Context) => {
     const data = await userModelGet({
       memberId: teamMemberProfile.company_member_id,
     });
+
+    return c.json(data, 200);
+  } catch (error) {
+    return c.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+};
+
+export const userGetByIdController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const data = await userModelGetById(params);
+
+    return c.json(data, 200);
+  } catch (error) {
+    c;
+    return c.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+};
+
+export const userProfileGetController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const data = await userModelGetByUserId(params);
 
     return c.json(data, 200);
   } catch (error) {

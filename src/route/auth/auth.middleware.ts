@@ -2,6 +2,7 @@ import type { Context, Next } from "hono";
 import {
   loginCheckSchema,
   LoginSchema,
+  registerUserCodeSchema,
   registerUserSchema,
 } from "../../schema/schema.js";
 
@@ -14,7 +15,6 @@ export const authMiddleware = async (c: Context, next: Next) => {
   const parsed = LoginSchema.safeParse({ userName });
 
   if (!parsed.success) {
-    console.log(parsed.error);
     return c.json({ message: "Invalid userName or password" }, 400);
   }
 
@@ -116,6 +116,34 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(`rate-limit:${userName}:${ip}`, 5, "1m", c);
+
+  if (!isAllowed) {
+    return sendErrorResponse(
+      "Too many requests. Please try again later after 1 minute.",
+      429
+    );
+  }
+
+  c.set("params", parsed.data);
+
+  await next();
+};
+
+export const registerUserCodeMiddleware = async (c: Context, next: Next) => {
+  const user = c.get("user");
+  const ip = getClientIP(c.req.raw);
+
+  const { code } = c.req.param();
+
+  const parsed = registerUserCodeSchema.safeParse({
+    code,
+  });
+
+  if (!parsed.success) {
+    return c.json({ message: "Invalid request" }, 400);
+  }
+
+  const isAllowed = await rateLimit(`rate-limit:${code}:${ip}`, 5, "1m", c);
 
   if (!isAllowed) {
     return sendErrorResponse(

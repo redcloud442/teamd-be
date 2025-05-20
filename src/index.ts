@@ -5,7 +5,7 @@ import { envConfig } from "./env.js";
 import { supabaseMiddleware } from "./middleware/auth.middleware.js";
 import { errorHandlerMiddleware } from "./middleware/errorMiddleware.js";
 import route from "./route/route.js";
-
+import { globalRateLimit } from "./utils/redis.js";
 const app = new Hono();
 
 // Apply CORS first, then middleware
@@ -29,6 +29,7 @@ app.use(
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: ["Content-Range", "X-Total-Count"],
   }),
+  globalRateLimit(),
   supabaseMiddleware()
 );
 

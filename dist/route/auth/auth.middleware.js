@@ -1,9 +1,9 @@
-import { loginCheckSchema, LoginSchema, registerUserSchema, } from "../../schema/schema.js";
+import { loginCheckSchema, LoginSchema, registerUserCodeSchema, registerUserSchema, } from "../../schema/schema.js";
 import { getClientIP, sendErrorResponse } from "../../utils/function.js";
 import { rateLimit } from "../../utils/redis.js";
 export const authMiddleware = async (c, next) => {
-    const { userName, password } = await c.req.json();
-    const parsed = LoginSchema.safeParse({ userName, password });
+    const { userName } = await c.req.json();
+    const parsed = LoginSchema.safeParse({ userName });
     if (!parsed.success) {
         return c.json({ message: "Invalid userName or password" }, 400);
     }
@@ -45,7 +45,7 @@ export const loginCheckMiddleware = async (c, next) => {
 export const registerUserMiddleware = async (c, next) => {
     const user = c.get("user");
     const ip = getClientIP(c.req.raw);
-    const { userName, firstName, lastName, referalLink, url, botField, email, phoneNumber, } = await c.req.json();
+    const { userName, firstName, lastName, referalLink, url, botField, email, phoneNumber, gender, } = await c.req.json();
     const parsed = registerUserSchema.safeParse({
         userName,
         firstName,
@@ -56,11 +56,29 @@ export const registerUserMiddleware = async (c, next) => {
         botField,
         email,
         phoneNumber,
+        gender,
     });
     if (!parsed.success) {
         return c.json({ message: "Invalid request" }, 400);
     }
     const isAllowed = await rateLimit(`rate-limit:${userName}:${ip}`, 5, "1m", c);
+    if (!isAllowed) {
+        return sendErrorResponse("Too many requests. Please try again later after 1 minute.", 429);
+    }
+    c.set("params", parsed.data);
+    await next();
+};
+export const registerUserCodeMiddleware = async (c, next) => {
+    const user = c.get("user");
+    const ip = getClientIP(c.req.raw);
+    const { code } = c.req.param();
+    const parsed = registerUserCodeSchema.safeParse({
+        code,
+    });
+    if (!parsed.success) {
+        return c.json({ message: "Invalid request" }, 400);
+    }
+    const isAllowed = await rateLimit(`rate-limit:${code}:${ip}`, 5, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too many requests. Please try again later after 1 minute.", 429);
     }

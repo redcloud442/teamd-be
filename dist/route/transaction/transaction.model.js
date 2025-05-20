@@ -4,7 +4,7 @@ export const transactionModelGet = async (params) => {
     const { teamMemberProfile, limit, page, status } = params;
     const safeLimit = Math.min(Math.max(Number(limit), 1), 100);
     const safePage = Math.max(Number(page), 1);
-    const cacheKey = `transaction:${teamMemberProfile.company_member_id}:${status}:${safePage}:${safeLimit}`;
+    const cacheKey = `transaction:${teamMemberProfile.company_member_id}:${status}`;
     // Check cache
     const cached = await redis.get(cacheKey);
     if (cached) {

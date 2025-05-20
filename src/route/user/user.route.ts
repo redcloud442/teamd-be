@@ -9,6 +9,7 @@ import {
   userListReinvestedController,
   userPatchController,
   userPostController,
+  userProfileGetController,
   userProfilePutController,
   userPutController,
   userReferralController,
@@ -25,6 +26,7 @@ import {
   userListReinvestedMiddleware,
   userPatchMiddleware,
   userPostMiddleware,
+  userProfileGetMiddleware,
   userProfilePutMiddleware,
   userPutMiddleware,
   userReferralMiddleware,
@@ -40,6 +42,8 @@ user.put("/", userPutMiddleware, userPutController);
 
 user.get("/", userGetMiddleware, userGetController);
 
+user.get("/:id", userGetMiddleware, userGetController);
+
 user.patch("/:id", userPatchMiddleware, userPatchController);
 
 user.get("/search", userGetSearchMiddleware, userGetSearchController);
@@ -50,10 +54,15 @@ user.put("/:id", userProfilePutMiddleware, userProfilePutController);
 
 user.get("/:id/tree", userTreeMiddleware, userTreeController);
 
+user.get(
+  "/user-profile/:id",
+  userProfileGetMiddleware,
+  userProfileGetController
+);
 
 user.put(
   "/:id/change-password",
-  userChangePasswordMiddleware, 
+  userChangePasswordMiddleware,
   userChangePasswordController
 );
 

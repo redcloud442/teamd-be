@@ -1,5 +1,5 @@
 {
-  "name": "mithril-server",
+  "name": "team-d-server",
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",

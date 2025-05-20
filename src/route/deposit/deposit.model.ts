@@ -10,7 +10,7 @@ import {
   setSeconds,
 } from "date-fns";
 import { type DepositFormValues } from "../../schema/schema.js";
-import { getPhilippinesTime } from "../../utils/function.js";
+import { getPhilippinesTime, invalidateCache } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import type { ReturnDataType, TopUpRequestData } from "../../utils/types.js";
 
@@ -82,6 +82,24 @@ export const depositPostModel = async (params: {
       },
     });
   });
+};
+
+export const depositUserGetModel = async (params: { id: string }) => {
+  const { id } = params;
+
+  const existingDeposit =
+    !!(await prisma.company_deposit_request_table.findFirst({
+      where: {
+        company_deposit_request_member_id: id,
+        company_deposit_request_status: "PENDING",
+      },
+      take: 1,
+      orderBy: {
+        company_deposit_request_date: "desc",
+      },
+    }));
+
+  return existingDeposit;
 };
 
 export const depositPutModel = async (params: {
@@ -188,7 +206,9 @@ export const depositPutModel = async (params: {
           },
         },
       });
-
+      await invalidateCache(
+        `transaction:${updatedRequest.company_deposit_request_member_id}:DEPOSIT`
+      );
       if (merchant && status === "APPROVED") {
         if (
           updatedRequest.company_deposit_request_amount >
@@ -487,47 +507,53 @@ export const depositListPostModel = async (
     returnData.merchantBalance = merchant?.merchant_member_balance;
   }
 
-
-  const startDate = dateFilter.start && dateFilter.end ? getPhilippinesTime(new Date(dateFilter.start), "start") : undefined;
-  const endDate = dateFilter.end && dateFilter.start ? getPhilippinesTime(new Date(dateFilter.end), "end") : undefined;
+  const startDate =
+    dateFilter.start && dateFilter.end
+      ? getPhilippinesTime(new Date(dateFilter.start), "start")
+      : undefined;
+  const endDate =
+    dateFilter.end && dateFilter.start
+      ? getPhilippinesTime(new Date(dateFilter.end), "end")
+      : undefined;
 
   const totalPendingDeposit =
-  await prisma.company_deposit_request_table.aggregate({
-    _sum: {
-      company_deposit_request_amount: true,
-    },
-    where: {
-        company_deposit_request_status: "PENDING",
-        company_deposit_request_date:
-          {
-            gte: startDate,
-            lte: endDate,
-        },
-      },
-    });
-
-returnData.totalPendingDeposit =
-  totalPendingDeposit._sum.company_deposit_request_amount || 0;
-
-if (teamMemberProfile.company_member_role === "MERCHANT" || teamMemberProfile.company_member_role === "ADMIN") {
-  const totalApprovedDeposit =
     await prisma.company_deposit_request_table.aggregate({
       _sum: {
         company_deposit_request_amount: true,
       },
       where: {
-        company_deposit_request_status: "APPROVED",
-        company_deposit_request_date:
-          {
-            gte: startDate,
-            lte: endDate,
-          },
+        company_deposit_request_status: "PENDING",
+        company_deposit_request_date: {
+          gte: startDate,
+          lte: endDate,
+        },
       },
     });
 
-  returnData.totalApprovedDeposit =
-    Number(totalApprovedDeposit._sum.company_deposit_request_amount) || 0;
-}
+  returnData.totalPendingDeposit =
+    totalPendingDeposit._sum.company_deposit_request_amount || 0;
+
+  if (
+    teamMemberProfile.company_member_role === "MERCHANT" ||
+    teamMemberProfile.company_member_role === "ADMIN"
+  ) {
+    const totalApprovedDeposit =
+      await prisma.company_deposit_request_table.aggregate({
+        _sum: {
+          company_deposit_request_amount: true,
+        },
+        where: {
+          company_deposit_request_status: "APPROVED",
+          company_deposit_request_date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      });
+
+    returnData.totalApprovedDeposit =
+      Number(totalApprovedDeposit._sum.company_deposit_request_amount) || 0;
+  }
 
   return JSON.parse(
     JSON.stringify(returnData, (key, value) =>

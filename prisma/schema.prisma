@@ -6,7 +6,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
   schemas   = ["user_schema","company_schema","packages_schema","merchant_schema","public"]
 }
 
@@ -32,7 +31,7 @@ model user_table {
   user_username         String
   user_first_name       String
   user_last_name        String
-  user_gender           String
+  user_gender           String?
   user_email            String?
   user_phone_number     String?
   user_profile_picture  String?
@@ -260,6 +259,7 @@ model package_table {
   package_percentage Float    @default(0.0)
   packages_days      Int
   package_is_disabled Boolean @default(false)
+  package_minimum_amount Float @default(0.0)
   package_image      String?
   package_is_popular Boolean @default(false)
   package_is_highlight Boolean @default(false)

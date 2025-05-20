@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { getClientIP } from "../../utils/function.js";
 import { supabaseClient } from "../../utils/supabase.js";
-import { adminModel, loginGetModel, loginModel, registerUserModel, } from "./auth.model.js";
+import { adminModel, loginGetModel, loginModel, registerUserCodeModel, registerUserModel, } from "./auth.model.js";
 export const loginController = async (c) => {
     try {
         const ip = getClientIP(c.req.raw);
@@ -74,6 +74,16 @@ export const registerUserController = async (c) => {
         if (error instanceof Error) {
             return c.json({ message: error.message }, 401);
         }
+        return c.json({ message: "Internal server error" }, 500);
+    }
+};
+export const registerUserCodeController = async (c) => {
+    const params = c.get("params");
+    try {
+        const data = await registerUserCodeModel(params);
+        return c.json(data, 200);
+    }
+    catch (error) {
         return c.json({ message: "Internal server error" }, 500);
     }
 };

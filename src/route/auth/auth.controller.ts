@@ -6,6 +6,7 @@ import {
   adminModel,
   loginGetModel,
   loginModel,
+  registerUserCodeModel,
   registerUserModel,
 } from "./auth.model.js";
 
@@ -24,7 +25,6 @@ export const loginController = async (c: Context) => {
     }
 
     if (error instanceof Error) {
-      console.log(error.message);
       return c.json({ message: error.message }, 401);
     }
     return c.json({ message: "Internal server error" }, 500);
@@ -46,7 +46,6 @@ export const loginGetController = async (c: Context) => {
 
     return c.json({ message: "User does not exist" }, 200);
   } catch (error) {
-    console.log(error);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return c.json({ message: "A database error occurred" }, 500);
     }
@@ -95,6 +94,17 @@ export const registerUserController = async (c: Context) => {
     if (error instanceof Error) {
       return c.json({ message: error.message }, 401);
     }
+    return c.json({ message: "Internal server error" }, 500);
+  }
+};
+
+export const registerUserCodeController = async (c: Context) => {
+  const params = c.get("params");
+  try {
+    const data = await registerUserCodeModel(params);
+
+    return c.json(data, 200);
+  } catch (error) {
     return c.json({ message: "Internal server error" }, 500);
   }
 };

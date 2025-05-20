@@ -1,4 +1,4 @@
-import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userGetSearchModel, userListModel, userListReinvestedModel, userModelGet, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userReferralModel, userSponsorModel, userTreeModel, } from "./user.model.js";
+import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userGetSearchModel, userListModel, userListReinvestedModel, userModelGet, userModelGetById, userModelGetByUserId, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userReferralModel, userSponsorModel, userTreeModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
         const { email, password, userId } = await c.req.json();
@@ -25,6 +25,27 @@ export const userGetController = async (c) => {
         const data = await userModelGet({
             memberId: teamMemberProfile.company_member_id,
         });
+        return c.json(data, 200);
+    }
+    catch (error) {
+        return c.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+};
+export const userGetByIdController = async (c) => {
+    try {
+        const params = c.get("params");
+        const data = await userModelGetById(params);
+        return c.json(data, 200);
+    }
+    catch (error) {
+        c;
+        return c.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+};
+export const userProfileGetController = async (c) => {
+    try {
+        const params = c.get("params");
+        const data = await userModelGetByUserId(params);
         return c.json(data, 200);
     }
     catch (error) {

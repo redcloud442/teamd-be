@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import {
+  invalidateCache,
   invalidateTransactionCache,
   sendErrorResponse,
 } from "../../utils/function.js";
@@ -11,6 +12,7 @@ import {
   withdrawHistoryReportPostTotalModel,
   withdrawListPostModel,
   withdrawModel,
+  withdrawUserGetModel,
 } from "./withdraw.model.js";
 
 export const withdrawPostController = async (c: Context) => {
@@ -24,9 +26,9 @@ export const withdrawPostController = async (c: Context) => {
       teamMemberProfile,
     });
 
-    await invalidateTransactionCache(teamMemberProfile.company_member_id, [
-      "WITHDRAWAL",
-    ]);
+    await invalidateCache(
+      `transaction:${teamMemberProfile.company_member_id}:WITHDRAWAL`
+    );
     return c.json({ message: "Withdrawal successful" }, 200);
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
@@ -85,7 +87,6 @@ export const withdrawListPostController = async (c: Context) => {
 
     return c.json(data, 200);
   } catch (e) {
-    console.log(e);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
@@ -127,6 +128,18 @@ export const withdrawHideUserPostController = async (c: Context) => {
     });
 
     return c.json({ message: "User hidden" }, 200);
+  } catch (e) {
+    return sendErrorResponse("Internal Server Error", 500);
+  }
+};
+
+export const withdrawUserGetController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const data = await withdrawUserGetModel(params);
+
+    return c.json(data, 200);
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
   }

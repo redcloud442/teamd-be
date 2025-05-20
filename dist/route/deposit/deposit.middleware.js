@@ -1,4 +1,4 @@
-import { depositHistoryPostSchema, depositListPostSchema, depositReferencePostSchema, depositReportPostSchema, depositSchema, updateDepositSchema, } from "../../schema/schema.js";
+import { depositHistoryPostSchema, depositListPostSchema, depositReferencePostSchema, depositReportPostSchema, depositSchema, depositUserGetSchema, updateDepositSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import { protectionAdmin, protectionMemberUser, protectionMerchantAdmin, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
@@ -82,6 +82,31 @@ export const depositHistoryPostMiddleware = async (c, next) => {
         columnAccessor,
         isAscendingSort,
         userId,
+    });
+    if (!sanitizedData.success) {
+        return sendErrorResponse("Invalid Request", 400);
+    }
+    c.set("teamMemberProfile", teamMemberProfile);
+    c.set("params", sanitizedData.data);
+    return await next();
+};
+export const depositUserGetMiddleware = async (c, next) => {
+    const user = c.get("user");
+    const response = await protectionMemberUser(user);
+    if (response instanceof Response) {
+        return response;
+    }
+    const { teamMemberProfile } = response;
+    if (!teamMemberProfile) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:deposit-user-get`, 50, "1m", c);
+    if (!isAllowed) {
+        return sendErrorResponse("Too Many Requests", 429);
+    }
+    const { id } = c.req.param();
+    const sanitizedData = depositUserGetSchema.safeParse({
+        id,
     });
     if (!sanitizedData.success) {
         return sendErrorResponse("Invalid Request", 400);

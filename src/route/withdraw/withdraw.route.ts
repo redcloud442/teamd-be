@@ -7,6 +7,7 @@ import {
   withdrawListPostController,
   withdrawPostController,
   withdrawTotalReportPostController,
+  withdrawUserGetController,
 } from "./withdraw.controller.js";
 import {
   updateWithdrawMiddleware,
@@ -16,6 +17,7 @@ import {
   withdrawListPostMiddleware,
   withdrawPostMiddleware,
   withdrawTotalReportPostMiddleware,
+  withdrawUserGetMiddleware,
 } from "./withdraw.middleware.js";
 
 const withdraw = new Hono();
@@ -39,6 +41,8 @@ withdraw.post(
   withdrawTotalReportPostMiddleware,
   withdrawTotalReportPostController
 );
+
+withdraw.get("/user/:id", withdrawUserGetMiddleware, withdrawUserGetController);
 
 withdraw.put("/:id", updateWithdrawMiddleware, updateWithdrawPostController);
 

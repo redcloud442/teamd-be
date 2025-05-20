@@ -1,61 +1,83 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import type { Context } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 
-// Ensure environment variables are set correctly
-if (
-  !process.env.UPSTASH_REDIS_REST_URL ||
-  !process.env.UPSTASH_REDIS_REST_TOKEN
-) {
-  throw new Error("Upstash Redis credentials are missing.");
-}
-
-// Create a single Redis connection
+// Singleton Redis client (reuse connection ✅)
 export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-// Cache rate limiter instances to avoid recreating them per request
-const rateLimiterInstances = new Map<string, Ratelimit>();
-
 /**
- * Rate Limit Function with Custom Sliding Windows per Request
- * @param {string} identifier - Unique user key (IP, User ID, etc.)
- * @param {number} maxRequests - Maximum allowed requests
- * @param {string} timeWindow - Time duration (e.g., "10s", "1m", "5m", "1h")
- * @param {Context} context - Hono request context
- * @returns {boolean} - `true` if request is allowed, `false` if rate limit exceeded
+ * Dynamically apply rate limiting using @upstash/ratelimit
  */
 export async function rateLimit(
-  identifier: string,
+  key: string,
   maxRequests: number,
   timeWindow: "10s" | "1m" | "5m" | "1h",
-  context: Context
-) {
-  // Unique rate limiter instance per user/API combination
-  const limiterKey = `${identifier}:${maxRequests}:${timeWindow}`;
+  c: Context
+): Promise<{
+  success: boolean;
+  remaining: number;
+  reset: number;
+  limit: number;
+}> {
+  const ip =
+    c.req.header("cf-connecting-ip") ||
+    c.req.header("x-forwarded-for") ||
+    (c.req.raw as any).connection?.remoteAddress ||
+    "unknown";
 
-  if (!rateLimiterInstances.has(limiterKey)) {
-    rateLimiterInstances.set(
-      limiterKey,
-      new Ratelimit({
-        redis: redis as any,
-        limiter: Ratelimit.slidingWindow(maxRequests, timeWindow),
-        enableProtection: true,
-        analytics: true,
-      })
-    );
-  }
+  const userAgent = c.req.header("user-agent") || "unknown";
 
-  const ratelimit = rateLimiterInstances.get(limiterKey)!;
+  // Create limiter instance per use (safe: redis is shared)
+  const limiter = new Ratelimit({
+    redis: redis as any,
+    limiter: Ratelimit.slidingWindow(maxRequests, timeWindow),
+    prefix: "@upstash/dynamic", // shared prefix, won't explode memory
+    analytics: true,
+    enableProtection: true,
+  });
 
-  // Extract relevant headers
-  const ip = context.req.raw.headers.get("cf-connecting-ip") || undefined;
-  const userAgent = context.req.raw.headers.get("user-agent") || undefined;
+  const identifier = `${key}:${ip}:${userAgent}`;
 
-  // Perform rate limit check directly from Upstash (no caching)
-  const { success } = await ratelimit.limit(identifier, { ip, userAgent });
+  const result = await limiter.limit(identifier, {
+    ip,
+    userAgent,
+  });
 
-  return success;
+  return {
+    success: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+    limit: maxRequests,
+  };
 }
+
+const limiter = new Ratelimit({
+  redis: redis as any,
+  limiter: Ratelimit.slidingWindow(1000, "1h"),
+  prefix: "@upstash/dynamic", // shared prefix, won't explode memory
+  analytics: true,
+  enableProtection: true,
+});
+
+export const globalRateLimit = (): MiddlewareHandler => {
+  return async (c, next) => {
+    const ip =
+      c.req.header("x-forwarded-for") ||
+      c.req.raw.headers.get("x-real-ip") ||
+      (c.req.raw as any).connection?.remoteAddress ||
+      "unknown";
+
+    const result = await limiter.limit(ip, {
+      ip,
+    });
+
+    if (!result.success) {
+      return c.text("Too many requests. Please try again in 1 hour.", 429);
+    }
+
+    await next();
+  };
+};

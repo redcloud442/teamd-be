@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import {
   packageGetController,
+  packageGetIdController,
   packagePostController,
   packagesClaimPostController,
   packagesCreatePostController,
@@ -11,6 +12,7 @@ import {
 } from "./package.controller.js";
 import {
   packageCreatePostMiddleware,
+  packageGetIdMiddleware,
   packageGetMiddleware,
   packagePostMiddleware,
   packagesClaimPostMiddleware,
@@ -23,6 +25,8 @@ const packages = new Hono();
 packages.post("/", packagePostMiddleware, packagePostController);
 
 packages.get("/", packageGetMiddleware, packageGetController);
+
+packages.get("/:id", packageGetIdMiddleware, packageGetIdController);
 
 packages.put("/:id", packageUpdatePutMiddleware, packagesUpdatePutController);
 

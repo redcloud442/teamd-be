@@ -105,3 +105,9 @@ export const invalidateTransactionCache = async (memberId, statusTypes = ["PACKA
         }
     }
 };
+export const invalidateCache = async (key) => {
+    const keys = await redis.keys(key);
+    if (keys.length > 0) {
+        await redis.del(...keys);
+    }
+};

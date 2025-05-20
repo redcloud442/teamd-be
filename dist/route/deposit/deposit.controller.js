@@ -1,6 +1,6 @@
-import { invalidateTransactionCache } from "../../utils/function.js";
+import { invalidateCache } from "../../utils/function.js";
 import { supabaseClient } from "../../utils/supabase.js";
-import { depositHistoryPostModel, depositListPostModel, depositPostModel, depositPutModel, depositReferencePostModel, depositReportPostModel, } from "./deposit.model.js";
+import { depositHistoryPostModel, depositListPostModel, depositPostModel, depositPutModel, depositReferencePostModel, depositReportPostModel, depositUserGetModel, } from "./deposit.model.js";
 export const depositPostController = async (c) => {
     const supabase = supabaseClient;
     const { publicUrl } = await c.req.json();
@@ -14,9 +14,7 @@ export const depositPostController = async (c) => {
             publicUrl: publicUrl,
             teamMemberProfile: teamMemberProfile,
         });
-        await invalidateTransactionCache(teamMemberProfile.company_member_id, [
-            "DEPOSIT",
-        ]);
+        await invalidateCache(`transaction:${teamMemberProfile.company_member_id}:DEPOSIT`);
         return c.json({ message: "Deposit Created" }, { status: 200 });
     }
     catch (e) {
@@ -34,9 +32,6 @@ export const depositPutController = async (c) => {
             requestId,
             teamMemberProfile,
         });
-        await invalidateTransactionCache(teamMemberProfile.company_member_id, [
-            "DEPOSIT",
-        ]);
         return c.json({ message: "Deposit Updated" }, { status: 200 });
     }
     catch (e) {
@@ -48,6 +43,16 @@ export const depositHistoryPostController = async (c) => {
         const params = c.get("params");
         const teamMemberProfile = c.get("teamMemberProfile");
         const data = await depositHistoryPostModel(params, teamMemberProfile);
+        return c.json(data, { status: 200 });
+    }
+    catch (e) {
+        return c.json({ message: "Internal Server Error" }, { status: 500 });
+    }
+};
+export const depositUserGetController = async (c) => {
+    try {
+        const params = c.get("params");
+        const data = await depositUserGetModel(params);
         return c.json(data, { status: 200 });
     }
     catch (e) {

@@ -64,6 +64,73 @@ export const userModelPut = async (params: {
   return { success: true, message: "Password updated successfully" };
 };
 
+export const userModelGetById = async (params: { id: string }) => {
+  const { id } = params;
+
+  const userData = await prisma.user_table.findUnique({
+    where: { user_id: id },
+    include: {
+      company_member_table: {
+        include: {
+          dashboard_earnings_summary: true,
+          merchant_member_table: true,
+        },
+      },
+    },
+  });
+
+  if (!userData) {
+    return { success: false, error: "User not found" };
+  }
+  const earningsData =
+    userData.company_member_table[0]?.dashboard_earnings_summary[0];
+  const allianceData = userData.company_member_table[0];
+  const merchantData =
+    userData.company_member_table[0]?.merchant_member_table[0];
+
+  const combinedData = {
+    ...userData,
+    ...allianceData,
+    ...merchantData,
+    ...earningsData,
+  };
+
+  return { success: true, data: combinedData };
+};
+
+export const userModelGetByUserId = async (params: { id: string }) => {
+  const { id } = params;
+
+  const user = await prisma.user_table.findUnique({
+    where: { user_id: id },
+    select: {
+      user_id: true,
+      user_username: true,
+      user_first_name: true,
+      user_last_name: true,
+      user_date_created: true,
+      user_profile_picture: true,
+      company_member_table: {
+        select: {
+          company_member_id: true,
+          company_member_role: true,
+          company_member_restricted: true,
+          company_member_date_created: true,
+          company_member_date_updated: true,
+          company_member_is_active: true,
+          company_referral_link_table: {
+            select: {
+              company_referral_link: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return user;
+};
+
 export const userModelPost = async (params: { memberId: string }) => {
   const { memberId } = params;
 

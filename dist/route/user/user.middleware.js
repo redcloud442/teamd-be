@@ -1,4 +1,4 @@
-import { userChangePasswordSchema, userGenerateLinkSchema, userGetReferralSchema, userGetSearchSchema, userListReinvestedSchema, userListSchema, userProfileSchemaPatch, userSchemaPatch, userSchemaPost, userSchemaPut, userSponsorSchema, userTreeSchema, } from "../../schema/schema.js";
+import { userChangePasswordSchema, userGenerateLinkSchema, userGetByIdSchema, userGetReferralSchema, userGetSearchSchema, userListReinvestedSchema, userListSchema, userProfileSchemaGet, userProfileSchemaPatch, userSchemaPatch, userSchemaPost, userSchemaPut, userSponsorSchema, userTreeSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import { protectionAccountingAdmin, protectionAdmin, protectionMemberUser, protectionMerchantAdminAccounting, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
@@ -57,6 +57,28 @@ export const userGetMiddleware = async (c, next) => {
     const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:user-get`, 100, "1m", c);
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
+    }
+    c.set("teamMemberProfile", teamMemberProfile);
+    await next();
+};
+export const userGetByIdMiddleware = async (c, next) => {
+    const user = c.get("user");
+    const response = await protectionMemberUser(user);
+    if (response instanceof Response) {
+        return response;
+    }
+    const { teamMemberProfile } = response;
+    if (!teamMemberProfile) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:user-get-by-id`, 100, "1m", c);
+    if (!isAllowed) {
+        return sendErrorResponse("Too Many Requests", 429);
+    }
+    const { id } = c.req.param();
+    const validate = userGetByIdSchema.safeParse({ id });
+    if (!validate.success) {
+        return sendErrorResponse("Invalid Request", 400);
     }
     c.set("teamMemberProfile", teamMemberProfile);
     await next();
@@ -129,6 +151,32 @@ export const userProfilePutMiddleware = async (c, next) => {
     if (!validate.success) {
         return sendErrorResponse("Invalid Request", 400);
     }
+    c.set("teamMemberProfile", teamMemberProfile);
+    await next();
+};
+export const userProfileGetMiddleware = async (c, next) => {
+    const user = c.get("user");
+    console.log(user);
+    const response = await protectionMemberUser(user);
+    if (response instanceof Response) {
+        return response;
+    }
+    const { teamMemberProfile } = response;
+    if (!teamMemberProfile) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:user-profile-update`, 50, "1m", c);
+    if (!isAllowed) {
+        return sendErrorResponse("Too Many Requests", 429);
+    }
+    const { id } = c.req.param();
+    const validate = userProfileSchemaGet.safeParse({
+        id,
+    });
+    if (!validate.success) {
+        return sendErrorResponse("Invalid Request", 400);
+    }
+    c.set("params", validate.data);
     c.set("teamMemberProfile", teamMemberProfile);
     await next();
 };

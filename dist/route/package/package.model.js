@@ -1,6 +1,7 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, } from "@prisma/client";
 import { toNonNegative } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
 export const packagePostModel = async (params) => {
     const { amount, packageId, teamMemberProfile } = params;
     const connectionData = await prisma.$transaction(async (tx) => {
@@ -24,6 +25,9 @@ export const packagePostModel = async (params) => {
         ]);
         if (!packageData) {
             throw new Error("Package not found.");
+        }
+        if (amount <= packageData.package_minimum_amount) {
+            throw new Error("Amount is less than the minimum amount.");
         }
         if (packageData.package_is_disabled) {
             throw new Error("Package is disabled.");
@@ -103,9 +107,7 @@ export const packagePostModel = async (params) => {
                         company_transaction_member_id: ref.referrerId,
                         company_transaction_amount: calculatedEarnings,
                         company_transaction_type: "EARNINGS",
-                        company_transaction_description: ref.level === 1
-                            ? "Referral"
-                            : `Matrix Level ${ref.level}`,
+                        company_transaction_description: ref.level === 1 ? "Referral" : `Matrix Level ${ref.level}`,
                     };
                 });
                 await Promise.all(batch.map(async (ref) => {
@@ -148,19 +150,42 @@ export const packagePostModel = async (params) => {
     return connectionData;
 };
 export const packageGetModel = async () => {
+    // 1. Try to get from Redis cache
+    const cached = await redis.get("package-list:cached");
+    if (cached) {
+        return cached;
+    }
+    // 2. Not in cache, fetch from DB
     const result = await prisma.$transaction(async (tx) => {
         const data = await tx.package_table.findMany({
-            select: {
-                package_id: true,
-                package_name: true,
-                package_percentage: true,
-                package_description: true,
-                packages_days: true,
-                package_gif: true,
-                package_image: true,
+            include: {
+                package_features_table: true,
             },
         });
         return data;
+    });
+    await redis.set("package-list:cached", JSON.stringify(result), {
+        ex: 60 * 5,
+    });
+    return result;
+};
+export const packageGetIdModel = async (params) => {
+    const cacheKey = "package-list:cached";
+    const cached = await redis.get(cacheKey);
+    if (typeof cached === "string") {
+        const parsed = JSON.parse(cached); // ✅ Only if it's a string
+        const found = parsed.find((pkg) => pkg.package_id === params.id);
+        if (found) {
+            return found;
+        }
+    }
+    const result = await prisma.$transaction(async (tx) => {
+        return await tx.package_table.findUnique({
+            where: { package_id: params.id },
+            include: {
+                package_features_table: true,
+            },
+        });
     });
     return result;
 };
@@ -184,7 +209,6 @@ export const packageCreatePostModel = async (params) => {
                 package_description: packageDescription,
                 package_percentage: parsedPackagePercentage,
                 packages_days: parsedPackageDays,
-                package_gif: packageGif,
                 package_image: packageImage,
             },
         }),
@@ -202,7 +226,6 @@ export const packageUpdatePutModel = async (params) => {
                 package_percentage: parseFloat(packagePercentage),
                 packages_days: parseInt(packageDays),
                 package_is_disabled: packageIsDisabled,
-                package_gif: packageGif,
                 package_image: package_image ? package_image : undefined,
             },
         });
@@ -322,7 +345,6 @@ export const packageListGetModel = async (params) => {
             package_table: {
                 select: {
                     package_name: true,
-                    package_gif: true,
                     packages_days: true,
                     package_percentage: true,
                     package_image: true,
@@ -355,7 +377,6 @@ export const packageListGetModel = async (params) => {
         }
         return {
             package: row.package_table.package_name,
-            package_gif: row.package_table.package_gif,
             completion_date: completionDate?.toISOString(),
             amount: Number(row.package_member_amount.toFixed(2)),
             completion: Number(percentage.toFixed(2)),
@@ -379,7 +400,6 @@ export const packageListGetAdminModel = async () => {
             package_percentage: true,
             package_description: true,
             packages_days: true,
-            package_gif: true,
             package_image: true,
         },
     });
@@ -491,9 +511,7 @@ export const packagePostReinvestmentModel = async (params) => {
                     return {
                         company_transaction_member_id: ref.referrerId,
                         company_transaction_amount: calculatedEarnings,
-                        company_transaction_description: ref.level === 1
-                            ? "Referral"
-                            : `Matrix Level ${ref.level}`
+                        company_transaction_description: ref.level === 1 ? "Referral" : `Matrix Level ${ref.level}`,
                     };
                 });
                 await Promise.all(batch.map(async (ref) => {
@@ -547,10 +565,10 @@ function generateReferralChain(hierarchy, teamMemberId, maxDepth = 100) {
 function getBonusPercentage(level) {
     const bonusMap = {
         1: 10,
-        2: 2,
-        3: 2,
+        2: 1.5,
+        3: 1.5,
         4: 1.5,
-        5: 1.5,
+        5: 1,
         6: 1,
         7: 1,
         8: 1,

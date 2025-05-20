@@ -44,43 +44,132 @@ export const userModelPut = async (params) => {
     }
     return { success: true, message: "Password updated successfully" };
 };
+export const userModelGetById = async (params) => {
+    const { id } = params;
+    const userData = await prisma.user_table.findUnique({
+        where: { user_id: id },
+        include: {
+            company_member_table: {
+                include: {
+                    dashboard_earnings_summary: true,
+                    merchant_member_table: true,
+                },
+            },
+        },
+    });
+    if (!userData) {
+        return { success: false, error: "User not found" };
+    }
+    const earningsData = userData.company_member_table[0]?.dashboard_earnings_summary[0];
+    const allianceData = userData.company_member_table[0];
+    const merchantData = userData.company_member_table[0]?.merchant_member_table[0];
+    const combinedData = {
+        ...userData,
+        ...allianceData,
+        ...merchantData,
+        ...earningsData,
+    };
+    return { success: true, data: combinedData };
+};
+export const userModelGetByUserId = async (params) => {
+    const { id } = params;
+    const user = await prisma.user_table.findUnique({
+        where: { user_id: id },
+        select: {
+            user_id: true,
+            user_username: true,
+            user_first_name: true,
+            user_last_name: true,
+            user_date_created: true,
+            user_profile_picture: true,
+            company_member_table: {
+                select: {
+                    company_member_id: true,
+                    company_member_role: true,
+                    company_member_restricted: true,
+                    company_member_date_created: true,
+                    company_member_date_updated: true,
+                    company_member_is_active: true,
+                    company_referral_link_table: {
+                        select: {
+                            company_referral_link: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+    return user;
+};
 export const userModelPost = async (params) => {
     const { memberId } = params;
-    const user = await prisma.dashboard_earnings_summary.findUnique({
+    const user = await prisma.user_table.findUnique({
         where: {
-            member_id: memberId,
+            user_id: memberId,
         },
         select: {
-            direct_referral_amount: true,
-            indirect_referral_amount: true,
-            total_earnings: true,
-            total_withdrawals: true,
-            direct_referral_count: true,
-            package_income: true,
-            indirect_referral_count: true,
+            user_id: true,
+            user_username: true,
+            user_first_name: true,
+            user_last_name: true,
+            user_email: true,
+            user_phone_number: true,
+            user_profile_picture: true,
+            company_member_table: {
+                select: {
+                    company_member_id: true,
+                    company_member_role: true,
+                    company_member_is_active: true,
+                    company_member_date_created: true,
+                    company_member_date_updated: true,
+                    dashboard_earnings_summary: {
+                        select: {
+                            direct_referral_amount: true,
+                            indirect_referral_amount: true,
+                            total_earnings: true,
+                            total_withdrawals: true,
+                            direct_referral_count: true,
+                            indirect_referral_count: true,
+                            package_income: true,
+                        },
+                    },
+                    company_earnings_table: {
+                        select: {
+                            company_earnings_member_id: true,
+                            company_combined_earnings: true,
+                            company_package_earnings: true,
+                            company_referral_earnings: true,
+                            company_member_wallet: true,
+                        },
+                    },
+                },
+            },
         },
     });
-    const userEarnings = await prisma.company_earnings_table.findUnique({
-        where: {
-            company_earnings_member_id: memberId,
-        },
-        select: {
-            company_member_wallet: true,
-            company_package_earnings: true,
-            company_combined_earnings: true,
-            company_referral_earnings: true,
-        },
-    });
+    const member = user?.company_member_table[0];
     const totalEarnings = {
-        directReferralAmount: user?.direct_referral_amount,
-        indirectReferralAmount: user?.indirect_referral_amount,
-        totalEarnings: user?.total_earnings,
-        withdrawalAmount: user?.total_withdrawals,
-        packageEarnings: userEarnings?.company_package_earnings,
-        directReferralCount: user?.direct_referral_count,
-        indirectReferralCount: user?.indirect_referral_count,
+        directReferralAmount: member?.dashboard_earnings_summary[0]?.direct_referral_amount ?? 0,
+        indirectReferralAmount: member?.dashboard_earnings_summary[0]?.indirect_referral_amount ?? 0,
+        totalEarnings: member?.dashboard_earnings_summary[0]?.total_earnings ?? 0,
+        withdrawalAmount: member?.dashboard_earnings_summary[0]?.total_withdrawals ?? 0,
+        packageEarnings: member?.company_earnings_table[0]?.company_package_earnings ?? 0,
+        directReferralCount: member?.dashboard_earnings_summary[0]?.direct_referral_count ?? 0,
+        indirectReferralCount: member?.dashboard_earnings_summary[0]?.indirect_referral_count ?? 0,
     };
-    return { totalEarnings, userEarningsData: userEarnings };
+    return {
+        totalEarnings,
+        userEarningsData: member?.company_earnings_table[0],
+        teamMemberProfile: user?.company_member_table,
+        userProfile: {
+            user_id: user?.user_id,
+            user_username: user?.user_username,
+            user_first_name: user?.user_first_name,
+            user_last_name: user?.user_last_name,
+            user_email: user?.user_email,
+            user_phone_number: user?.user_phone_number,
+            user_profile_picture: user?.user_profile_picture,
+        },
+    };
 };
 export const userModelGet = async ({ memberId }) => {
     const todayStart = getPhilippinesTime(new Date(), "start");
@@ -96,7 +185,7 @@ export const userModelGet = async ({ memberId }) => {
         },
     };
     // Run queries in parallel
-    const [existingPackageWithdrawal, existingReferralWithdrawal, existingDeposit, user, userEarnings,] = await Promise.all([
+    const [existingPackageWithdrawal, existingReferralWithdrawal, existingDeposit, user,] = await Promise.all([
         prisma.company_withdrawal_request_table.findFirst({
             where: {
                 ...baseWithdrawFilter,
@@ -119,40 +208,63 @@ export const userModelGet = async ({ memberId }) => {
                 company_deposit_request_date: "desc",
             },
         }),
-        prisma.dashboard_earnings_summary.findUnique({
+        prisma.user_table.findFirst({
             where: {
-                member_id: memberId,
+                company_member_table: {
+                    some: {
+                        company_member_id: memberId,
+                    },
+                },
             },
             select: {
-                direct_referral_amount: true,
-                indirect_referral_amount: true,
-                total_earnings: true,
-                total_withdrawals: true,
-                direct_referral_count: true,
-                package_income: true,
-                indirect_referral_count: true,
-            },
-        }),
-        prisma.company_earnings_table.findUnique({
-            where: {
-                company_earnings_member_id: memberId,
-            },
-            select: {
-                company_member_wallet: true,
-                company_package_earnings: true,
-                company_combined_earnings: true,
-                company_referral_earnings: true,
+                user_id: true,
+                user_username: true,
+                user_first_name: true,
+                user_last_name: true,
+                user_email: true,
+                user_phone_number: true,
+                user_profile_picture: true,
+                company_member_table: {
+                    select: {
+                        company_member_id: true,
+                        company_member_role: true,
+                        company_member_is_active: true,
+                        company_member_date_created: true,
+                        company_member_date_updated: true,
+                        dashboard_earnings_summary: {
+                            select: {
+                                direct_referral_amount: true,
+                                indirect_referral_amount: true,
+                                total_earnings: true,
+                                total_withdrawals: true,
+                                direct_referral_count: true,
+                                indirect_referral_count: true,
+                                package_income: true,
+                            },
+                        },
+                        company_earnings_table: {
+                            select: {
+                                company_earnings_member_id: true,
+                                company_combined_earnings: true,
+                                company_package_earnings: true,
+                                company_referral_earnings: true,
+                                company_member_wallet: true,
+                            },
+                        },
+                    },
+                },
             },
         }),
     ]);
+    const member = user?.company_member_table[0];
     const totalEarnings = {
-        directReferralAmount: user?.direct_referral_amount,
-        indirectReferralAmount: user?.indirect_referral_amount,
-        totalEarnings: user?.total_earnings,
-        withdrawalAmount: user?.total_withdrawals,
-        packageEarnings: userEarnings?.company_package_earnings,
-        directReferralCount: user?.direct_referral_count,
-        indirectReferralCount: user?.indirect_referral_count,
+        directReferralAmount: member?.dashboard_earnings_summary[0]?.direct_referral_amount ?? 0,
+        indirectReferralAmount: member?.dashboard_earnings_summary[0]?.indirect_referral_amount ?? 0,
+        totalEarnings: member?.dashboard_earnings_summary[0]?.total_earnings ?? 0,
+        withdrawalAmount: member?.dashboard_earnings_summary[0]?.total_withdrawals ?? 0,
+        packageEarnings: member?.company_earnings_table[0]?.company_package_earnings ?? 0,
+        directReferralCount: member?.dashboard_earnings_summary[0]?.direct_referral_count ?? 0,
+        indirectReferralCount: member?.dashboard_earnings_summary[0]?.indirect_referral_count ?? 0,
     };
     const actions = {
         canWithdrawPackage: !existingPackageWithdrawal,
@@ -161,7 +273,17 @@ export const userModelGet = async ({ memberId }) => {
     };
     return {
         totalEarnings,
-        userEarningsData: userEarnings,
+        userEarningsData: member?.company_earnings_table[0],
+        teamMemberProfile: user?.company_member_table[0],
+        userProfile: {
+            user_id: user?.user_id,
+            user_username: user?.user_username,
+            user_first_name: user?.user_first_name,
+            user_last_name: user?.user_last_name,
+            user_email: user?.user_email,
+            user_phone_number: user?.user_phone_number,
+            user_profile_picture: user?.user_profile_picture,
+        },
         actions,
     };
 };

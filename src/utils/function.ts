@@ -148,3 +148,10 @@ export const invalidateTransactionCache = async (
     }
   }
 };
+
+export const invalidateCache = async (key: string) => {
+  const keys = await redis.keys(key);
+  if (keys.length > 0) {
+    await redis.del(...keys);
+  }
+};

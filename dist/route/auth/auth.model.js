@@ -22,13 +22,13 @@ export const loginModel = async (params) => {
         },
     });
     if (!user) {
-        throw new Error("Invalid username or user is not a member.");
+        throw new Error("Invalid username or password.");
     }
     const teamMemberProfile = user.company_member_table[0];
     if (!teamMemberProfile)
         throw new Error("User profile not found or incomplete.");
     if (teamMemberProfile.company_member_restricted) {
-        throw new Error("User is temporarily restricted.");
+        throw new Error("User is banned.");
     }
     if (teamMemberProfile.company_member_restricted ||
         !teamMemberProfile.company_member_company_id) {
@@ -55,6 +55,9 @@ export const loginGetModel = async (userName) => {
                 equals: userName,
                 mode: "insensitive",
             },
+        },
+        select: {
+            user_id: true,
         },
     });
     const teamMember = await prisma.company_member_table.findFirst({
@@ -102,19 +105,20 @@ export const adminModel = async (params) => {
     return { success: true };
 };
 export const registerUserModel = async (params) => {
-    const { userId, userName, firstName, lastName, referalLink, url, ip, botField, email, phoneNumber, } = params;
+    const { userId, userName, firstName, lastName, referalLink, url, ip, botField, phoneNumber, gender, } = params;
     if (referalLink) {
         const DEFAULT_COMPANY_ID = "a1b9ceb9-cb09-4c09-832d-6e5a017d048b";
         return await prisma.$transaction(async (tx) => {
             const user = await tx.user_table.create({
                 data: {
                     user_id: userId,
-                    user_email: email,
+                    user_email: userName + "@gmail.com",
                     user_first_name: firstName,
                     user_last_name: lastName,
                     user_username: userName,
                     user_bot_field: botField === "true" ? true : false,
                     user_phone_number: phoneNumber,
+                    user_gender: gender,
                 },
             });
             if (!user) {
@@ -122,7 +126,6 @@ export const registerUserModel = async (params) => {
             }
             const allianceMember = await tx.company_member_table.create({
                 data: {
-                    company_member_role: "MEMBER",
                     company_member_company_id: DEFAULT_COMPANY_ID,
                     company_member_user_id: userId,
                 },
@@ -131,7 +134,7 @@ export const registerUserModel = async (params) => {
                 },
             });
             const referralCode = await generateUniqueReferralCode(tx);
-            const referralLinkURL = `${url}?CODE=${encodeURIComponent(referralCode)}`;
+            const referralLinkURL = `${url}/${referralCode}`;
             await tx.company_referral_link_table.create({
                 data: {
                     company_referral_link: referralLinkURL,
@@ -147,7 +150,7 @@ export const registerUserModel = async (params) => {
             await handleReferral(tx, referalLink, allianceMember.company_member_id);
             await supabaseClient.auth.admin.updateUserById(userId, {
                 user_metadata: {
-                    Role: "MEMBER",
+                    Role: "ADMIN",
                     ReferralCode: referralCode,
                     ReferralLink: referralLinkURL,
                     CompanyId: DEFAULT_COMPANY_ID,
@@ -166,6 +169,31 @@ export const registerUserModel = async (params) => {
             user_history_user_id: userId,
         },
     });
+};
+export const registerUserCodeModel = async (params) => {
+    const { code } = params;
+    const user = await prisma.user_table.findFirst({
+        where: {
+            company_member_table: {
+                some: {
+                    company_referral_link_table: {
+                        some: {
+                            company_referral_code: code,
+                        },
+                    },
+                    AND: [
+                        {
+                            company_member_is_active: true,
+                        },
+                    ],
+                },
+            },
+        },
+        select: {
+            user_username: true,
+        },
+    });
+    return user;
 };
 async function handleReferral(tx, referalLink, allianceMemberId) {
     const referrerData = await tx.$queryRaw `

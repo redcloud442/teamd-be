@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { calculateFee, calculateFinalAmount, getPhilippinesTime, } from "../../utils/function.js";
+import { calculateFee, calculateFinalAmount, getPhilippinesTime, invalidateCache, } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 export const withdrawModel = async (params) => {
     const { earnings, accountNumber, accountName, amount, bank, teamMemberProfile, } = params;
@@ -208,15 +208,16 @@ export const updateWithdrawModel = async (params) => {
                 company_transaction_type: "WITHDRAWAL",
             },
         });
+        await invalidateCache(`transaction:${updatedRequest.company_withdrawal_request_member_id}:WITHDRAWAL`);
         return updatedRequest;
     });
     return result;
 };
 export const withdrawListPostModel = async (params) => {
     const { parameters, teamMemberProfile } = params;
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const philippinesTimeStart = getPhilippinesTime(oneDayAgo, "start");
-    const philippinesTimeEnd = getPhilippinesTime(oneDayAgo, "end");
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const philippinesTimeStart = getPhilippinesTime(twoDaysAgo, "start");
+    const philippinesTimeEnd = getPhilippinesTime(twoDaysAgo, "end");
     let returnData = {
         data: {
             APPROVED: { data: [], count: BigInt(0) },
@@ -527,4 +528,38 @@ export const withdrawHideUserModel = async (params) => {
             },
         });
     }
+};
+export const withdrawUserGetModel = async (params) => {
+    const { id } = params;
+    const now = new Date();
+    const todayStart = getPhilippinesTime(now, "start");
+    const todayEnd = getPhilippinesTime(now, "end");
+    const [packageWithdrawal, referralWithdrawal] = await Promise.all([
+        prisma.company_withdrawal_request_table.findFirst({
+            where: {
+                company_withdrawal_request_member_id: id,
+                company_withdrawal_request_status: { in: ["PENDING", "APPROVED"] },
+                company_withdrawal_request_withdraw_type: "PACKAGE",
+                company_withdrawal_request_date: {
+                    gte: todayStart,
+                    lte: todayEnd,
+                },
+            },
+        }),
+        prisma.company_withdrawal_request_table.findFirst({
+            where: {
+                company_withdrawal_request_member_id: id,
+                company_withdrawal_request_status: { in: ["PENDING", "APPROVED"] },
+                company_withdrawal_request_withdraw_type: "REFERRAL",
+                company_withdrawal_request_date: {
+                    gte: todayStart,
+                    lte: todayEnd,
+                },
+            },
+        }),
+    ]);
+    return {
+        packageWithdrawal,
+        referralWithdrawal,
+    };
 };

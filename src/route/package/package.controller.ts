@@ -1,8 +1,13 @@
 import type { Context } from "hono";
-import { invalidateTransactionCache, sendErrorResponse } from "../../utils/function.js";
+import {
+  invalidateCache,
+  invalidateTransactionCache,
+  sendErrorResponse,
+} from "../../utils/function.js";
 import {
   claimPackagePostModel,
   packageCreatePostModel,
+  packageGetIdModel,
   packageGetModel,
   packageListGetAdminModel,
   packageListGetModel,
@@ -23,8 +28,9 @@ export const packagePostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
-    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["PACKAGE"]);
-
+    await invalidateCache(
+      `transaction:${teamMemberProfile.company_member_id}:PACKAGE`
+    );
 
     return c.json({ message: "Package Created" }, 200);
   } catch (error) {
@@ -114,7 +120,9 @@ export const packagesClaimPostController = async (c: Context) => {
       teamMemberProfile,
     });
 
-    await invalidateTransactionCache(teamMemberProfile.company_member_id, ["PACKAGE"]);
+    await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+      "PACKAGE",
+    ]);
 
     return c.json({ message: "Package Claimed" });
   } catch (error) {
@@ -160,6 +168,18 @@ export const packageReinvestmentPostController = async (c: Context) => {
     });
 
     return c.json(data, 200);
+  } catch (error) {
+    return sendErrorResponse("Internal Server Error", 500);
+  }
+};
+
+export const packageGetIdController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const data = await packageGetIdModel({ id: params.id });
+
+    return c.json({ data }, 200);
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }

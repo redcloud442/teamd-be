@@ -114,6 +114,10 @@ export const registerUserSchema = z.object({
   botField: z.string().optional(),
 });
 
+export const registerUserCodeSchema = z.object({
+  code: z.string().min(1),
+});
+
 //for deposit
 
 export const depositSchema = z.object({
@@ -147,6 +151,10 @@ export const depositHistoryPostSchema = z.object({
   columnAccessor: z.string().min(3),
   isAscendingSort: z.boolean(),
   userId: z.string().optional(),
+});
+
+export const depositUserGetSchema = z.object({
+  id: z.string().uuid(),
 });
 
 export const depositListPostSchema = z.object({
@@ -191,6 +199,10 @@ export const userSchemaPost = z.object({
   memberId: z.string().uuid(),
 });
 
+export const userGetByIdSchema = z.object({
+  id: z.string().uuid(),
+});
+
 export const userSchemaPatch = z.object({
   memberId: z.string().uuid(),
   action: z.enum(["updateRole", "banUser"]),
@@ -202,6 +214,10 @@ export const userSchemaPatch = z.object({
 export const userProfileSchemaPatch = z.object({
   profilePicture: z.string().min(1),
   userId: z.string().uuid(),
+});
+
+export const userProfileSchemaGet = z.object({
+  id: z.string().uuid(),
 });
 
 export const userChangePasswordSchema = z.object({
@@ -299,10 +315,12 @@ export const indirectReferralsSchemaPost = z.object({
 //packages schema
 
 export const packagePostSchema = z.object({
-  amount: z.number().refine((val) => Number(val) >= 100, {
-    message: "Minimum amount is 100 pesos",
-  }),
+  amount: z.number().min(1),
   packageId: z.string().uuid(),
+});
+
+export const packageGetIdSchema = z.object({
+  id: z.string().uuid(),
 });
 
 export const createPackagePostSchema = z.object({
@@ -438,6 +456,10 @@ export const withdrawTotalReportPostSchema = z.object({
 export const withdrawHideUserPostSchema = z.object({
   id: z.string().uuid(),
   type: z.enum(["add", "remove"]),
+});
+
+export const withdrawUserGetSchema = z.object({
+  id: z.string().uuid(),
 });
 
 //leaderboard schema

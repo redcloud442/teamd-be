@@ -2,6 +2,7 @@ import type { Context, Next } from "hono";
 import {
   claimPackagePutSchema,
   createPackagePostSchema,
+  packageGetIdSchema,
   packagePostSchema,
   updatePackageSchema,
 } from "../../schema/schema.js";
@@ -42,7 +43,7 @@ export const packagePostMiddleware = async (c: Context, next: Next) => {
 
   const { amount, packageId } = packageData;
 
-  const { success, data, error } = packagePostSchema.safeParse({
+  const { success, data } = packagePostSchema.safeParse({
     amount,
     packageId,
   });
@@ -114,6 +115,49 @@ export const packageGetMiddleware = async (c: Context, next: Next) => {
   if (!isAllowed) {
     return sendErrorResponse("Too Many Requests", 429);
   }
+
+  c.set("teamMemberProfile", teamMemberProfile);
+
+  await next();
+};
+
+export const packageGetIdMiddleware = async (c: Context, next: Next) => {
+  const user = c.get("user");
+
+  const response = await protectionMemberUser(user);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.company_member_id}:package-get`,
+    50,
+    "1m",
+    c
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
+
+  const id = c.req.param("id");
+
+  const validation = packageGetIdSchema.safeParse({
+    id,
+  });
+
+  if (!validation.success) {
+    return sendErrorResponse("Invalid request", 400);
+  }
+
+  c.set("params", validation.data);
 
   c.set("teamMemberProfile", teamMemberProfile);
 
@@ -288,7 +332,7 @@ export const packagesGetListMiddleware = async (c: Context, next: Next) => {
   }
 
   const isAllowed = await rateLimit(
-    `rate-limit:${teamMemberProfile.company_member_id}:package-list`,
+    `rate-limit:${teamMemberProfile.company_member_id}:package-list-get`,
     100,
     "1m",
     c

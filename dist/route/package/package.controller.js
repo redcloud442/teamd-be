@@ -1,5 +1,5 @@
-import { invalidateTransactionCache, sendErrorResponse } from "../../utils/function.js";
-import { claimPackagePostModel, packageCreatePostModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packagePostReinvestmentModel, packageUpdatePutModel, } from "./package.model.js";
+import { invalidateCache, invalidateTransactionCache, sendErrorResponse, } from "../../utils/function.js";
+import { claimPackagePostModel, packageCreatePostModel, packageGetIdModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packagePostReinvestmentModel, packageUpdatePutModel, } from "./package.model.js";
 export const packagePostController = async (c) => {
     try {
         const params = c.get("params");
@@ -9,7 +9,7 @@ export const packagePostController = async (c) => {
             packageId: params.packageId,
             teamMemberProfile: teamMemberProfile,
         });
-        await invalidateTransactionCache(teamMemberProfile.company_member_id, ["PACKAGE"]);
+        await invalidateCache(`transaction:${teamMemberProfile.company_member_id}:PACKAGE`);
         return c.json({ message: "Package Created" }, 200);
     }
     catch (error) {
@@ -73,7 +73,9 @@ export const packagesClaimPostController = async (c) => {
             packageConnectionId,
             teamMemberProfile,
         });
-        await invalidateTransactionCache(teamMemberProfile.company_member_id, ["PACKAGE"]);
+        await invalidateTransactionCache(teamMemberProfile.company_member_id, [
+            "PACKAGE",
+        ]);
         return c.json({ message: "Package Claimed" });
     }
     catch (error) {
@@ -111,6 +113,16 @@ export const packageReinvestmentPostController = async (c) => {
             user: user,
         });
         return c.json(data, 200);
+    }
+    catch (error) {
+        return sendErrorResponse("Internal Server Error", 500);
+    }
+};
+export const packageGetIdController = async (c) => {
+    try {
+        const params = c.get("params");
+        const data = await packageGetIdModel({ id: params.id });
+        return c.json({ data }, 200);
     }
     catch (error) {
         return sendErrorResponse("Internal Server Error", 500);

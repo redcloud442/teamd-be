@@ -1,4 +1,4 @@
-import { updateWithdrawSchema, withdrawHideUserPostSchema, withdrawHistoryPostSchema, withdrawHistoryReportPostSchema, withdrawListPostSchema, withdrawPostSchema, withdrawTotalReportPostSchema, } from "../../schema/schema.js";
+import { updateWithdrawSchema, withdrawHideUserPostSchema, withdrawHistoryPostSchema, withdrawHistoryReportPostSchema, withdrawListPostSchema, withdrawPostSchema, withdrawTotalReportPostSchema, withdrawUserGetSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import { protectionAccountingAdmin, protectionMemberUser, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
@@ -192,6 +192,31 @@ export const withdrawHideUserPostMiddleware = async (c, next) => {
     const validate = withdrawHideUserPostSchema.safeParse({
         id,
         type,
+    });
+    if (!validate.success) {
+        return sendErrorResponse(validate.error.message, 400);
+    }
+    c.set("teamMemberProfile", teamMemberProfile);
+    c.set("params", validate.data);
+    await next();
+};
+export const withdrawUserGetMiddleware = async (c, next) => {
+    const user = c.get("user");
+    const response = await protectionMemberUser(user);
+    if (response instanceof Response) {
+        return response;
+    }
+    const { teamMemberProfile } = response;
+    if (!teamMemberProfile) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:withdraw-user-get`, 100, "1m", c);
+    if (!isAllowed) {
+        return sendErrorResponse("Too Many Requests", 429);
+    }
+    const { id } = c.req.param();
+    const validate = withdrawUserGetSchema.safeParse({
+        id,
     });
     if (!validate.success) {
         return sendErrorResponse(validate.error.message, 400);
