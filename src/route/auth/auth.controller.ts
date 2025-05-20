@@ -46,6 +46,7 @@ export const loginGetController = async (c: Context) => {
 
     return c.json({ message: "User does not exist" }, 200);
   } catch (error) {
+    console.log(error);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return c.json({ message: "A database error occurred" }, 500);
     }

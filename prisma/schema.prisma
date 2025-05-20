@@ -32,6 +32,7 @@ model user_table {
   user_username         String
   user_first_name       String
   user_last_name        String
+  user_gender           String
   user_email            String?
   user_phone_number     String?
   user_profile_picture  String?
@@ -259,13 +260,25 @@ model package_table {
   package_percentage Float    @default(0.0)
   packages_days      Int
   package_is_disabled Boolean @default(false)
-  package_gif      String?
   package_image      String?
+  package_is_popular Boolean @default(false)
+  package_is_highlight Boolean @default(false)
 
   package_member_connection_table package_member_connection_table[]
   package_earnings_log package_earnings_log[]
+  package_features_table package_features_table[]
   @@schema("packages_schema")
 
+}
+
+model package_features_table {
+  package_features_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  package_features_description Json
+  package_features_package_id String @db.Uuid
+
+  package_table package_table @relation(fields: [package_features_package_id], references: [package_id], onDelete: Cascade, onUpdate: Cascade)
+  
+  @@schema("packages_schema")
 }
 
 model package_member_connection_table {

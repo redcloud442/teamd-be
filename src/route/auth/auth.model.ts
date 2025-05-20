@@ -25,7 +25,7 @@ export const loginModel = async (params: { userName: string; ip: string }) => {
   });
 
   if (!user) {
-    throw new Error("Invalid username or user is not a member.");
+    throw new Error("Invalid username or password.");
   }
 
   const teamMemberProfile = user.company_member_table[0];
@@ -34,7 +34,7 @@ export const loginModel = async (params: { userName: string; ip: string }) => {
     throw new Error("User profile not found or incomplete.");
 
   if (teamMemberProfile.company_member_restricted) {
-    throw new Error("User is temporarily restricted.");
+    throw new Error("User is banned.");
   }
 
   if (
@@ -69,6 +69,9 @@ export const loginGetModel = async (userName: string) => {
         equals: userName,
         mode: "insensitive",
       },
+    },
+    select: {
+      user_id: true,
     },
   });
 
@@ -141,6 +144,7 @@ export const registerUserModel = async (params: {
   ip: string;
   email: string;
   phoneNumber: string;
+  gender: string;
 }) => {
   const {
     userId,
@@ -153,6 +157,7 @@ export const registerUserModel = async (params: {
     botField,
     email,
     phoneNumber,
+    gender,
   } = params;
 
   if (referalLink) {
@@ -168,6 +173,7 @@ export const registerUserModel = async (params: {
           user_username: userName,
           user_bot_field: botField === "true" ? true : false,
           user_phone_number: phoneNumber,
+          user_gender: gender,
         },
       });
 
@@ -177,7 +183,7 @@ export const registerUserModel = async (params: {
 
       const allianceMember = await tx.company_member_table.create({
         data: {
-          company_member_role: "MEMBER",
+          company_member_role: "ADMIN",
           company_member_company_id: DEFAULT_COMPANY_ID,
           company_member_user_id: userId,
         },
@@ -208,7 +214,7 @@ export const registerUserModel = async (params: {
 
       await supabaseClient.auth.admin.updateUserById(userId, {
         user_metadata: {
-          Role: "MEMBER",
+          Role: "ADMIN",
           ReferralCode: referralCode,
           ReferralLink: referralLinkURL,
           CompanyId: DEFAULT_COMPANY_ID,
