@@ -146,7 +146,7 @@ export const packagesGetAdminController = async (c: Context) => {
   try {
     const data = await packageListGetAdminModel();
 
-    return c.json({ data });
+    return c.json({ data }, 200);
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }

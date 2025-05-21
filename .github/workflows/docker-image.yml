@@ -41,7 +41,7 @@ jobs:
         run: |
           docker push ghcr.io/redcloud442/aurora:prod-be
 
-      - name: Notify Jenkins
-        run: |
-          curl -u "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_PASSWORD }}" \
-               "https://${{ secrets.JENKINS_URL }}?token=${{ secrets.JENKINS_TOKEN }}"
+      # - name: Notify Jenkins
+      #   run: |
+      #     curl -u "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_PASSWORD }}" \
+      #          "https://${{ secrets.JENKINS_URL }}?token=${{ secrets.JENKINS_TOKEN }}"

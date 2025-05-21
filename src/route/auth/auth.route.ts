@@ -22,6 +22,12 @@ auth.post("/", authMiddleware, loginController);
 auth.post("/xeloraAccess", authMiddleware, adminController);
 
 auth.post(
+  "/register/:code",
+  registerUserMiddleware,
+  registerUserController
+);
+
+auth.post(
   "/register",
   protectionMiddleware,
   registerUserMiddleware,

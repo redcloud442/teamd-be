@@ -203,6 +203,7 @@ model company_withdrawal_request_table {
   company_withdrawal_request_date      DateTime  @default(now())  @db.Timestamptz(3)
   company_withdrawal_request_status    String    @default("APPROVED")
   company_withdrawal_request_account   String    @default("APPROVED")
+  company_withdrawal_request_phone_number      String?
   company_withdrawal_request_type      String
   company_withdrawal_request_withdraw_type String?
   company_withdrawal_request_member_id String    @db.Uuid

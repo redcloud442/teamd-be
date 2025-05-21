@@ -392,6 +392,10 @@ export const withdrawPostSchema = z.object({
     .string()
     .min(6, "Account number is required")
     .max(24, "Account number must be at most 24 digits"),
+  phoneNumber: z
+    .string()
+    .min(10, "Phone number is required")
+    .max(11, "Phone number must be at most 11 digits"),
 });
 
 export const withdrawHistoryPostSchema = z.object({

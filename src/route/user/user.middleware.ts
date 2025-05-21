@@ -294,7 +294,7 @@ export const userProfilePutMiddleware = async (c: Context, next: Next) => {
 
 export const userProfileGetMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user");
-  console.log(user);
+
   const response = await protectionMemberUser(user);
 
   if (response instanceof Response) {

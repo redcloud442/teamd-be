@@ -32,7 +32,11 @@ packages.put("/:id", packageUpdatePutMiddleware, packagesUpdatePutController);
 
 packages.post("/list", packageGetMiddleware, packagesListPostController);
 
-packages.get("/list", packagesGetListMiddleware, packagesGetAdminController);
+packages.get(
+  "/get-all/list",
+  packagesGetListMiddleware,
+  packagesGetAdminController
+);
 
 packages.post(
   "/create",

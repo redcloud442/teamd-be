@@ -18,6 +18,7 @@ export const withdrawModel = async (params: {
   accountName: string;
   amount: number;
   bank: string;
+  phoneNumber: string;
   teamMemberProfile: company_member_table;
 }) => {
   const {
@@ -27,6 +28,7 @@ export const withdrawModel = async (params: {
     amount,
     bank,
     teamMemberProfile,
+    phoneNumber,
   } = params;
 
   await prisma.$transaction(async (tx) => {
@@ -147,6 +149,7 @@ FOR UPDATE`;
         company_withdrawal_request_withdraw_type: earnings,
         company_withdrawal_request_approved_by:
           countAllRequests[0]?.approverId ?? null,
+        company_withdrawal_request_phone_number: phoneNumber,
       },
     });
 

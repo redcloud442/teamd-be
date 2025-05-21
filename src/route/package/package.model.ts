@@ -244,6 +244,9 @@ export const packageGetModel = async () => {
       include: {
         package_features_table: true,
       },
+      orderBy: {
+        package_percentage: "desc",
+      },
     });
     return data;
   });
