@@ -29,7 +29,7 @@ jobs:
 
       - name: Build Docker image for prod
         run: |
-          docker build -t ghcr.io/redcloud442/aurora:prod-be .
+          docker build -t ghcr.io/redcloud442/teamd:prod-be .
 
       - name: Verify Docker login
         run: docker info
@@ -39,7 +39,7 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push ghcr.io/redcloud442/aurora:prod-be
+          docker push ghcr.io/redcloud442/teamd:prod-be
 
       # - name: Notify Jenkins
       #   run: |
