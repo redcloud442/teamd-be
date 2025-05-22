@@ -150,8 +150,40 @@ export const invalidateTransactionCache = async (
 };
 
 export const invalidateCache = async (key: string) => {
-  const keys = await redis.keys(key);
-  if (keys.length > 0) {
-    await redis.del(...keys);
-  }
+  await redis.del(key);
 };
+
+export const invalidateCacheVersion = async (baseKey: string) => {
+  const versionKey = `${baseKey}:version`;
+  await redis.incr(versionKey);
+};
+
+export const maskName = (name: string): string => {
+  if (!name || name.length < 2) return "*";
+  return name[0] + "****" + name[name.length - 1];
+};
+
+export async function broadcastInvestmentMessage({
+  username,
+  amount,
+  type,
+}: {
+  username: string;
+  amount: number;
+  type: string;
+}) {
+  const masked = maskName(username);
+  const formattedAmount = new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 2,
+  }).format(amount);
+
+  const message = `${masked} ${type} ${formattedAmount}!`;
+
+  try {
+    await redis.publish("deposit", message);
+  } catch (err) {
+    console.error("Redis publish error:", err);
+  }
+}

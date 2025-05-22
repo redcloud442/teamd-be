@@ -1,6 +1,7 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import type { Context, MiddlewareHandler } from "hono";
+import { Redis as RedisSubscriber } from "ioredis";
 
 // Singleton Redis client (reuse connection ✅)
 export const redis = new Redis({
@@ -8,6 +9,12 @@ export const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
+export const redisSubscriber = new RedisSubscriber(
+  process.env.REDIS_WEBSOCKET_URL!,
+  {
+    keyPrefix: "deposit",
+  }
+);
 /**
  * Dynamically apply rate limiting using @upstash/ratelimit
  */

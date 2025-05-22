@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { invalidateCache } from "../../utils/function.js";
 import {
   userActiveListModel,
   userChangePasswordModel,
@@ -52,7 +53,6 @@ export const userGetController = async (c: Context) => {
 
     return c.json(data, 200);
   } catch (error) {
-    console.log(error);
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }
 };
@@ -87,7 +87,9 @@ export const userPatchController = async (c: Context) => {
     const { action, role, type } = await c.req.json();
     const { id } = c.req.param();
 
-    await userPatchModel({ memberId: id, action, role, type });
+    const userId = await userPatchModel({ memberId: id, action, role, type });
+
+    await invalidateCache(`user-${userId}`);
 
     return c.json({ message: "User Updated" });
   } catch (error) {
@@ -113,7 +115,11 @@ export const userProfilePutController = async (c: Context) => {
 
     const { id } = c.req.param();
 
+    const teamMemberProfile = c.get("teamMemberProfile");
+
     await userProfileModelPut({ profilePicture, userId: id });
+
+    await invalidateCache(`user-${teamMemberProfile.company_member_user_id}`);
 
     return c.json({ message: "Profile Updated" });
   } catch (error) {

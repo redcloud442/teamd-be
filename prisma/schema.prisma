@@ -226,6 +226,7 @@ model company_transaction_table {
   company_transaction_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   company_transaction_date DateTime @default(now())
   company_transaction_description String
+  company_transaction_note String?
   company_transaction_details String?
   company_transaction_amount Float?
   company_transaction_member_id String @db.Uuid
@@ -334,6 +335,7 @@ model package_ally_bounty_log {
   package_ally_bounty_percentage          Float    @default(0.0)
   package_ally_bounty_earnings            Float    @default(0.0)
   package_ally_bounty_type                String
+  package_ally_bounty_level               Int
   package_ally_bounty_connection_id       String   @db.Uuid
   package_ally_bounty_from                String?   @db.Uuid
 

@@ -134,7 +134,7 @@ export const registerUserModel = async (params) => {
                 },
             });
             const referralCode = await generateUniqueReferralCode(tx);
-            const referralLinkURL = `${url}/${referralCode}`;
+            const referralLinkURL = `http://localhost:3000/register/${referralCode}`;
             await tx.company_referral_link_table.create({
                 data: {
                     company_referral_link: referralLinkURL,
@@ -150,10 +150,11 @@ export const registerUserModel = async (params) => {
             await handleReferral(tx, referalLink, allianceMember.company_member_id);
             await supabaseClient.auth.admin.updateUserById(userId, {
                 user_metadata: {
-                    Role: "ADMIN",
+                    Role: "MEMBER",
                     ReferralCode: referralCode,
                     ReferralLink: referralLinkURL,
                     CompanyId: DEFAULT_COMPANY_ID,
+                    UserName: userName,
                     CompanyMemberId: allianceMember.company_member_id,
                 },
             });

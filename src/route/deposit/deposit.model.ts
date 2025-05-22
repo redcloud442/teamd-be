@@ -10,14 +10,19 @@ import {
   setSeconds,
 } from "date-fns";
 import { type DepositFormValues } from "../../schema/schema.js";
-import { getPhilippinesTime, invalidateCache } from "../../utils/function.js";
+import {
+  broadcastInvestmentMessage,
+  getPhilippinesTime,
+} from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import type { ReturnDataType, TopUpRequestData } from "../../utils/types.js";
 
 export const depositPostModel = async (params: {
   TopUpFormValues: DepositFormValues;
   publicUrl: string;
-  teamMemberProfile: company_member_table;
+  teamMemberProfile: company_member_table & {
+    UserName: string;
+  };
 }) => {
   const { amount, accountName, accountNumber, topUpMode } =
     params.TopUpFormValues;
@@ -74,12 +79,17 @@ export const depositPostModel = async (params: {
     await tx.company_transaction_table.create({
       data: {
         company_transaction_amount: Number(amount),
-        company_transaction_description: "Deposit Pending",
+        company_transaction_description: "Pending",
         company_transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
         company_transaction_member_id:
           params.teamMemberProfile.company_member_id,
         company_transaction_type: "DEPOSIT",
       },
+    });
+    await broadcastInvestmentMessage({
+      username: params.teamMemberProfile.company_member_company_id,
+      amount: Number(amount),
+      type: "Deposit",
     });
   });
 };
@@ -119,7 +129,7 @@ export const depositPutModel = async (params: {
   if (!merchant && teamMemberProfile.company_member_role === "MERCHANT")
     throw new Error("Merchant not found.");
 
-  return await prisma.$transaction(async (tx) => {
+  const data = await prisma.$transaction(async (tx) => {
     const existingDeposit =
       await prisma.company_deposit_request_table.findFirst({
         where: {
@@ -168,12 +178,13 @@ export const depositPutModel = async (params: {
 
     await tx.company_transaction_table.create({
       data: {
-        company_transaction_description: `Deposit ${
+        company_transaction_description: `${
           status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
-        } ${note ? `(${note})` : ""}`,
+        }`,
         company_transaction_details: `Account Name: ${updatedRequest.company_deposit_request_name}, Account Number: ${updatedRequest.company_deposit_request_account}`,
         company_transaction_amount:
           updatedRequest.company_deposit_request_amount,
+        company_transaction_note: note,
         company_transaction_member_id:
           updatedRequest.company_deposit_request_member_id,
         company_transaction_type: "DEPOSIT",
@@ -206,9 +217,7 @@ export const depositPutModel = async (params: {
           },
         },
       });
-      await invalidateCache(
-        `transaction:${updatedRequest.company_deposit_request_member_id}:DEPOSIT`
-      );
+
       if (merchant && status === "APPROVED") {
         if (
           updatedRequest.company_deposit_request_amount >
@@ -237,7 +246,11 @@ export const depositPutModel = async (params: {
     } else {
       return { updatedRequest };
     }
+
+    return { updatedRequest };
   });
+
+  return data;
 };
 
 export const depositHistoryPostModel = async (

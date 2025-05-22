@@ -16,8 +16,8 @@ export const packagePostMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
-    const { packageData } = await c.req.json();
-    const { amount, packageId } = packageData;
+    const body = await c.req.json();
+    const { amount, packageId } = body;
     const { success, data } = packagePostSchema.safeParse({
         amount,
         packageId,

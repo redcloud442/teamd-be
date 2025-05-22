@@ -16,14 +16,15 @@ export const withdrawPostMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
-    const { earnings, accountNumber, accountName, amount, bank } = await c.req.json();
-    const amountWithoutCommas = amount.replace(/,/g, "");
+    const body = await c.req.json();
+    const amountWithoutCommas = body.amount.replace(/,/g, "");
     const validate = withdrawPostSchema.safeParse({
-        earnings,
-        accountNumber,
-        accountName,
+        earnings: body.earnings,
+        accountNumber: body.accountNumber,
+        accountName: body.accountName,
         amount: amountWithoutCommas,
-        bank,
+        bank: body.bank,
+        phoneNumber: body.phoneNumber,
     });
     if (!validate.success) {
         return sendErrorResponse(validate.error.message, 400);

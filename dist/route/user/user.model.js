@@ -73,6 +73,11 @@ export const userModelGetById = async (params) => {
 };
 export const userModelGetByUserId = async (params) => {
     const { id } = params;
+    const cacheKey = `user-${id}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const user = await prisma.user_table.findUnique({
         where: { user_id: id },
         select: {
@@ -98,6 +103,9 @@ export const userModelGetByUserId = async (params) => {
                 },
             },
         },
+    });
+    await redis.set(cacheKey, JSON.stringify(user), {
+        ex: 60 * 60 * 24,
     });
     return user;
 };
@@ -172,6 +180,11 @@ export const userModelPost = async (params) => {
     };
 };
 export const userModelGet = async ({ memberId }) => {
+    const cacheKey = `user-model-get-${memberId}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const todayStart = getPhilippinesTime(new Date(), "start");
     const todayEnd = getPhilippinesTime(new Date(), "end");
     const baseWithdrawFilter = {
@@ -184,12 +197,14 @@ export const userModelGet = async ({ memberId }) => {
             lte: todayEnd,
         },
     };
-    // Run queries in parallel
     const [existingPackageWithdrawal, existingReferralWithdrawal, existingDeposit, user,] = await Promise.all([
         prisma.company_withdrawal_request_table.findFirst({
             where: {
                 ...baseWithdrawFilter,
                 company_withdrawal_request_withdraw_type: "PACKAGE",
+            },
+            select: {
+                company_withdrawal_request_id: true,
             },
         }),
         prisma.company_withdrawal_request_table.findFirst({
@@ -197,11 +212,17 @@ export const userModelGet = async ({ memberId }) => {
                 ...baseWithdrawFilter,
                 company_withdrawal_request_withdraw_type: "REFERRAL",
             },
+            select: {
+                company_withdrawal_request_id: true,
+            },
         }),
         prisma.company_deposit_request_table.findFirst({
             where: {
                 company_deposit_request_member_id: memberId,
                 company_deposit_request_status: "PENDING",
+            },
+            select: {
+                company_deposit_request_id: true,
             },
             take: 1,
             orderBy: {
@@ -267,11 +288,11 @@ export const userModelGet = async ({ memberId }) => {
         indirectReferralCount: member?.dashboard_earnings_summary[0]?.indirect_referral_count ?? 0,
     };
     const actions = {
-        canWithdrawPackage: !existingPackageWithdrawal,
-        canWithdrawReferral: !existingReferralWithdrawal,
-        canUserDeposit: !existingDeposit,
+        canWithdrawPackage: existingPackageWithdrawal === null,
+        canWithdrawReferral: existingReferralWithdrawal === null,
+        canUserDeposit: existingDeposit === null,
     };
-    return {
+    const returnData = {
         totalEarnings,
         userEarningsData: member?.company_earnings_table[0],
         teamMemberProfile: user?.company_member_table[0],
@@ -286,11 +307,16 @@ export const userModelGet = async ({ memberId }) => {
         },
         actions,
     };
+    await redis.set(cacheKey, JSON.stringify(returnData), {
+        ex: 600,
+    });
+    return returnData;
 };
 export const userPatchModel = async (params) => {
     const { memberId, action, role, type } = params;
+    let userId;
     if (action === "updateRole") {
-        const userId = await prisma.company_member_table.findFirst({
+        userId = await prisma.company_member_table.findFirst({
             where: { company_member_id: memberId },
             select: {
                 company_member_user_id: true,
@@ -346,7 +372,7 @@ export const userPatchModel = async (params) => {
         };
     }
     if (action === "banUser") {
-        const userId = await prisma.company_member_table.findFirst({
+        userId = await prisma.company_member_table.findFirst({
             where: { company_member_id: memberId },
             select: {
                 company_member_user_id: true,
@@ -385,6 +411,7 @@ export const userPatchModel = async (params) => {
             message: "User banned successfully.",
         };
     }
+    return userId;
 };
 export const userSponsorModel = async (params) => {
     const { userId } = params;
@@ -693,7 +720,7 @@ export const userTreeModel = async (params) => {
     })
         .filter(Boolean);
     await redis.set(cacheKey, JSON.stringify(formattedUserTreeData), {
-        ex: 60 * 60 * 24 * 30,
+        ex: 600,
     });
     return formattedUserTreeData;
 };

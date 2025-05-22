@@ -1,5 +1,5 @@
 import { Prisma, } from "@prisma/client";
-import { toNonNegative } from "../../utils/function.js";
+import { broadcastInvestmentMessage, toNonNegative, } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
 export const packagePostModel = async (params) => {
@@ -26,7 +26,7 @@ export const packagePostModel = async (params) => {
         if (!packageData) {
             throw new Error("Package not found.");
         }
-        if (amount <= packageData.package_minimum_amount) {
+        if (amount < packageData.package_minimum_amount) {
             throw new Error("Amount is less than the minimum amount.");
         }
         if (packageData.package_is_disabled) {
@@ -46,7 +46,6 @@ export const packagePostModel = async (params) => {
         const packageAmountEarnings = new Prisma.Decimal(requestedAmount).mul(packagePercentage);
         const referralChain = generateReferralChain(referralData?.company_referral_hierarchy ?? null, teamMemberProfile.company_member_id, 100);
         let bountyLogs = [];
-        let transactionLogs = [];
         const connectionData = await tx.package_member_connection_table.create({
             data: {
                 package_member_member_id: teamMemberProfile.company_member_id,
@@ -65,7 +64,7 @@ export const packagePostModel = async (params) => {
             data: {
                 company_transaction_member_id: teamMemberProfile.company_member_id,
                 company_transaction_amount: Number(requestedAmount.toFixed(2)),
-                company_transaction_description: `${packageData.package_name} Activated`,
+                company_transaction_description: `${packageData.package_name} Subscription`,
                 company_transaction_type: "EARNINGS",
             },
         });
@@ -97,19 +96,23 @@ export const packagePostModel = async (params) => {
                         package_ally_bounty_percentage: ref.percentage,
                         package_ally_bounty_earnings: calculatedEarnings,
                         package_ally_bounty_type: ref.level === 1 ? "DIRECT" : "INDIRECT",
+                        package_ally_bounty_level: ref.level,
                         package_ally_bounty_connection_id: connectionData.package_member_connection_id,
                         package_ally_bounty_from: teamMemberProfile.company_member_id,
                     };
                 });
-                transactionLogs = batch.map((ref) => {
-                    const calculatedEarnings = (Number(amount) * Number(ref.percentage)) / 100;
-                    return {
-                        company_transaction_member_id: ref.referrerId,
-                        company_transaction_amount: calculatedEarnings,
-                        company_transaction_type: "EARNINGS",
-                        company_transaction_description: ref.level === 1 ? "Referral" : `Matrix Level ${ref.level}`,
-                    };
-                });
+                // transactionLogs = batch.map((ref) => {
+                //   const calculatedEarnings =
+                //     (Number(amount) * Number(ref.percentage)) / 100;
+                //   return {
+                //     company_transaction_member_id: ref.referrerId,
+                //     company_transaction_amount: calculatedEarnings,
+                //     company_transaction_type: "REFERRAL",
+                //     company_transaction_details: null,
+                //     company_transaction_description:
+                //       ref.level === 1 ? "Direct" : `Unilevel`,
+                //   };
+                // });
                 await Promise.all(batch.map(async (ref) => {
                     if (!ref.referrerId)
                         return;
@@ -131,11 +134,11 @@ export const packagePostModel = async (params) => {
         if (bountyLogs.length > 0) {
             await tx.package_ally_bounty_log.createMany({ data: bountyLogs });
         }
-        if (transactionLogs.length > 0) {
-            await tx.company_transaction_table.createMany({
-                data: transactionLogs,
-            });
-        }
+        // if (transactionLogs.length > 0) {
+        //   await tx.company_transaction_table.createMany({
+        //     data: transactionLogs,
+        //   });
+        // }
         if (!teamMemberProfile?.company_member_is_active) {
             await tx.company_member_table.update({
                 where: { company_member_id: teamMemberProfile.company_member_id },
@@ -145,6 +148,11 @@ export const packagePostModel = async (params) => {
                 },
             });
         }
+        await broadcastInvestmentMessage({
+            username: params.teamMemberProfile.company_member_company_id,
+            amount: Number(amount),
+            type: "Invested",
+        });
         return connectionData;
     });
     return connectionData;
@@ -160,6 +168,9 @@ export const packageGetModel = async () => {
         const data = await tx.package_table.findMany({
             include: {
                 package_features_table: true,
+            },
+            orderBy: {
+                package_percentage: "desc",
             },
         });
         return data;
@@ -313,7 +324,7 @@ export const claimPackagePostModel = async (params) => {
             data: {
                 company_transaction_member_id: teamMemberProfile.company_member_id,
                 company_transaction_amount: totalClaimedAmount,
-                company_transaction_description: `${packageDetails.package_name} Claimed`,
+                company_transaction_description: `${packageDetails.package_name} Collected`,
                 company_transaction_type: "EARNINGS",
             },
         });
@@ -348,6 +359,7 @@ export const packageListGetModel = async (params) => {
                     packages_days: true,
                     package_percentage: true,
                     package_image: true,
+                    package_is_highlight: true,
                 },
             },
         },
@@ -388,6 +400,11 @@ export const packageListGetModel = async (params) => {
             package_days: row.package_table.packages_days,
             package_image: row.package_table.package_image,
             package_date_created: row.package_member_connection_created,
+            package_days_remaining: row.package_table.packages_days -
+                Math.floor((currentTimestamp.getTime() -
+                    row.package_member_connection_created.getTime()) /
+                    (1000 * 60 * 60 * 24)),
+            package_is_highlight: row.package_table.package_is_highlight,
         };
     }));
     return processedData;
@@ -470,7 +487,7 @@ export const packagePostReinvestmentModel = async (params) => {
             data: {
                 company_transaction_member_id: teamMemberProfile.company_member_id,
                 company_transaction_amount: Number(requestedAmountWithBonus.toFixed(2)),
-                company_transaction_description: `${packageData.package_name} Activated`,
+                company_transaction_description: `${packageData.package_name} Subscription`,
                 company_transaction_type: "EARNINGS",
             },
         });
@@ -495,7 +512,6 @@ export const packagePostReinvestmentModel = async (params) => {
             for (let i = 0; i < limitedReferralChain.length; i += batchSize) {
                 const batch = limitedReferralChain.slice(i, i + batchSize);
                 bountyLogs = batch.map((ref) => {
-                    // Calculate earnings based on ref.percentage and round to the nearest integer
                     const calculatedEarnings = (Number(finalAmount) * Number(ref.percentage)) / 100;
                     return {
                         package_ally_bounty_member_id: ref.referrerId,
@@ -504,6 +520,7 @@ export const packagePostReinvestmentModel = async (params) => {
                         package_ally_bounty_type: ref.level === 1 ? "DIRECT" : "INDIRECT",
                         package_ally_bounty_connection_id: connectionData.package_member_connection_id,
                         package_ally_bounty_from: teamMemberProfile.company_member_id,
+                        package_ally_bounty_level: ref.level,
                     };
                 });
                 transactionLogs = batch.map((ref) => {
@@ -511,7 +528,7 @@ export const packagePostReinvestmentModel = async (params) => {
                     return {
                         company_transaction_member_id: ref.referrerId,
                         company_transaction_amount: calculatedEarnings,
-                        company_transaction_description: ref.level === 1 ? "Referral" : `Matrix Level ${ref.level}`,
+                        company_transaction_description: ref.level === 1 ? "Referral" : `Unilevel ${ref.level}`,
                     };
                 });
                 await Promise.all(batch.map(async (ref) => {
@@ -565,9 +582,9 @@ function generateReferralChain(hierarchy, teamMemberId, maxDepth = 100) {
 function getBonusPercentage(level) {
     const bonusMap = {
         1: 10,
-        2: 1.5,
-        3: 1.5,
-        4: 1.5,
+        2: 1,
+        3: 1,
+        4: 1,
         5: 1,
         6: 1,
         7: 1,

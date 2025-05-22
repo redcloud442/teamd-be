@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { calculateFee, calculateFinalAmount, getPhilippinesTime, invalidateCache, } from "../../utils/function.js";
+import { broadcastInvestmentMessage, calculateFee, calculateFinalAmount, getPhilippinesTime, } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 export const withdrawModel = async (params) => {
-    const { earnings, accountNumber, accountName, amount, bank, teamMemberProfile, } = params;
+    const { earnings, accountNumber, accountName, amount, bank, teamMemberProfile, phoneNumber, } = params;
     await prisma.$transaction(async (tx) => {
         const startDate = getPhilippinesTime(new Date(), "start");
         const endDate = getPhilippinesTime(new Date(), "end");
@@ -80,6 +80,7 @@ FOR UPDATE`;
                 company_withdrawal_request_member_id: teamMemberProfile.company_member_id,
                 company_withdrawal_request_withdraw_type: earnings,
                 company_withdrawal_request_approved_by: countAllRequests[0]?.approverId ?? null,
+                company_withdrawal_request_phone_number: phoneNumber,
             },
         });
         // Update the earnings
@@ -94,7 +95,7 @@ FOR UPDATE`;
         await tx.company_transaction_table.create({
             data: {
                 company_transaction_amount: finalAmount,
-                company_transaction_description: `Withdrawal ${earnings === "PACKAGE" ? "Trading" : "Referral & Matrix"} Ongoing.`,
+                company_transaction_description: "Pending",
                 company_transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
                 company_transaction_member_id: teamMemberProfile.company_member_id,
                 company_transaction_type: "WITHDRAWAL",
@@ -199,17 +200,23 @@ export const updateWithdrawModel = async (params) => {
         }
         await tx.company_transaction_table.create({
             data: {
-                company_transaction_description: `Withdrawal ${status.slice(0, 1).toUpperCase() + status.slice(1).toLowerCase()} ${note ? `(${note})` : ""}`,
+                company_transaction_description: `${status.slice(0, 1).toUpperCase() + status.slice(1).toLowerCase()} `,
                 company_transaction_details: `Account Name: ${updatedRequest.company_withdrawal_request_bank_name}, Account Number: ${updatedRequest.company_withdrawal_request_account}`,
                 company_transaction_amount: status === "APPROVED"
                     ? updatedRequest.company_withdrawal_request_withdraw_amount
                     : updatedRequest.company_withdrawal_request_amount,
+                company_transaction_note: note,
                 company_transaction_member_id: updatedRequest.company_withdrawal_request_member_id,
                 company_transaction_type: "WITHDRAWAL",
             },
         });
-        await invalidateCache(`transaction:${updatedRequest.company_withdrawal_request_member_id}:WITHDRAWAL`);
         return updatedRequest;
+    });
+    await broadcastInvestmentMessage({
+        username: params.teamMemberProfile.company_member_company_id,
+        amount: Number(result.company_withdrawal_request_amount -
+            result.company_withdrawal_request_fee),
+        type: "Withdraw",
     });
     return result;
 };
@@ -249,7 +256,7 @@ export const withdrawListPostModel = async (params) => {
     if (dateFilter?.start && dateFilter?.end) {
         const startDate = getPhilippinesTime(new Date(dateFilter.start || new Date()), "start");
         const endDate = getPhilippinesTime(new Date(dateFilter.end || new Date()), "end");
-        commonConditions.push(Prisma.raw(`t.company_withdrawal_request_date_updated::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
+        commonConditions.push(Prisma.raw(`t.company_withdrawal_request_date::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
     }
     if (search) {
         commonConditions.push(Prisma.raw(`(
@@ -545,6 +552,9 @@ export const withdrawUserGetModel = async (params) => {
                     lte: todayEnd,
                 },
             },
+            select: {
+                company_withdrawal_request_id: true,
+            },
         }),
         prisma.company_withdrawal_request_table.findFirst({
             where: {
@@ -556,10 +566,13 @@ export const withdrawUserGetModel = async (params) => {
                     lte: todayEnd,
                 },
             },
+            select: {
+                company_withdrawal_request_id: true,
+            },
         }),
     ]);
     return {
-        packageWithdrawal,
-        referralWithdrawal,
+        packageWithdrawal: packageWithdrawal !== null,
+        referralWithdrawal: referralWithdrawal !== null,
     };
 };

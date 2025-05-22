@@ -1,3 +1,4 @@
+import { invalidateCache } from "../../utils/function.js";
 import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userGetSearchModel, userListModel, userListReinvestedModel, userModelGet, userModelGetById, userModelGetByUserId, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userReferralModel, userSponsorModel, userTreeModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
@@ -56,7 +57,8 @@ export const userPatchController = async (c) => {
     try {
         const { action, role, type } = await c.req.json();
         const { id } = c.req.param();
-        await userPatchModel({ memberId: id, action, role, type });
+        const userId = await userPatchModel({ memberId: id, action, role, type });
+        await invalidateCache(`user-${userId}`);
         return c.json({ message: "User Updated" });
     }
     catch (error) {
@@ -77,7 +79,9 @@ export const userProfilePutController = async (c) => {
     try {
         const { profilePicture } = await c.req.json();
         const { id } = c.req.param();
+        const teamMemberProfile = c.get("teamMemberProfile");
         await userProfileModelPut({ profilePicture, userId: id });
+        await invalidateCache(`user-${teamMemberProfile.company_member_user_id}`);
         return c.json({ message: "Profile Updated" });
     }
     catch (error) {

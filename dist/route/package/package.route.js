@@ -7,7 +7,7 @@ packages.get("/", packageGetMiddleware, packageGetController);
 packages.get("/:id", packageGetIdMiddleware, packageGetIdController);
 packages.put("/:id", packageUpdatePutMiddleware, packagesUpdatePutController);
 packages.post("/list", packageGetMiddleware, packagesListPostController);
-packages.get("/list", packagesGetListMiddleware, packagesGetAdminController);
+packages.get("/get-all/list", packagesGetListMiddleware, packagesGetAdminController);
 packages.post("/create", packageCreatePostMiddleware, packagesCreatePostController);
 packages.post("/claim", packagesClaimPostMiddleware, packagesClaimPostController);
 // packages.post(

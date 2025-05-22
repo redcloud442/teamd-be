@@ -1,5 +1,8 @@
 import type { Context } from "hono";
-import { invalidateCache } from "../../utils/function.js";
+import {
+  invalidateCache,
+  invalidateCacheVersion,
+} from "../../utils/function.js";
 import { supabaseClient } from "../../utils/supabase.js";
 import {
   depositHistoryPostModel,
@@ -28,9 +31,13 @@ export const depositPostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
-    await invalidateCache(
-      `transaction:${teamMemberProfile.company_member_id}:DEPOSIT`
-    );
+    await Promise.all([
+      invalidateCacheVersion(
+        `transaction:${teamMemberProfile.company_member_id}:DEPOSIT`
+      ),
+      invalidateCache(`user-model-get-${teamMemberProfile.company_member_id}`),
+    ]);
+
     return c.json({ message: "Deposit Created" }, { status: 200 });
   } catch (e) {
     await supabase.storage.from("REQUEST_ATTACHMENTS").remove([publicUrl]);
@@ -43,12 +50,21 @@ export const depositPutController = async (c: Context) => {
     const { status, note, requestId } = c.get("sanitizedData");
     const teamMemberProfile = c.get("teamMemberProfile");
 
-    await depositPutModel({
+    const data = await depositPutModel({
       status,
       note,
       requestId,
       teamMemberProfile,
     });
+
+    await Promise.all([
+      invalidateCacheVersion(
+        `transaction:${data?.updatedRequest.company_deposit_request_member_id}:DEPOSIT`
+      ),
+      invalidateCache(
+        `user-model-get-${data?.updatedRequest.company_deposit_request_member_id}`
+      ),
+    ]);
 
     return c.json({ message: "Deposit Updated" }, { status: 200 });
   } catch (e) {

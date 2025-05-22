@@ -90,11 +90,11 @@ export const depositSchema = z.object({
     amount: z
         .string()
         .trim()
-        .min(3, "Amount is required and must be at least 500 pesos")
+        .min(3, "Amount is required and must be at least 150 pesos")
         .max(6, "Amount must be less than 6 digits")
         .regex(/^\d+$/, "Amount must be a number")
-        .refine((amount) => parseInt(amount, 10) >= 500, {
-        message: "Amount must be at least 500 pesos",
+        .refine((amount) => parseInt(amount, 10) >= 150, {
+        message: "Amount must be at least 150 pesos",
     }),
     topUpMode: z.string().min(1, "Top up mode is required"),
     accountName: z.string().min(1, "Field is required"),
@@ -228,7 +228,7 @@ export const userGetSearchSchema = z.object({
 export const transactionSchemaPost = z.object({
     limit: z.number().min(1).max(10),
     page: z.number().min(1),
-    status: z.enum(["DEPOSIT", "WITHDRAWAL", "EARNINGS"]),
+    status: z.enum(["DEPOSIT", "WITHDRAWAL", "EARNINGS", "REFERRAL"]),
 });
 //referral schema
 export const directReferralsSchemaPost = z.object({
@@ -300,9 +300,9 @@ export const withdrawPostSchema = z.object({
     earnings: z.enum(["PACKAGE", "REFERRAL", "WINNING"]),
     amount: z
         .string()
-        .min(3, "Minimum amount is required atleast 500 pesos")
-        .refine((amount) => parseInt(amount.replace(/,/g, ""), 10) >= 500, {
-        message: "Amount must be at least 500 pesos",
+        .min(3, "Minimum amount is required atleast 100 pesos")
+        .refine((amount) => parseInt(amount.replace(/,/g, ""), 10) >= 100, {
+        message: "Amount must be at least 100 pesos",
     }),
     bank: z.string().min(1, "Please select a bank"),
     accountName: z
@@ -313,6 +313,10 @@ export const withdrawPostSchema = z.object({
         .string()
         .min(6, "Account number is required")
         .max(24, "Account number must be at most 24 digits"),
+    phoneNumber: z
+        .string()
+        .min(10, "Phone number is required")
+        .max(11, "Phone number must be at most 11 digits"),
 });
 export const withdrawHistoryPostSchema = z.object({
     page: z.number().min(1),

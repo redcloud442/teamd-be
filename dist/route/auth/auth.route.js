@@ -6,5 +6,6 @@ const auth = new Hono();
 auth.get("/", authGetMiddleware, loginGetController);
 auth.post("/", authMiddleware, loginController);
 auth.post("/xeloraAccess", authMiddleware, adminController);
+auth.post("/register/:code", registerUserMiddleware, registerUserController);
 auth.post("/register", protectionMiddleware, registerUserMiddleware, registerUserController);
 export default auth;

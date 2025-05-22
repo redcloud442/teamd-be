@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import {
   invalidateCache,
-  invalidateTransactionCache,
+  invalidateCacheVersion,
   sendErrorResponse,
 } from "../../utils/function.js";
 import {
@@ -28,9 +28,13 @@ export const packagePostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
-    await invalidateCache(
-      `transaction:${teamMemberProfile.company_member_id}:PACKAGE`
-    );
+    await Promise.all([
+      invalidateCacheVersion(
+        `transaction:${teamMemberProfile.company_member_id}:EARNINGS`
+      ),
+      invalidateCache(`user-${teamMemberProfile.company_member_user_id}`),
+      invalidateCache(`user-model-get-${teamMemberProfile.company_member_id}`),
+    ]);
 
     return c.json({ message: "Package Created" }, 200);
   } catch (error) {
@@ -120,8 +124,11 @@ export const packagesClaimPostController = async (c: Context) => {
       teamMemberProfile,
     });
 
-    await invalidateTransactionCache(teamMemberProfile.company_member_id, [
-      "PACKAGE",
+    await Promise.all([
+      invalidateCacheVersion(
+        `transaction:${teamMemberProfile.company_member_id}:EARNINGS`
+      ),
+      invalidateCache(`user-model-get-${teamMemberProfile.company_member_id}`),
     ]);
 
     return c.json({ message: "Package Claimed" });
@@ -146,7 +153,7 @@ export const packagesGetAdminController = async (c: Context) => {
   try {
     const data = await packageListGetAdminModel();
 
-    return c.json({ data }, 200);
+    return c.json({ data });
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }

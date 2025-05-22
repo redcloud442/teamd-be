@@ -21,11 +21,11 @@ export const referralDirectModelPost = async (params: {
 
   const cacheKey = `referral-direct-${teamMemberProfile.company_member_id}-${page}-${limit}-${search}-${columnAccessor}`;
 
-  // const cachedData = await redis.get(cacheKey);
+  const cachedData = await redis.get(cacheKey);
 
-  // if (cachedData) {
-  //   return cachedData;
-  // }
+  if (cachedData) {
+    return cachedData;
+  }
 
   const offset = Math.max((page - 1) * limit, 0);
 
@@ -63,17 +63,14 @@ export const referralDirectModelPost = async (params: {
       u.user_first_name,
       u.user_last_name,
       u.user_username,
-      pa.package_ally_bounty_log_date_created,
-      ar.company_referral_date,
-      COALESCE(SUM(pa.package_ally_bounty_earnings), 0) AS total_bounty_earnings
+      u.user_id,
+      ar.company_referral_date
     FROM company_schema.company_member_table m
     JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
-    JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.company_member_id
-    JOIN company_schema.company_referral_table ar ON ar.company_referral_member_id = pa.package_ally_bounty_from
-    WHERE pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid AND pa.package_ally_bounty_type = 'DIRECT'
+    JOIN company_schema.company_referral_table ar ON ar.company_referral_member_id = m.company_member_id
+    WHERE ar.company_referral_from_member_id = ${teamMemberProfile.company_member_id}::uuid
       ${searchCondition}
-    GROUP BY u.user_first_name, u.user_last_name, u.user_username, pa.package_ally_bounty_log_date_created, ar.company_referral_date
-    ORDER BY pa.package_ally_bounty_log_date_created DESC, ar.company_referral_date DESC
+    ORDER BY ar.company_referral_date DESC
     LIMIT ${limit} OFFSET ${offset}
   `;
 
@@ -191,23 +188,29 @@ export const referralIndirectModelPost = async (params: {
     user_first_name: string;
     user_last_name: string;
     user_username: string;
-    package_ally_bounty_log_date_created: Date;
-    total_bounty_earnings: number;
+    package_ally_bounty_log_id: string;
+    referrer_username: string;
   }[] = await prisma.$queryRaw`
   SELECT 
     ut.user_first_name, 
     ut.user_last_name, 
     ut.user_username, 
-    pa.package_ally_bounty_log_date_created,
-    ar.company_referral_date,
+    pa.package_ally_bounty_log_id,
+    ut2.user_username AS referrer_username,
     COALESCE(SUM(pa.package_ally_bounty_earnings), 0) AS total_bounty_earnings
   FROM company_schema.company_member_table am
   JOIN user_schema.user_table ut
-    ON ut.user_id = am.alliance_member_user_id
+    ON ut.user_id = am.company_member_user_id
   JOIN packages_schema.package_ally_bounty_log pa
-    ON am.alliance_member_id = pa.package_ally_bounty_from
+    ON am.company_member_id = pa.package_ally_bounty_from
   JOIN company_schema.company_referral_table ar
     ON ar.company_referral_member_id = pa.package_ally_bounty_from
+  JOIN company_schema.company_referral_table ar2
+    ON ar2.company_referral_member_id = pa.package_ally_bounty_from
+  JOIN company_schema.company_member_table am2
+    ON am2.company_member_id = ar2.company_referral_from_member_id
+  JOIN user_schema.user_table ut2
+    ON ut2.user_id = am2.company_member_user_id
   WHERE pa.package_ally_bounty_from = ANY(${finalIndirectReferralIds}::uuid[])
     AND pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid
     ${searchCondition}
@@ -215,10 +218,9 @@ export const referralIndirectModelPost = async (params: {
     ut.user_first_name, 
     ut.user_last_name, 
     ut.user_username, 
-    ut.user_date_created,
-    pa.package_ally_bounty_log_date_created,
-    ar.company_referral_date
-  ORDER BY pa.package_ally_bounty_log_date_created DESC, ar.company_referral_date DESC
+    pa.package_ally_bounty_log_id,
+    ut2.user_username
+  ORDER BY pa.package_ally_bounty_log_date_created DESC
   LIMIT ${limit} OFFSET ${offset}
 `;
 
@@ -231,7 +233,7 @@ export const referralIndirectModelPost = async (params: {
     JOIN user_schema.user_table ut
       ON ut.user_id = am.company_member_user_id
     JOIN packages_schema.package_ally_bounty_log pa
-      ON am.alliance_member_id = pa.package_ally_bounty_from
+      ON am.company_member_id = pa.package_ally_bounty_from
     WHERE pa.package_ally_bounty_from = ANY(${finalIndirectReferralIds}::uuid[])
       AND pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid
       ${searchCondition}
@@ -241,7 +243,7 @@ export const referralIndirectModelPost = async (params: {
       ut.user_last_name,
       ut.user_username,
       ut.user_date_created,
-      am.alliance_member_id,
+      am.company_member_id,
       pa.package_ally_bounty_log_date_created
   ) AS subquery
 `;
