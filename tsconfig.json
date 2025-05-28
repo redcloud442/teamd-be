@@ -6,7 +6,7 @@
     "verbatimModuleSyntax": true,
     "allowJs": true,
     "skipLibCheck": true,
-    "types": ["node"],
+    "types": ["bun"],
     "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"]
