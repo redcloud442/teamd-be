@@ -20,6 +20,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -29,7 +32,7 @@ jobs:
 
       - name: Build Docker image for prod
         run: |
-          docker build -t ghcr.io/redcloud442/teamd:prod-be .
+          docker build -t ghcr.io/redcloud442/teamd:prod-be-${SHORT_SHA} .
 
       - name: Verify Docker login
         run: docker info
@@ -39,9 +42,40 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push ghcr.io/redcloud442/teamd:prod-be
+          docker push ghcr.io/redcloud442/teamd:prod-be-${SHORT_SHA}
 
-      # - name: Notify Jenkins
-      #   run: |
-      #     curl -u "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_PASSWORD }}" \
-      #          "https://${{ secrets.JENKINS_URL }}?token=${{ secrets.JENKINS_TOKEN }}"
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "v1.25.4"
+
+      - name: Create kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+
+      - name: Show current Kubernetes context
+        run: |
+          kubectl config current-context
+          kubectl cluster-info
+
+      - name: Confirm deployment and container name
+        run: |
+          echo "🔍 Listing deployments in namespace 'teamd'..."
+          kubectl get deployment -n teamd
+
+          echo "🔍 Checking container names in 'teamd-be'..."
+          kubectl get deployment teamd-be -n teamd -o jsonpath="{.spec.template.spec.containers[*].name}"
+
+      - name: Check RBAC permissions
+        run: |
+          echo "🔐 Verifying permission to update deployments..."
+          kubectl auth can-i update deployment -n teamd
+
+      - name: Deploy to Kubernetes
+        run: |
+          echo "🚀 Updating image in deployment 'teamd-be'..."
+          kubectl set image deployment/teamd-be container-zgaabp=ghcr.io/redcloud442/teamd:prod-be-${SHORT_SHA} -n teamd
+
+          echo "⏳ Waiting for rollout to complete..."
+          kubectl rollout status deployment/teamd-be -n teamd
