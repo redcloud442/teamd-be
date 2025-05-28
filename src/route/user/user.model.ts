@@ -165,6 +165,12 @@ export const userModelPost = async (params: { memberId: string }) => {
           company_member_is_active: true,
           company_member_date_created: true,
           company_member_date_updated: true,
+          company_referral_link_table: {
+            select: {
+              company_referral_link: true,
+              company_referral_code: true,
+            },
+          },
           dashboard_earnings_summary: {
             select: {
               direct_referral_amount: true,
@@ -211,7 +217,10 @@ export const userModelPost = async (params: { memberId: string }) => {
     totalEarnings,
     userEarningsData: member?.company_earnings_table[0],
     teamMemberProfile: user?.company_member_table,
-    userProfile: {
+    referalLink:
+      user?.company_member_table[0]?.company_referral_link_table[0]
+        ?.company_referral_link,
+    profile: {
       user_id: user?.user_id,
       user_username: user?.user_username,
       user_first_name: user?.user_first_name,
@@ -306,6 +315,12 @@ export const userModelGet = async ({ memberId }: { memberId: string }) => {
             company_member_is_active: true,
             company_member_date_created: true,
             company_member_date_updated: true,
+            company_referral_link_table: {
+              select: {
+                company_referral_link: true,
+                company_referral_code: true,
+              },
+            },
             dashboard_earnings_summary: {
               select: {
                 direct_referral_amount: true,
@@ -355,12 +370,23 @@ export const userModelGet = async ({ memberId }: { memberId: string }) => {
     canWithdrawReferral: existingReferralWithdrawal === null,
     canUserDeposit: existingDeposit === null,
   };
+  const teamMemberProfile = {
+    company_member_id: user?.company_member_table[0]?.company_member_id,
+    company_member_role: user?.company_member_table[0]?.company_member_role,
+    company_member_is_active:
+      user?.company_member_table[0]?.company_member_is_active,
+    company_member_date_created:
+      user?.company_member_table[0]?.company_member_date_created,
+    company_member_date_updated:
+      user?.company_member_table[0]?.company_member_date_updated,
+  };
 
   const returnData = {
     totalEarnings,
     userEarningsData: member?.company_earnings_table[0],
-    teamMemberProfile: user?.company_member_table[0],
-    userProfile: {
+    teamMemberProfile,
+    referral: user?.company_member_table[0]?.company_referral_link_table[0],
+    profile: {
       user_id: user?.user_id,
       user_username: user?.user_username,
       user_first_name: user?.user_first_name,

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { protectionMiddleware } from "../../middleware/protection.middleware.js";
+import { protectionGetMiddleware } from "../../middleware/protection.middleware.js";
 
 import {
   adminController,
@@ -31,7 +31,7 @@ auth.get(
 
 auth.post(
   "/register",
-  protectionMiddleware,
+  protectionGetMiddleware,
   registerUserMiddleware,
   registerUserController
 );

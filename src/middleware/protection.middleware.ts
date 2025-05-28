@@ -3,8 +3,8 @@ import type { Context, Next } from "hono";
 import type { ZodSchema } from "node_modules/zod/lib/types.js";
 import { sendErrorResponse } from "../utils/function.js";
 import { rateLimit } from "../utils/redis.js";
+import { supabaseClient } from "../utils/supabase.js";
 import { getSupabase } from "./auth.middleware.js";
-
 export const protectionMiddleware = async (c: Context, next: Next) => {
   const supabase = getSupabase(c);
 
@@ -15,6 +15,23 @@ export const protectionMiddleware = async (c: Context, next: Next) => {
   }
 
   if (!data.user) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  c.set("user", data.user);
+
+  await next();
+};
+
+export const protectionGetMiddleware = async (c: Context, next: Next) => {
+  const token = c.req.header("Authorization")?.split(" ")[1];
+  if (!token) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const { data, error } = await supabaseClient.auth.getUser(token);
+
+  if (error || !data?.user) {
     return sendErrorResponse("Unauthorized", 401);
   }
 

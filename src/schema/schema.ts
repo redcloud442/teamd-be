@@ -95,23 +95,12 @@ export const registerUserSchema = z.object({
     .trim()
     .min(3, "Last name is required")
     .max(50, "Last name must be less than 50 characters"),
-  referalLink: z.string().min(2),
   email: z.preprocess(
     (val) => (val === "" || val == null ? undefined : val),
     z.string().email("Invalid email address").optional()
   ),
-  phoneNumber: z.preprocess(
-    (val) => (val === "" || val == null ? undefined : val),
-    z
-      .string()
-      .regex(/^\d+$/, "Phone number must only contain digits")
-      .min(10, "Phone number must be at least 10 digits")
-      .max(11, "Phone number must be at most 11 digits")
-      .optional()
-  ),
-  gender: z.enum(["MALE", "FEMALE"]),
-  url: z.string().min(2),
   botField: z.string().optional(),
+  referalLink: z.string().optional(),
 });
 
 export const registerUserCodeSchema = z.object({

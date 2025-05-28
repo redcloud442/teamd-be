@@ -143,8 +143,6 @@ export const registerUserModel = async (params: {
   botField: string;
   ip: string;
   email: string;
-  phoneNumber: string;
-  gender: string;
 }) => {
   const {
     userId,
@@ -155,84 +153,78 @@ export const registerUserModel = async (params: {
     url,
     ip,
     botField,
-    phoneNumber,
-    gender,
   } = params;
 
-  if (referalLink) {
-    const DEFAULT_COMPANY_ID = "a1b9ceb9-cb09-4c09-832d-6e5a017d048b";
+  const DEFAULT_COMPANY_ID = "a1b9ceb9-cb09-4c09-832d-6e5a017d048b";
 
-    return await prisma.$transaction(async (tx) => {
-      const user = await tx.user_table.create({
-        data: {
-          user_id: userId,
-          user_email: userName + "@gmail.com",
-          user_first_name: firstName,
-          user_last_name: lastName,
-          user_username: userName,
-          user_bot_field: botField === "true" ? true : false,
-          user_phone_number: phoneNumber,
-          user_gender: gender,
+  return await prisma.$transaction(async (tx) => {
+    const referralCode = await generateUniqueReferralCode(tx);
+
+    const referralLinkURL = `http://localhost:3000/signup/${referralCode}`;
+    const user = await tx.user_table.create({
+      data: {
+        user_id: userId,
+        user_email: userName + "@gmail.com",
+        user_first_name: firstName,
+        user_last_name: lastName,
+        user_username: userName,
+        user_bot_field: botField === "true" ? true : false,
+        company_member_table: {
+          create: {
+            company_member_company_id: DEFAULT_COMPANY_ID,
+            company_earnings_table: {
+              create: {
+                company_referral_earnings: 0,
+                company_package_earnings: 0,
+                company_combined_earnings: 0,
+                company_member_wallet: 0,
+              },
+            },
+            company_referral_link_table: {
+              create: {
+                company_referral_link: referralLinkURL,
+                company_referral_code: referralCode,
+              },
+            },
+          },
         },
-      });
-
-      if (!user) {
-        throw new Error("Failed to create user");
-      }
-
-      const allianceMember = await tx.company_member_table.create({
-        data: {
-          company_member_company_id: DEFAULT_COMPANY_ID,
-          company_member_user_id: userId,
+        user_history_log: {
+          create: {
+            user_ip_address: ip,
+          },
         },
-        select: {
-          company_member_id: true,
+      },
+      select: {
+        user_id: true,
+        company_member_table: {
+          select: {
+            company_member_id: true,
+          },
         },
-      });
-
-      const referralCode = await generateUniqueReferralCode(tx);
-
-      const referralLinkURL = `http://localhost:3000/signup/${referralCode}`;
-
-      await tx.company_referral_link_table.create({
-        data: {
-          company_referral_link: referralLinkURL,
-          company_referral_link_member_id: allianceMember.company_member_id,
-          company_referral_code: referralCode,
-        },
-      });
-
-      await tx.company_earnings_table.create({
-        data: {
-          company_earnings_member_id: allianceMember.company_member_id,
-        },
-      });
-
-      await handleReferral(tx, referalLink, allianceMember.company_member_id);
-
-      await supabaseClient.auth.admin.updateUserById(userId, {
-        user_metadata: {
-          Role: "MEMBER",
-          ReferralCode: referralCode,
-          ReferralLink: referralLinkURL,
-          CompanyId: DEFAULT_COMPANY_ID,
-          UserName: userName,
-          CompanyMemberId: allianceMember.company_member_id,
-        },
-      });
-
-      return {
-        success: true,
-        user,
-      };
+      },
     });
-  }
 
-  await prisma.user_history_log.create({
-    data: {
-      user_ip_address: ip || "127.0.0.1",
-      user_history_user_id: userId,
-    },
+    await handleReferral(
+      tx,
+      referalLink,
+      user.company_member_table[0].company_member_id
+    );
+
+    const data = await supabaseClient.auth.admin.updateUserById(user.user_id, {
+      user_metadata: {
+        Role: "MEMBER",
+        ReferralCode: referralCode,
+        ReferralLink: referralLinkURL,
+        CompanyId: DEFAULT_COMPANY_ID,
+        UserName: userName,
+        CompanyMemberId: user.company_member_table[0].company_member_id,
+      },
+    });
+
+    return {
+      success: true,
+      user,
+    };
   });
 };
 

@@ -79,15 +79,17 @@ export const adminController = async (c: Context) => {
 };
 
 export const registerUserController = async (c: Context) => {
+  const user = c.get("user");
   const params = c.get("params");
   try {
     const ip = getClientIP(c.req.raw);
 
-    await registerUserModel({ ...params, ip });
+    await registerUserModel({ ...params, ip, userId: user?.id });
 
     return c.json({ message: "User created" }, 200);
   } catch (error) {
-    await supabaseClient.auth.admin.deleteUser(params.userId);
+    console.log(error);
+    await supabaseClient.auth.admin.deleteUser(user?.id);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return c.json({ message: "A database error occurred" }, 500);
     }
