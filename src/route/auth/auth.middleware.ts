@@ -130,7 +130,6 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
 };
 
 export const registerUserCodeMiddleware = async (c: Context, next: Next) => {
-  const user = c.get("user");
   const ip = getClientIP(c.req.raw);
 
   const { code } = c.req.param();

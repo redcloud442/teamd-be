@@ -5,11 +5,13 @@ import {
   adminController,
   loginController,
   loginGetController,
+  registerUserCodeController,
   registerUserController,
 } from "./auth.controller.js";
 import {
   authGetMiddleware,
   authMiddleware,
+  registerUserCodeMiddleware,
   registerUserMiddleware,
 } from "./auth.middleware.js";
 
@@ -21,10 +23,10 @@ auth.post("/", authMiddleware, loginController);
 
 auth.post("/xeloraAccess", authMiddleware, adminController);
 
-auth.post(
+auth.get(
   "/register/:code",
-  registerUserMiddleware,
-  registerUserController
+  registerUserCodeMiddleware,
+  registerUserCodeController
 );
 
 auth.post(
