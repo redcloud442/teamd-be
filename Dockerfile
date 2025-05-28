@@ -28,7 +28,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-RUN bun add -d bun-types
+RUN bun add -d bun-types@latest
 
 # Copy source and config files
 COPY tsconfig.json ./
