@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { protectionMiddleware } from "../../middleware/protection.middleware.js";
-import { adminController, loginController, loginGetController, registerUserController, } from "./auth.controller.js";
-import { authGetMiddleware, authMiddleware, registerUserMiddleware, } from "./auth.middleware.js";
+import { adminController, loginController, loginGetController, registerUserCodeController, registerUserController, } from "./auth.controller.js";
+import { authGetMiddleware, authMiddleware, registerUserCodeMiddleware, registerUserMiddleware, } from "./auth.middleware.js";
 const auth = new Hono();
 auth.get("/", authGetMiddleware, loginGetController);
 auth.post("/", authMiddleware, loginController);
 auth.post("/xeloraAccess", authMiddleware, adminController);
-auth.post("/register/:code", registerUserMiddleware, registerUserController);
+auth.get("/register/:code", registerUserCodeMiddleware, registerUserCodeController);
 auth.post("/register", protectionMiddleware, registerUserMiddleware, registerUserController);
 export default auth;

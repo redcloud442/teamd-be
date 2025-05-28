@@ -69,7 +69,6 @@ export const registerUserMiddleware = async (c, next) => {
     await next();
 };
 export const registerUserCodeMiddleware = async (c, next) => {
-    const user = c.get("user");
     const ip = getClientIP(c.req.raw);
     const { code } = c.req.param();
     const parsed = registerUserCodeSchema.safeParse({

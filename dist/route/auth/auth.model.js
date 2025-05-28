@@ -134,7 +134,7 @@ export const registerUserModel = async (params) => {
                 },
             });
             const referralCode = await generateUniqueReferralCode(tx);
-            const referralLinkURL = `http://localhost:3000/register/${referralCode}`;
+            const referralLinkURL = `http://localhost:3000/signup/${referralCode}`;
             await tx.company_referral_link_table.create({
                 data: {
                     company_referral_link: referralLinkURL,
@@ -173,7 +173,7 @@ export const registerUserModel = async (params) => {
 };
 export const registerUserCodeModel = async (params) => {
     const { code } = params;
-    const user = await prisma.user_table.findFirst({
+    const user = await prisma.user_table.findFirstOrThrow({
         where: {
             company_member_table: {
                 some: {
@@ -192,9 +192,19 @@ export const registerUserCodeModel = async (params) => {
         },
         select: {
             user_username: true,
+            company_member_table: {
+                select: {
+                    company_member_id: true,
+                },
+            },
         },
     });
-    return user;
+    const returnData = {
+        user_username: user?.user_username,
+        company_member_id: user?.company_member_table[0],
+        company_referral_code: code,
+    };
+    return returnData;
 };
 async function handleReferral(tx, referalLink, allianceMemberId) {
     const referrerData = await tx.$queryRaw `
