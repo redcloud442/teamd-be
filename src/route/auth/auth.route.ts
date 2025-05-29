@@ -21,7 +21,7 @@ auth.get("/", authGetMiddleware, loginGetController);
 
 auth.post("/", authMiddleware, loginController);
 
-auth.post("/xeloraAccess", authMiddleware, adminController);
+auth.post("/teamdAuth", authMiddleware, adminController);
 
 auth.get(
   "/register/:code",
