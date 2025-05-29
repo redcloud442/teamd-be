@@ -1,9 +1,9 @@
-import { supabaseClient } from "@/utils/supabase.js";
 import type { User } from "@supabase/supabase-js";
 import type { Context, Next } from "hono";
 import type { ZodSchema } from "node_modules/zod/lib/types.js";
 import { sendErrorResponse } from "../utils/function.js";
 import { rateLimit } from "../utils/redis.js";
+import { supabaseClient } from "../utils/supabase.js";
 import { getSupabase } from "./auth.middleware.js";
 
 export const protectionMiddleware = async (c: Context, next: Next) => {
