@@ -61,7 +61,7 @@ jobs:
 
       - name: Confirm deployment and container name
         run: |
-          echo "🔍 Listing deployments in namespace 'teamd'..."
+          echo "🔍 Listing deployments in namespace 'teamd'...   "
           kubectl get deployment -n teamd
 
           echo "🔍 Checking container names in 'teamd-be'..."
