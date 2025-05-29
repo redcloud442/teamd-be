@@ -20,7 +20,7 @@ app.use(
     origin: (origin) => {
       const allowedOrigins = [
         "http://localhost:3001",
-        "https://your-production-domain.com",
+        "https://www.digi-wealth.vip",
       ];
 
       if (!origin || allowedOrigins.includes(origin)) {
@@ -105,6 +105,7 @@ setInterval(() => {
 app.get(
   "/ws",
   protectionMiddleware,
+  globalRateLimit(),
   //@ts-ignore
   upgradeWebSocket((c) => {
     return {
