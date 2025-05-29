@@ -104,8 +104,8 @@ setInterval(() => {
 
 app.get(
   "/ws",
-  protectionMiddleware,
   globalRateLimit(),
+  protectionMiddleware,
   //@ts-ignore
   upgradeWebSocket((c) => {
     return {
