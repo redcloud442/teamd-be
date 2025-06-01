@@ -64,28 +64,37 @@ export const referralDirectModelPost = async (params: {
       u.user_last_name,
       u.user_username,
       u.user_id,
-      ar.company_referral_date
+      pa.package_ally_bounty_log_id,
+      pa.package_ally_bounty_earnings AS total_bounty_earnings
     FROM company_schema.company_member_table m
     JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
     JOIN company_schema.company_referral_table ar ON ar.company_referral_member_id = m.company_member_id
+    JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.company_member_id
     WHERE ar.company_referral_from_member_id = ${teamMemberProfile.company_member_id}::uuid
       ${searchCondition}
-    ORDER BY ar.company_referral_date DESC
+    ORDER BY pa.package_ally_bounty_log_date_created DESC
     LIMIT ${limit} OFFSET ${offset}
   `;
 
   const totalCount: { count: number }[] = await prisma.$queryRaw`
-   SELECT COUNT(*) AS count
-    FROM (
-        SELECT 1
-        FROM company_schema.company_member_table m
-        JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
-        JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.company_member_id
-        WHERE pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid AND pa.package_ally_bounty_type = 'DIRECT'
-          ${searchCondition}
-        GROUP BY u.user_first_name, u.user_last_name, u.user_username, pa.package_ally_bounty_log_date_created
-    ) AS subquery;
-  `;
+  SELECT COUNT(*) AS count
+  FROM (
+    SELECT 1
+    FROM company_schema.company_member_table m
+    JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
+    JOIN company_schema.company_referral_table ar ON ar.company_referral_member_id = m.company_member_id
+    JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.company_member_id
+    WHERE ar.company_referral_from_member_id = ${teamMemberProfile.company_member_id}::uuid
+      AND pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid
+      AND pa.package_ally_bounty_type = 'DIRECT'
+      ${searchCondition}
+    GROUP BY
+      u.user_first_name,
+      u.user_last_name,
+      u.user_username,
+      pa.package_ally_bounty_log_date_created
+  ) AS subquery;
+`;
 
   const returnData = {
     data: direct,

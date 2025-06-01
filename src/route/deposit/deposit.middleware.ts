@@ -5,7 +5,6 @@ import {
   depositReferencePostSchema,
   depositReportPostSchema,
   depositSchema,
-  depositUserGetSchema,
   updateDepositSchema,
 } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
@@ -199,18 +198,7 @@ export const depositUserGetMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse("Too Many Requests", 429);
   }
 
-  const { id } = c.req.param();
-
-  const sanitizedData = depositUserGetSchema.safeParse({
-    id,
-  });
-
-  if (!sanitizedData.success) {
-    return sendErrorResponse("Invalid Request", 400);
-  }
-
   c.set("teamMemberProfile", teamMemberProfile);
-  c.set("params", sanitizedData.data);
 
   return await next();
 };

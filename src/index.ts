@@ -8,7 +8,7 @@ import { supabaseMiddleware } from "./middleware/auth.middleware.js";
 import { errorHandlerMiddleware } from "./middleware/errorMiddleware.js";
 import { protectionMiddleware } from "./middleware/protection.middleware.js";
 import route from "./route/route.js";
-import { globalRateLimit, redis, redisSubscriber } from "./utils/redis.js";
+import { redis, redisSubscriber } from "./utils/redis.js";
 
 const app = new Hono();
 
@@ -34,7 +34,7 @@ app.use(
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: ["Content-Range", "X-Total-Count"],
   }),
-  globalRateLimit(),
+  // globalRateLimit(),
   supabaseMiddleware()
 );
 

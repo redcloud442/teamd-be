@@ -94,13 +94,13 @@ export const depositPostModel = async (params: {
   });
 };
 
-export const depositUserGetModel = async (params: { id: string }) => {
-  const { id } = params;
-
+export const depositUserGetModel = async (
+  teamMemberProfile: company_member_table
+) => {
   const existingDeposit =
     !!(await prisma.company_deposit_request_table.findFirst({
       where: {
-        company_deposit_request_member_id: id,
+        company_deposit_request_member_id: teamMemberProfile.company_member_id,
         company_deposit_request_status: "PENDING",
       },
       take: 1,

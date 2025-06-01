@@ -34,7 +34,7 @@ deposit.post(
   depositHistoryPostController
 );
 
-deposit.get("/user/:id", depositUserGetMiddleware, depositUserGetController);
+deposit.get("/user", depositUserGetMiddleware, depositUserGetController);
 
 deposit.post(
   "/report",
