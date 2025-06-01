@@ -75,7 +75,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           echo "🚀 Updating image in deployment 'teamd-be'..."
-          kubectl set image deployment/teamd-be container-teamd-be=ghcr.io/redcloud442/teamd:prod-be-${SHORT_SHA} -n teamd
+          kubectl set image deployment/teamd-be teamd-be=ghcr.io/redcloud442/teamd:prod-be-${SHORT_SHA} -n teamd
 
           echo "⏳ Waiting for rollout to complete..."
           kubectl rollout status deployment/teamd-be -n teamd
