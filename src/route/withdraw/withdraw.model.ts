@@ -1,3 +1,4 @@
+import { redis } from "@/utils/redis.js";
 import { Prisma, type company_member_table } from "@prisma/client";
 import {
   broadcastInvestmentMessage,
@@ -620,6 +621,8 @@ export const withdrawHistoryReportPostTotalModel = async (params: {
 }) => {
   const { take, skip, type } = params;
 
+  const cacheKey = `withdraw-history-report-total:${take}:${skip}:${type}`;
+
   // Helper function to adjust the date based on the type and skip count
   const adjustDate = (date: Date, type: string, skip: number): Date => {
     const adjustedDate = new Date(date);
@@ -763,11 +766,15 @@ export const withdrawHistoryReportPostTotalModel = async (params: {
     )
   );
 
-  return JSON.parse(
+  const response = JSON.parse(
     JSON.stringify(aggregatedResults, (key, value) =>
       typeof value === "bigint" ? value.toString() : value
     )
   );
+
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+
+  return response;
 };
 
 export const withdrawHistoryReportPostModel = async (params: {
@@ -779,6 +786,14 @@ export const withdrawHistoryReportPostModel = async (params: {
   const { dateFilter } = params;
 
   const { startDate, endDate } = dateFilter;
+
+  const cacheKey = `withdraw-history-report:${startDate}:${endDate}`;
+
+  const cachedData = await redis.get(cacheKey);
+
+  if (cachedData) {
+    return cachedData;
+  }
 
   const withdrawalData =
     await prisma.company_withdrawal_request_table.aggregate({
@@ -801,14 +816,16 @@ export const withdrawHistoryReportPostModel = async (params: {
       },
     });
 
-  const returnData = {
+  const response = {
     total_request: withdrawalData._count,
     total_amount:
       (withdrawalData._sum.company_withdrawal_request_amount || 0) -
       (withdrawalData._sum.company_withdrawal_request_fee || 0),
   };
 
-  return returnData;
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+
+  return response;
 };
 
 export const withdrawHideUserModel = async (params: {

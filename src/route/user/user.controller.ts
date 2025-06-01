@@ -1,5 +1,8 @@
 import type { Context } from "hono";
-import { invalidateCache } from "../../utils/function.js";
+import {
+  invalidateCache,
+  invalidateCacheVersion,
+} from "../../utils/function.js";
 import {
   userActiveListModel,
   userChangePasswordModel,
@@ -89,7 +92,10 @@ export const userPatchController = async (c: Context) => {
 
     const userId = await userPatchModel({ memberId: id, action, role, type });
 
-    await invalidateCache(`user-${userId}`);
+    await Promise.all([
+      invalidateCache(`user-${userId}`),
+      invalidateCacheVersion("user-list"),
+    ]);
 
     return c.json({ message: "User Updated" });
   } catch (error) {
@@ -144,9 +150,9 @@ export const userListController = async (c: Context) => {
     const params = c.get("params");
     const teamMemberProfile = c.get("teamMemberProfile");
 
-    const { data, totalCount } = await userListModel(params, teamMemberProfile);
+    const data = await userListModel(params, teamMemberProfile);
 
-    return c.json({ data, totalCount });
+    return c.json(data, { status: 200 });
   } catch (error) {
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }

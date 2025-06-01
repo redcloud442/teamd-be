@@ -8,6 +8,13 @@ export const dashboardPostModel = async (params: {
   return await prisma.$transaction(async (tx) => {
     const { dateFilter } = params;
 
+    const cacheKey = `dashboard-post`;
+    const cachedData = await redis.get(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
     const startDate = dateFilter.start
       ? new Date(
           getPhilippinesTime(new Date(dateFilter.start), "start")
@@ -235,7 +242,7 @@ export const dashboardPostModel = async (params: {
       withdraw: row.withdraw || 0,
     }));
 
-    return {
+    const response = {
       totalEarnings: totalEarnings._sum.company_deposit_request_amount ?? 0,
       totalWithdraw:
         (totalWithdraw._sum.company_withdrawal_request_amount ?? 0) -
@@ -253,6 +260,10 @@ export const dashboardPostModel = async (params: {
       reinvestorsCount: Number(data?._count.package_member_member_id || 0),
       totalReinvestmentAmount: Number(data?._sum.package_member_amount || 0),
     };
+
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+
+    return response;
   });
 };
 export const dashboardGetModel = async () => {
@@ -278,7 +289,7 @@ export const dashboardGetModel = async () => {
     totalActivatedUser,
   };
 
-  await redis.set(cacheKey, JSON.stringify(response), { ex: 1000 });
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
 
   return response;
 };

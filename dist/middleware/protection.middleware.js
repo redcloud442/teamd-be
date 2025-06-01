@@ -1,9 +1,22 @@
 import { sendErrorResponse } from "../utils/function.js";
 import { rateLimit } from "../utils/redis.js";
+import { supabaseClient } from "../utils/supabase.js";
 import { getSupabase } from "./auth.middleware.js";
 export const protectionMiddleware = async (c, next) => {
     const supabase = getSupabase(c);
     const { data, error } = await supabase.auth.getUser();
+    if (error) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    if (!data.user) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    c.set("user", data.user);
+    await next();
+};
+export const protectionMiddlewareToken = async (c, next) => {
+    const token = c.req.query("access_token");
+    const { data, error } = await supabaseClient.auth.getUser(token);
     if (error) {
         return sendErrorResponse("Unauthorized", 401);
     }

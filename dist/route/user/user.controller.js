@@ -1,4 +1,4 @@
-import { invalidateCache } from "../../utils/function.js";
+import { invalidateCache, invalidateCacheVersion, } from "../../utils/function.js";
 import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userGetSearchModel, userListModel, userListReinvestedModel, userModelGet, userModelGetById, userModelGetByUserId, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userReferralModel, userSponsorModel, userTreeModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
@@ -58,7 +58,10 @@ export const userPatchController = async (c) => {
         const { action, role, type } = await c.req.json();
         const { id } = c.req.param();
         const userId = await userPatchModel({ memberId: id, action, role, type });
-        await invalidateCache(`user-${userId}`);
+        await Promise.all([
+            invalidateCache(`user-${userId}`),
+            invalidateCacheVersion("user-list"),
+        ]);
         return c.json({ message: "User Updated" });
     }
     catch (error) {
@@ -102,8 +105,8 @@ export const userListController = async (c) => {
     try {
         const params = c.get("params");
         const teamMemberProfile = c.get("teamMemberProfile");
-        const { data, totalCount } = await userListModel(params, teamMemberProfile);
-        return c.json({ data, totalCount });
+        const data = await userListModel(params, teamMemberProfile);
+        return c.json(data, { status: 200 });
     }
     catch (error) {
         return c.json({ error: "Internal Server Error" }, { status: 500 });

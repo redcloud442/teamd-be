@@ -149,7 +149,7 @@ export const packagePostModel = async (params) => {
             });
         }
         await broadcastInvestmentMessage({
-            username: params.teamMemberProfile.company_member_company_id,
+            username: params.teamMemberProfile.company_user_name,
             amount: Number(amount),
             type: "Invested",
         });

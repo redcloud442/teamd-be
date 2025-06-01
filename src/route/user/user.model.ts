@@ -583,6 +583,16 @@ export const userListModel = async (
 
   const offset = (page - 1) * limit;
 
+  const version = (await redis.get(`user-list:version`)) || "v1";
+
+  const cacheKey = `user-list:${page}:${limit}:${search}:${columnAccessor}:${isAscendingSort}:${userRole}:${dateCreated}:${bannedUser}:${version}`;
+
+  const cachedData = await redis.get(cacheKey);
+
+  if (cachedData) {
+    return cachedData;
+  }
+
   const whereCondition: any = {
     company_member_company_id: teamMemberProfile.company_member_company_id,
   };
@@ -682,10 +692,14 @@ export const userListModel = async (
     user_date_created: entry.user_table.user_date_created.toISOString(),
   }));
 
-  return {
+  const response = {
     totalCount,
     data: formattedData,
   };
+
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+
+  return response;
 };
 
 export const userActiveListModel = async (params: {
@@ -696,6 +710,14 @@ export const userActiveListModel = async (params: {
   isAscendingSort: boolean;
 }) => {
   const { page, limit, search, columnAccessor, isAscendingSort } = params;
+
+  const cacheKey = `user-active-list:${page}:${limit}:${search}:${columnAccessor}:${isAscendingSort}`;
+
+  const cachedData = await redis.get(cacheKey);
+
+  if (cachedData) {
+    return cachedData;
+  }
 
   const offset = (page - 1) * limit;
 
@@ -747,10 +769,14 @@ export const userActiveListModel = async (params: {
       ${searchCondition}
     `;
 
-  return {
+  const response = {
     data: usersWithActiveWallet,
     totalCount: Number(totalCount[0]?.count ?? 0),
   };
+
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+
+  return response;
 };
 
 export const userChangePasswordModel = async (params: {
@@ -773,6 +799,14 @@ export const userListReinvestedModel = async (params: {
   skip: number;
 }) => {
   const { dateFilter, take, skip } = params;
+
+  const cacheKey = `user-list-reinvested:${dateFilter.start}:${dateFilter.end}:${take}:${skip}`;
+
+  const cachedData = await redis.get(cacheKey);
+
+  if (cachedData) {
+    return cachedData;
+  }
 
   const offset = (skip - 1) * take;
 
@@ -858,7 +892,14 @@ export const userListReinvestedModel = async (params: {
       ) AS total_count
   `;
 
-  return { data, totalCount: Number(totalCount[0]?.count ?? 0) };
+  const response = {
+    data,
+    totalCount: Number(totalCount[0]?.count ?? 0),
+  };
+
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+
+  return response;
 };
 
 export const userTreeModel = async (params: { memberId: string }) => {

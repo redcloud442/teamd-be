@@ -456,6 +456,12 @@ export const userGenerateLinkModel = async (params) => {
 export const userListModel = async (params, teamMemberProfile) => {
     const { page, limit, search, columnAccessor, isAscendingSort, userRole, dateCreated, bannedUser, } = params;
     const offset = (page - 1) * limit;
+    const version = (await redis.get(`user-list:version`)) || "v1";
+    const cacheKey = `user-list:${page}:${limit}:${search}:${columnAccessor}:${isAscendingSort}:${userRole}:${dateCreated}:${bannedUser}:${version}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const whereCondition = {
         company_member_company_id: teamMemberProfile.company_member_company_id,
     };
@@ -544,13 +550,20 @@ export const userListModel = async (params, teamMemberProfile) => {
         user_last_name: entry.user_table.user_last_name || "",
         user_date_created: entry.user_table.user_date_created.toISOString(),
     }));
-    return {
+    const response = {
         totalCount,
         data: formattedData,
     };
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+    return response;
 };
 export const userActiveListModel = async (params) => {
     const { page, limit, search, columnAccessor, isAscendingSort } = params;
+    const cacheKey = `user-active-list:${page}:${limit}:${search}:${columnAccessor}:${isAscendingSort}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const offset = (page - 1) * limit;
     const sortBy = isAscendingSort ? "ASC" : "DESC";
     const orderBy = columnAccessor
@@ -596,10 +609,12 @@ export const userActiveListModel = async (params) => {
       ae.company_package_earnings > 0
       ${searchCondition}
     `;
-    return {
+    const response = {
         data: usersWithActiveWallet,
         totalCount: Number(totalCount[0]?.count ?? 0),
     };
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+    return response;
 };
 export const userChangePasswordModel = async (params) => {
     const { password, userId } = params;
@@ -609,6 +624,11 @@ export const userChangePasswordModel = async (params) => {
 };
 export const userListReinvestedModel = async (params) => {
     const { dateFilter, take, skip } = params;
+    const cacheKey = `user-list-reinvested:${dateFilter.start}:${dateFilter.end}:${take}:${skip}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const offset = (skip - 1) * take;
     const startDate = dateFilter.start
         ? new Date(getPhilippinesTime(new Date(dateFilter.start), "start")).toISOString()
@@ -671,7 +691,12 @@ export const userListReinvestedModel = async (params) => {
             u.user_last_name
       ) AS total_count
   `;
-    return { data, totalCount: Number(totalCount[0]?.count ?? 0) };
+    const response = {
+        data,
+        totalCount: Number(totalCount[0]?.count ?? 0),
+    };
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+    return response;
 };
 export const userTreeModel = async (params) => {
     const { memberId } = params;

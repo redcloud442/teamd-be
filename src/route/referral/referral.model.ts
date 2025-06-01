@@ -190,6 +190,7 @@ export const referralIndirectModelPost = async (params: {
     user_username: string;
     package_ally_bounty_log_id: string;
     referrer_username: string;
+    total_bounty_earnings: number;
   }[] = await prisma.$queryRaw`
   SELECT 
     ut.user_first_name, 

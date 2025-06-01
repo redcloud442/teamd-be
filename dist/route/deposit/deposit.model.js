@@ -3,6 +3,7 @@ import { endOfDay, endOfMonth, parseISO, setDate, setHours, setMilliseconds, set
 import {} from "../../schema/schema.js";
 import { broadcastInvestmentMessage, getPhilippinesTime, } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
 export const depositPostModel = async (params) => {
     const { amount, accountName, accountNumber, topUpMode } = params.TopUpFormValues;
     const { publicUrl } = params;
@@ -56,7 +57,7 @@ export const depositPostModel = async (params) => {
             },
         });
         await broadcastInvestmentMessage({
-            username: params.teamMemberProfile.company_member_company_id,
+            username: params.teamMemberProfile.company_user_name,
             amount: Number(amount),
             type: "Deposit",
         });
@@ -390,6 +391,11 @@ export const depositReferencePostModel = async (params) => {
 export const depositReportPostModel = async (params) => {
     const { dateFilter } = params;
     const monthYearString = `${dateFilter.year}-${dateFilter.month}-01`;
+    const cacheKey = `deposit-report-post-${monthYearString}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     let startDate = parseISO(monthYearString);
     startDate = setHours(startDate, 0);
     startDate = setMinutes(startDate, 0);
@@ -430,9 +436,11 @@ export const depositReportPostModel = async (params) => {
     GROUP BY date
     ORDER BY date DESC;
   `;
-    return {
+    const response = {
         monthlyTotal: depositMonthlyReport._sum.company_deposit_request_amount || 0,
         monthlyCount: depositMonthlyReport._count.company_deposit_request_id || 0,
         dailyIncome: depositDailyIncome,
     };
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+    return response;
 };

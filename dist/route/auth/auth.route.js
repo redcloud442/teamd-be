@@ -5,7 +5,7 @@ import { authGetMiddleware, authMiddleware, registerUserCodeMiddleware, register
 const auth = new Hono();
 auth.get("/", authGetMiddleware, loginGetController);
 auth.post("/", authMiddleware, loginController);
-auth.post("/xeloraAccess", authMiddleware, adminController);
+auth.post("/teamdAuth", authMiddleware, adminController);
 auth.get("/register/:code", registerUserCodeMiddleware, registerUserCodeController);
 auth.post("/register", protectionMiddleware, registerUserMiddleware, registerUserController);
 export default auth;

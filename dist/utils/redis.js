@@ -38,6 +38,7 @@ export async function rateLimit(key, maxRequests, timeWindow, c) {
         limit: maxRequests,
     };
 }
+//client
 const limiter = new Ratelimit({
     redis: redis,
     limiter: Ratelimit.slidingWindow(1000, "1h"),

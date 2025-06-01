@@ -13,7 +13,9 @@ import { redis } from "../../utils/redis.js";
 export const packagePostModel = async (params: {
   amount: number;
   packageId: string;
-  teamMemberProfile: company_member_table;
+  teamMemberProfile: company_member_table & {
+    company_user_name: string;
+  };
 }) => {
   const { amount, packageId, teamMemberProfile } = params;
 
@@ -228,7 +230,7 @@ export const packagePostModel = async (params: {
       });
     }
     await broadcastInvestmentMessage({
-      username: params.teamMemberProfile.company_member_company_id,
+      username: params.teamMemberProfile.company_user_name,
       amount: Number(amount),
       type: "Invested",
     });

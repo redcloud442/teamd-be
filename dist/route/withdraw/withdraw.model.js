@@ -1,3 +1,4 @@
+import { redis } from "@/utils/redis.js";
 import { Prisma } from "@prisma/client";
 import { broadcastInvestmentMessage, calculateFee, calculateFinalAmount, getPhilippinesTime, } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
@@ -370,6 +371,7 @@ export const withdrawListPostModel = async (params) => {
 };
 export const withdrawHistoryReportPostTotalModel = async (params) => {
     const { take, skip, type } = params;
+    const cacheKey = `withdraw-history-report-total:${take}:${skip}:${type}`;
     // Helper function to adjust the date based on the type and skip count
     const adjustDate = (date, type, skip) => {
         const adjustedDate = new Date(date);
@@ -488,11 +490,18 @@ export const withdrawHistoryReportPostTotalModel = async (params) => {
         start: new Date(interval.start),
         end: new Date(interval.end),
     })));
-    return JSON.parse(JSON.stringify(aggregatedResults, (key, value) => typeof value === "bigint" ? value.toString() : value));
+    const response = JSON.parse(JSON.stringify(aggregatedResults, (key, value) => typeof value === "bigint" ? value.toString() : value));
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+    return response;
 };
 export const withdrawHistoryReportPostModel = async (params) => {
     const { dateFilter } = params;
     const { startDate, endDate } = dateFilter;
+    const cacheKey = `withdraw-history-report:${startDate}:${endDate}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const withdrawalData = await prisma.company_withdrawal_request_table.aggregate({
         where: {
             company_withdrawal_request_date: {
@@ -511,12 +520,13 @@ export const withdrawHistoryReportPostModel = async (params) => {
             company_withdrawal_request_fee: true,
         },
     });
-    const returnData = {
+    const response = {
         total_request: withdrawalData._count,
         total_amount: (withdrawalData._sum.company_withdrawal_request_amount || 0) -
             (withdrawalData._sum.company_withdrawal_request_fee || 0),
     };
-    return returnData;
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+    return response;
 };
 export const withdrawHideUserModel = async (params) => {
     const { id, type, teamMemberProfile } = params;

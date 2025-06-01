@@ -5,17 +5,15 @@ import { logger } from "hono/logger";
 import { envConfig } from "./env.js";
 import { supabaseMiddleware } from "./middleware/auth.middleware.js";
 import { errorHandlerMiddleware } from "./middleware/errorMiddleware.js";
-import { protectionMiddleware } from "./middleware/protection.middleware.js";
+import { protectionMiddlewareToken } from "./middleware/protection.middleware.js";
 import route from "./route/route.js";
 import { globalRateLimit, redis, redisSubscriber } from "./utils/redis.js";
 const app = new Hono();
-const { upgradeWebSocket, websocket } = createBunWebSocket();
-// Apply CORS first, then middleware
 app.use("*", cors({
     origin: (origin) => {
         const allowedOrigins = [
             "http://localhost:3001",
-            "https://your-production-domain.com",
+            "https://www.digi-wealth.vip",
         ];
         if (!origin || allowedOrigins.includes(origin)) {
             return origin;
@@ -29,6 +27,8 @@ app.use("*", cors({
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: ["Content-Range", "X-Total-Count"],
 }), globalRateLimit(), supabaseMiddleware());
+const { upgradeWebSocket, websocket } = createBunWebSocket();
+// Apply CORS first, then middleware
 app.use(logger()); // Logger should be before error handling
 app.get("/", (c) => {
     return c.html(`
@@ -88,7 +88,7 @@ setInterval(() => {
         }
     }
 }, 30_000);
-app.get("/ws", protectionMiddleware, 
+app.get("/ws", protectionMiddlewareToken, 
 //@ts-ignore
 upgradeWebSocket((c) => {
     return {
@@ -127,5 +127,5 @@ app.onError(errorHandlerMiddleware);
 export default {
     port: envConfig.PORT || 9000,
     fetch: app.fetch,
-    websocket: websocket,
+    websocket,
 };
