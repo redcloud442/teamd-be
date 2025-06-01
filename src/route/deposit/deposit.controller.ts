@@ -87,9 +87,9 @@ export const depositHistoryPostController = async (c: Context) => {
 
 export const depositUserGetController = async (c: Context) => {
   try {
-    const params = c.get("params");
+    const teamMemberProfile = c.get("teamMemberProfile");
 
-    const data = await depositUserGetModel(params);
+    const data = await depositUserGetModel(teamMemberProfile);
 
     return c.json(data, { status: 200 });
   } catch (e) {

@@ -1,11 +1,12 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+  previewFeatures = ["multiSchema","views"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
   schemas   = ["user_schema","company_schema","packages_schema","merchant_schema","public"]
 }
 
@@ -131,7 +132,7 @@ model company_referral_table {
   @@index([company_referral_from_member_id], name: "idx_company_referral_from_member_id")
 }
 
-model dashboard_earnings_summary {
+view dashboard_earnings_summary {
   member_id              String   @id @map("member_id") @db.Uuid
   total_earnings         Float    @default(0.0) @map("total_earnings")
   total_withdrawals      Float    @default(0.0) @map("total_withdrawals")
@@ -262,6 +263,7 @@ model package_table {
   packages_days      Int
   package_is_disabled Boolean @default(false)
   package_minimum_amount Float @default(0.0)
+  package_maximum_amount Float @default(0.0)
   package_image      String?
   package_is_popular Boolean @default(false)
   package_is_highlight Boolean @default(false)

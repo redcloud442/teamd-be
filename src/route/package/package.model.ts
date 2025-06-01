@@ -255,7 +255,7 @@ export const packageGetModel = async () => {
         package_features_table: true,
       },
       orderBy: {
-        package_percentage: "desc",
+        package_percentage: "asc",
       },
     });
     return data;
