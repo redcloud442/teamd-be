@@ -317,7 +317,8 @@ export const withdrawListPostModel = async (params) => {
     const endDate = dateFilter?.end && dateFilter?.start
         ? getPhilippinesTime(new Date(dateFilter.end), "end")
         : undefined;
-    if (teamMemberProfile.company_member_role === "ACCOUNTING_HEAD") {
+    if (teamMemberProfile.company_member_role === "ACCOUNTING_HEAD" ||
+        teamMemberProfile.company_member_role === "ADMIN") {
         const totalApprovedWithdrawal = await prisma.company_withdrawal_request_table.aggregate({
             where: {
                 company_withdrawal_request_status: "APPROVED",

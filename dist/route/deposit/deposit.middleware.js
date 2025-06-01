@@ -1,4 +1,4 @@
-import { depositHistoryPostSchema, depositListPostSchema, depositReferencePostSchema, depositReportPostSchema, depositSchema, depositUserGetSchema, updateDepositSchema, } from "../../schema/schema.js";
+import { depositHistoryPostSchema, depositListPostSchema, depositReferencePostSchema, depositReportPostSchema, depositSchema, updateDepositSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import { protectionAdmin, protectionMemberUser, protectionMerchantAdmin, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
@@ -104,15 +104,7 @@ export const depositUserGetMiddleware = async (c, next) => {
     if (!isAllowed) {
         return sendErrorResponse("Too Many Requests", 429);
     }
-    const { id } = c.req.param();
-    const sanitizedData = depositUserGetSchema.safeParse({
-        id,
-    });
-    if (!sanitizedData.success) {
-        return sendErrorResponse("Invalid Request", 400);
-    }
     c.set("teamMemberProfile", teamMemberProfile);
-    c.set("params", sanitizedData.data);
     return await next();
 };
 export const depositListPostMiddleware = async (c, next) => {

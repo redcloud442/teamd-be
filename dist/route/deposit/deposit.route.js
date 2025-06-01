@@ -5,7 +5,7 @@ const deposit = new Hono();
 deposit.post("/", depositMiddleware, depositPostController);
 deposit.post("/reference", depositReferenceMiddleware, depositReferencePostController);
 deposit.post("/history", depositHistoryPostMiddleware, depositHistoryPostController);
-deposit.get("/user/:id", depositUserGetMiddleware, depositUserGetController);
+deposit.get("/user", depositUserGetMiddleware, depositUserGetController);
 deposit.post("/report", depositReportPostMiddleware, depositReportPostController);
 deposit.put("/:id", depositPutMiddleware, depositPutController);
 deposit.post("/list", depositListPostMiddleware, depositListPostController);
