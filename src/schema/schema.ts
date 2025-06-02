@@ -115,7 +115,7 @@ export const registerUserSchema = z.object({
 });
 
 export const registerUserCodeSchema = z.object({
-  code: z.string().min(1),
+  code: z.coerce.string().min(1).max(10).trim(),
 });
 
 //for deposit
