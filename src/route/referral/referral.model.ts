@@ -1,4 +1,4 @@
-import { Prisma, type company_member_table } from "@prisma/client";
+import { type company_member_table } from "@prisma/client";
 import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
 
@@ -21,11 +21,11 @@ export const referralDirectModelPost = async (params: {
 
   const cacheKey = `referral-direct-${teamMemberProfile.company_member_id}-${page}-${limit}-${search}-${columnAccessor}`;
 
-  const cachedData = await redis.get(cacheKey);
+  // const cachedData = await redis.get(cacheKey);
 
-  if (cachedData) {
-    return cachedData;
-  }
+  // if (cachedData) {
+  //   return cachedData;
+  // }
 
   const offset = Math.max((page - 1) * limit, 0);
 
@@ -36,60 +36,88 @@ export const referralDirectModelPost = async (params: {
     select: {
       company_referral_member_id: true,
       company_referral_date: true,
+      company_member_table: {
+        select: {
+          company_member_id: true,
+          user_table: {
+            select: {
+              user_first_name: true,
+              user_last_name: true,
+              user_username: true,
+            },
+          },
+        },
+      },
+    },
+    take: limit,
+    skip: offset,
+  });
+
+  const totalCount = await prisma.company_referral_table.count({
+    where: {
+      company_referral_from_member_id: teamMemberProfile.company_member_id,
     },
   });
 
-  const directReferralIds = directReferrals.map(
-    (ref) => ref.company_referral_member_id
-  );
+  // const directReferralIds = directReferrals.map(
+  //   (ref) => ref.company_referral_member_id
+  // );
 
-  if (directReferralIds.length === 0) {
-    return { data: [], totalCount: 0 };
-  }
+  // if (directReferralIds.length === 0) {
+  //   return { data: [], totalCount: 0 };
+  // }
 
   // Parameterize search conditions to prevent SQL injection
-  const searchCondition = search
-    ? Prisma.raw(
-        `AND (u.user_first_name ILIKE ${
-          "%" + search + "%"
-        } OR u.user_last_name ILIKE ${
-          "%" + search + "%"
-        } OR u.user_username ILIKE ${"%" + search + "%"})`
-      )
-    : Prisma.empty;
+  // const searchCondition = search
+  //   ? Prisma.raw(
+  //       `AND (u.user_first_name ILIKE ${
+  //         "%" + search + "%"
+  //       } OR u.user_last_name ILIKE ${
+  //         "%" + search + "%"
+  //       } OR u.user_username ILIKE ${"%" + search + "%"})`
+  //     )
+  //   : Prisma.empty;
 
-  const direct = await prisma.$queryRaw`
-    SELECT
-      u.user_first_name,
-      u.user_last_name,
-      u.user_username,
-      u.user_id,
-      ar.company_referral_date
-    FROM company_schema.company_member_table m
-    JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
-    JOIN company_schema.company_referral_table ar ON ar.company_referral_member_id = m.company_member_id
-    WHERE ar.company_referral_from_member_id = ${teamMemberProfile.company_member_id}::uuid
-      ${searchCondition}
-    ORDER BY ar.company_referral_date DESC
-    LIMIT ${limit} OFFSET ${offset}
-  `;
+  // const direct = await prisma.$queryRaw`
 
-  const totalCount: { count: number }[] = await prisma.$queryRaw`
-   SELECT COUNT(*) AS count
-    FROM (
-        SELECT 1
-        FROM company_schema.company_member_table m
-        JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
-        JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.company_member_id
-        WHERE pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid AND pa.package_ally_bounty_type = 'DIRECT'
-          ${searchCondition}
-        GROUP BY u.user_first_name, u.user_last_name, u.user_username, pa.package_ally_bounty_log_date_created
-    ) AS subquery;
-  `;
+  const formattedDirectReferrals = directReferrals.map((ref) => ({
+    user_first_name: ref.company_member_table.user_table.user_first_name,
+    user_last_name: ref.company_member_table.user_table.user_last_name,
+    user_username: ref.company_member_table.user_table.user_username,
+    user_id: ref.company_member_table.company_member_id,
+    company_referral_date: ref.company_referral_date,
+  }));
+  //   SELECT
+  //     u.user_first_name,
+  //     u.user_last_name,
+  //     u.user_username,
+  //     u.user_id,
+  //     ar.company_referral_date
+  //   FROM company_schema.company_member_table m
+  //   JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
+  //   JOIN company_schema.company_referral_table ar ON ar.company_referral_member_id = m.company_member_id
+  //   WHERE ar.company_referral_from_member_id = ${teamMemberProfile.company_member_id}::uuid
+  //     ${searchCondition}
+  //   ORDER BY ar.company_referral_date DESC
+  //   LIMIT ${limit} OFFSET ${offset}
+  // `;
+
+  // const totalCount: { count: number }[] = await prisma.$queryRaw`
+  //  SELECT COUNT(*) AS count
+  //   FROM (
+  //       SELECT 1
+  //       FROM company_schema.company_member_table m
+  //       JOIN user_schema.user_table u ON u.user_id = m.company_member_user_id
+  //       JOIN packages_schema.package_ally_bounty_log pa ON pa.package_ally_bounty_from = m.company_member_id
+  //       WHERE pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid AND pa.package_ally_bounty_type = 'DIRECT'
+  //         ${searchCondition}
+  //       GROUP BY u.user_first_name, u.user_last_name, u.user_username, pa.package_ally_bounty_log_date_created
+  //   ) AS subquery;
+  // `;
 
   const returnData = {
-    data: direct,
-    totalCount: Number(totalCount[0]?.count || 0),
+    data: formattedDirectReferrals,
+    totalCount: totalCount,
   };
 
   await redis.set(cacheKey, JSON.stringify(returnData), { ex: 300 });
@@ -117,18 +145,15 @@ export const referralIndirectModelPost = async (params: {
   const cacheKey = `referral-indirect-${teamMemberProfile.company_member_id}-${page}-${limit}-${search}-${columnAccessor}-${isAscendingSort}`;
 
   const cachedData = await redis.get(cacheKey);
+  if (cachedData) return cachedData;
 
-  if (cachedData) {
-    return cachedData;
-  }
-
+  // Step 1: Get direct referral IDs
   const directReferrals = await prisma.company_referral_table.findMany({
     where: {
       company_referral_from_member_id: teamMemberProfile.company_member_id,
     },
     select: {
       company_referral_member_id: true,
-      company_referral_date: true,
     },
   });
 
@@ -136,40 +161,20 @@ export const referralIndirectModelPost = async (params: {
     (ref) => ref.company_referral_member_id
   );
 
-  let indirectReferrals = new Set<string>();
-  let currentLevelReferrals = [teamMemberProfile.company_member_id];
-  let currentLevel = 0;
-  const maxLevel = 10;
+  const hierarchyResult: { company_referral_member_id: string }[] =
+    await prisma.$queryRaw`
+      SELECT ar.company_referral_member_id
+      FROM company_schema.company_referral_table ar
+      WHERE ar.company_referral_hierarchy LIKE ${
+        "%." + teamMemberProfile.company_member_id + ".%"
+      }
+    `;
 
-  while (currentLevel < maxLevel && currentLevelReferrals.length > 0) {
-    const referrerData: { company_referral_hierarchy: string }[] =
-      await prisma.$queryRaw`
-    SELECT ar.company_referral_hierarchy
-    FROM company_schema.company_referral_table ar
-    JOIN company_schema.company_referral_link_table al
-      ON al.company_referral_link_id = ar.company_referral_link_id
-    WHERE al.company_referral_link_member_id = ANY (${currentLevelReferrals}::uuid[])
-  `;
+  const allDownlineIds = hierarchyResult.map(
+    (r) => r.company_referral_member_id
+  );
 
-    let nextLevelReferrals: string[] = [];
-    referrerData.forEach((ref) => {
-      const hierarchyArray = ref.company_referral_hierarchy.split(".").slice(1);
-      hierarchyArray.forEach((id) => {
-        if (
-          !indirectReferrals.has(id) &&
-          id !== teamMemberProfile.company_member_id
-        ) {
-          indirectReferrals.add(id);
-          nextLevelReferrals.push(id);
-        }
-      });
-    });
-
-    currentLevelReferrals = nextLevelReferrals;
-    currentLevel++;
-  }
-
-  const finalIndirectReferralIds = Array.from(indirectReferrals).filter(
+  const finalIndirectReferralIds = allDownlineIds.filter(
     (id) => !directReferralIds.includes(id)
   );
 
@@ -178,76 +183,51 @@ export const referralIndirectModelPost = async (params: {
   }
 
   const offset = Math.max((page - 1) * limit, 0);
-  const searchCondition = search
-    ? Prisma.raw(
-        `AND (ut.user_first_name ILIKE ${`%${search}%`} OR ut.user_last_name ILIKE ${`%${search}%`} OR ut.user_username ILIKE ${`%${search}%`})`
-      )
-    : Prisma.empty;
 
-  const indirectReferralDetails: {
-    user_first_name: string;
-    user_last_name: string;
-    user_username: string;
-    package_ally_bounty_log_id: string;
-    referrer_username: string;
-    total_bounty_earnings: number;
-  }[] = await prisma.$queryRaw`
-  SELECT 
-    ut.user_first_name, 
-    ut.user_last_name, 
-    ut.user_username, 
-    pa.package_ally_bounty_log_id,
-    ut2.user_username AS referrer_username,
-    COALESCE(SUM(pa.package_ally_bounty_earnings), 0) AS total_bounty_earnings
-  FROM company_schema.company_member_table am
-  JOIN user_schema.user_table ut
-    ON ut.user_id = am.company_member_user_id
-  JOIN packages_schema.package_ally_bounty_log pa
-    ON am.company_member_id = pa.package_ally_bounty_from
-  JOIN company_schema.company_referral_table ar
-    ON ar.company_referral_member_id = pa.package_ally_bounty_from
-  JOIN company_schema.company_referral_table ar2
-    ON ar2.company_referral_member_id = pa.package_ally_bounty_from
-  JOIN company_schema.company_member_table am2
-    ON am2.company_member_id = ar2.company_referral_from_member_id
-  JOIN user_schema.user_table ut2
-    ON ut2.user_id = am2.company_member_user_id
-  WHERE pa.package_ally_bounty_from = ANY(${finalIndirectReferralIds}::uuid[])
-    AND pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid
-    ${searchCondition}
-  GROUP BY 
-    ut.user_first_name, 
-    ut.user_last_name, 
-    ut.user_username, 
-    pa.package_ally_bounty_log_id,
-    ut2.user_username
-  ORDER BY pa.package_ally_bounty_log_date_created DESC
-  LIMIT ${limit} OFFSET ${offset}
-`;
+  const indirectReferralDetails = await prisma.$queryRawUnsafe(
+    `
+    SELECT 
+      ut.user_first_name, 
+      ut.user_last_name, 
+      ut.user_username, 
+      ut.user_email,
+      am.company_member_id,
+      ut.user_date_created,
 
-  const totalCountResult: { count: number }[] = await prisma.$queryRaw`
-  SELECT 
-    COUNT(*) AS count
-  FROM (
-    SELECT pa.package_ally_bounty_from
+      ut_ref.user_first_name AS referrer_first_name,
+      ut_ref.user_last_name AS referrer_last_name,
+      ut_ref.user_username AS referrer_username,
+      ut_ref.user_email AS referrer_email
+
     FROM company_schema.company_member_table am
     JOIN user_schema.user_table ut
       ON ut.user_id = am.company_member_user_id
-    JOIN packages_schema.package_ally_bounty_log pa
-      ON am.company_member_id = pa.package_ally_bounty_from
-    WHERE pa.package_ally_bounty_from = ANY(${finalIndirectReferralIds}::uuid[])
-      AND pa.package_ally_bounty_member_id = ${teamMemberProfile.company_member_id}::uuid
-      ${searchCondition}
-    GROUP BY 
-      pa.package_ally_bounty_from,
-      ut.user_first_name,
-      ut.user_last_name,
-      ut.user_username,
-      ut.user_date_created,
-      am.company_member_id,
-      pa.package_ally_bounty_log_date_created
-  ) AS subquery
-`;
+
+    JOIN company_schema.company_referral_table cr
+      ON cr.company_referral_member_id = am.company_member_id
+
+    JOIN company_schema.company_member_table am_ref
+      ON am_ref.company_member_id = cr.company_referral_from_member_id
+    JOIN user_schema.user_table ut_ref
+      ON ut_ref.user_id = am_ref.company_member_user_id
+
+    WHERE am.company_member_id = ANY($1::uuid[])
+    ORDER BY ut.${columnAccessor} ${isAscendingSort ? "ASC" : "DESC"}
+    LIMIT $2 OFFSET $3
+    `,
+    finalIndirectReferralIds,
+    limit,
+    offset
+  );
+
+  const totalCountResult: { count: number }[] = await prisma.$queryRawUnsafe(
+    `
+    SELECT COUNT(*) AS count
+    FROM company_schema.company_referral_table cr
+    WHERE cr.company_referral_member_id = ANY($1::uuid[])
+    `,
+    finalIndirectReferralIds
+  );
 
   const returnData = {
     data: indirectReferralDetails,
