@@ -596,12 +596,14 @@ export const packageListGetModel = async (params: {
         package_image: row.package_table.package_image,
         package_date_created: row.package_member_connection_created,
         package_days_remaining:
-          row.package_table.packages_days -
-          Math.floor(
-            (currentTimestamp.getTime() -
-              row.package_member_connection_created.getTime()) /
-              (1000 * 60 * 60 * 24)
-          ),
+          percentage === 100
+            ? 0
+            : row.package_table.packages_days -
+              Math.floor(
+                (currentTimestamp.getTime() -
+                  row.package_member_connection_created.getTime()) /
+                  (1000 * 60 * 60 * 24)
+              ),
         package_is_highlight: row.package_table.package_is_highlight,
       };
     })
