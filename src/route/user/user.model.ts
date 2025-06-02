@@ -98,10 +98,12 @@ export const userModelGetById = async (params: { id: string }) => {
   return { success: true, data: combinedData };
 };
 
-export const userModelGetByUserId = async (params: { id: string }) => {
-  const { id } = params;
+export const userModelGetByUserIdData = async (params: {
+  company_user_id: string;
+}) => {
+  const { company_user_id } = params;
 
-  const cacheKey = `user-${id}`;
+  const cacheKey = `user-${company_user_id}`;
 
   const cachedData = await redis.get(cacheKey);
 
@@ -110,24 +112,28 @@ export const userModelGetByUserId = async (params: { id: string }) => {
   }
 
   const user = await prisma.user_table.findUnique({
-    where: { user_id: id },
+    where: {
+      user_id: company_user_id,
+    },
     select: {
       user_id: true,
       user_username: true,
       user_first_name: true,
       user_last_name: true,
-      user_date_created: true,
+      user_email: true,
+      user_phone_number: true,
       user_profile_picture: true,
       company_member_table: {
         select: {
           company_member_id: true,
           company_member_role: true,
-          company_member_restricted: true,
+          company_member_is_active: true,
           company_member_date_created: true,
           company_member_date_updated: true,
-          company_member_is_active: true,
           company_referral_link_table: {
             select: {
+              company_referral_link_id: true,
+              company_referral_code: true,
               company_referral_link: true,
             },
           },
@@ -137,7 +143,7 @@ export const userModelGetByUserId = async (params: { id: string }) => {
   });
 
   await redis.set(cacheKey, JSON.stringify(user), {
-    ex: 60 * 60 * 24,
+    ex: 60 * 5,
   });
 
   return user;
@@ -226,11 +232,11 @@ export const userModelPost = async (params: { memberId: string }) => {
 export const userModelGet = async ({ memberId }: { memberId: string }) => {
   const cacheKey = `user-model-get-${memberId}`;
 
-  const cachedData = await redis.get(cacheKey);
+  // const cachedData = await redis.get(cacheKey);
 
-  if (cachedData) {
-    return cachedData;
-  }
+  // if (cachedData) {
+  //   return cachedData;
+  // }
 
   const todayStart = getPhilippinesTime(new Date(), "start");
   const todayEnd = getPhilippinesTime(new Date(), "end");
@@ -742,7 +748,8 @@ export const userActiveListModel = async (params: {
       ut.user_username,
       ut.user_first_name,
       ut.user_last_name,
-      am.company_member_is_active
+      am.company_member_is_active,
+      am.company_member_id
     FROM user_schema.user_table ut
     JOIN company_schema.company_member_table am
       ON ut.user_id = am.company_member_user_id
@@ -990,6 +997,8 @@ export const userGetSearchModel = async (params: { userName: string }) => {
       },
     },
   });
+
+  console.log(users);
 
   if (!users || users.length === 0) {
     return { data: [] };

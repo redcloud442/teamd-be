@@ -11,7 +11,7 @@ user.get("/search", userGetSearchMiddleware, userGetSearchController);
 user.post("/:id/referral", userReferralMiddleware, userReferralController);
 user.put("/:id", userProfilePutMiddleware, userProfilePutController);
 user.get("/:id/tree", userTreeMiddleware, userTreeController);
-user.get("/user-profile/:id", userProfileGetMiddleware, userProfileGetController);
+user.get("/user-data", userProfileGetMiddleware, userProfileGetController);
 user.put("/:id/change-password", userChangePasswordMiddleware, userChangePasswordController);
 user.post("/generate-link", userGenerateLinkMiddleware, userGenerateLinkController);
 user.post("/list/reinvested", userListReinvestedMiddleware, userListReinvestedController);

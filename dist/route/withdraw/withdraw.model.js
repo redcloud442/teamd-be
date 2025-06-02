@@ -1,7 +1,7 @@
-import { redis } from "@/utils/redis.js";
 import { Prisma } from "@prisma/client";
 import { broadcastInvestmentMessage, calculateFee, calculateFinalAmount, getPhilippinesTime, } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
+import { redis } from "../../utils/redis.js";
 export const withdrawModel = async (params) => {
     const { earnings, accountNumber, accountName, amount, bank, teamMemberProfile, phoneNumber, } = params;
     await prisma.$transaction(async (tx) => {

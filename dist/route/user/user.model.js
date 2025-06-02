@@ -71,32 +71,36 @@ export const userModelGetById = async (params) => {
     };
     return { success: true, data: combinedData };
 };
-export const userModelGetByUserId = async (params) => {
+export const userModelGetByUserIdData = async (params) => {
     const { id } = params;
     const cacheKey = `user-${id}`;
-    const cachedData = await redis.get(cacheKey);
-    if (cachedData) {
-        return cachedData;
-    }
+    // const cachedData = await redis.get(cacheKey);
+    // if (cachedData) {
+    //   return cachedData;
+    // }
     const user = await prisma.user_table.findUnique({
-        where: { user_id: id },
+        where: {
+            user_id: id,
+        },
         select: {
             user_id: true,
             user_username: true,
             user_first_name: true,
             user_last_name: true,
-            user_date_created: true,
+            user_email: true,
+            user_phone_number: true,
             user_profile_picture: true,
             company_member_table: {
                 select: {
                     company_member_id: true,
                     company_member_role: true,
-                    company_member_restricted: true,
+                    company_member_is_active: true,
                     company_member_date_created: true,
                     company_member_date_updated: true,
-                    company_member_is_active: true,
                     company_referral_link_table: {
                         select: {
+                            company_referral_link_id: true,
+                            company_referral_code: true,
                             company_referral_link: true,
                         },
                     },
@@ -104,9 +108,10 @@ export const userModelGetByUserId = async (params) => {
             },
         },
     });
-    await redis.set(cacheKey, JSON.stringify(user), {
-        ex: 60 * 60 * 24,
-    });
+    console.log(user);
+    // await redis.set(cacheKey, JSON.stringify(user), {
+    //   ex: 60 * 5,
+    // });
     return user;
 };
 export const userModelPost = async (params) => {

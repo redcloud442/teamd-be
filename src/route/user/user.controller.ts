@@ -12,7 +12,7 @@ import {
   userListReinvestedModel,
   userModelGet,
   userModelGetById,
-  userModelGetByUserId,
+  userModelGetByUserIdData,
   userModelPost,
   userModelPut,
   userPatchModel,
@@ -75,9 +75,11 @@ export const userGetByIdController = async (c: Context) => {
 
 export const userProfileGetController = async (c: Context) => {
   try {
-    const params = c.get("params");
+    const teamMemberProfile = c.get("teamMemberProfile");
 
-    const data = await userModelGetByUserId(params);
+    const data = await userModelGetByUserIdData({
+      company_user_id: teamMemberProfile.company_user_id,
+    });
 
     return c.json(data, 200);
   } catch (error) {
@@ -211,6 +213,7 @@ export const userGetSearchController = async (c: Context) => {
     const params = c.get("params");
 
     const data = await userGetSearchModel(params);
+    console.log(data);
 
     return c.json(data, 200);
   } catch (error) {

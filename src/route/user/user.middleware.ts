@@ -7,7 +7,6 @@ import {
   userGetSearchSchema,
   userListReinvestedSchema,
   userListSchema,
-  userProfileSchemaGet,
   userProfileSchemaPatch,
   userSchemaPatch,
   userSchemaPost,
@@ -318,17 +317,6 @@ export const userProfileGetMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse("Too Many Requests", 429);
   }
 
-  const { id } = c.req.param();
-
-  const validate = userProfileSchemaGet.safeParse({
-    id,
-  });
-
-  if (!validate.success) {
-    return sendErrorResponse("Invalid Request", 400);
-  }
-
-  c.set("params", validate.data);
   c.set("teamMemberProfile", teamMemberProfile);
 
   await next();

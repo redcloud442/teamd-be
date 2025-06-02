@@ -1,5 +1,5 @@
 import { invalidateCache, invalidateCacheVersion, } from "../../utils/function.js";
-import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userGetSearchModel, userListModel, userListReinvestedModel, userModelGet, userModelGetById, userModelGetByUserId, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userReferralModel, userSponsorModel, userTreeModel, } from "./user.model.js";
+import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userGetSearchModel, userListModel, userListReinvestedModel, userModelGet, userModelGetById, userModelGetByUserIdData, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userReferralModel, userSponsorModel, userTreeModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
         const { email, password, userId } = await c.req.json();
@@ -45,8 +45,8 @@ export const userGetByIdController = async (c) => {
 };
 export const userProfileGetController = async (c) => {
     try {
-        const params = c.get("params");
-        const data = await userModelGetByUserId(params);
+        const teamMemberProfile = c.get("teamMemberProfile");
+        const data = await userModelGetByUserIdData(teamMemberProfile.company_member_user_id);
         return c.json(data, 200);
     }
     catch (error) {

@@ -7,7 +7,7 @@ import { supabaseMiddleware } from "./middleware/auth.middleware.js";
 import { errorHandlerMiddleware } from "./middleware/errorMiddleware.js";
 import { protectionMiddlewareToken } from "./middleware/protection.middleware.js";
 import route from "./route/route.js";
-import { globalRateLimit, redis, redisSubscriber } from "./utils/redis.js";
+import { redis, redisSubscriber } from "./utils/redis.js";
 const app = new Hono();
 app.use("*", cors({
     origin: (origin) => {
@@ -26,7 +26,9 @@ app.use("*", cors({
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: ["Content-Range", "X-Total-Count"],
-}), globalRateLimit(), supabaseMiddleware());
+}), 
+// globalRateLimit(),
+supabaseMiddleware());
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 // Apply CORS first, then middleware
 app.use(logger()); // Logger should be before error handling

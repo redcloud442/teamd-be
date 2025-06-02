@@ -21,7 +21,7 @@ auth.get("/", authGetMiddleware, loginGetController);
 
 auth.post("/", authMiddleware, loginController);
 
-auth.post("/teamdAuth", authMiddleware, adminController);
+auth.post("/digiAuth", authMiddleware, adminController);
 
 auth.get(
   "/register/:code",
