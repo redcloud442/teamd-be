@@ -17,17 +17,17 @@ import {
 
 const auth = new Hono();
 
-auth.get("/", authGetMiddleware, loginGetController);
-
-auth.post("/", authMiddleware, loginController);
-
-auth.post("/digiAuth", authMiddleware, adminController);
-
 auth.get(
   "/register/:code",
   registerUserCodeMiddleware,
   registerUserCodeController
 );
+
+auth.get("/", authGetMiddleware, loginGetController);
+
+auth.post("/", authMiddleware, loginController);
+
+auth.post("/digiAuth", authMiddleware, adminController);
 
 auth.post(
   "/register",
