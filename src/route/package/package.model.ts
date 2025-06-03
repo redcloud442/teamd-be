@@ -5,6 +5,7 @@ import {
 } from "@prisma/client";
 import {
   broadcastInvestmentMessage,
+  invalidateMultipleCacheVersions,
   toNonNegative,
 } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
@@ -232,6 +233,13 @@ export const packagePostModel = async (params: {
     //     data: transactionLogs,
     //   });
     // }
+
+    if (transactionKeys.length > 0 && referrerKeys.length > 0) {
+      await invalidateMultipleCacheVersions([
+        ...transactionKeys,
+        ...referrerKeys,
+      ]);
+    }
 
     if (!teamMemberProfile?.company_member_is_active) {
       await tx.company_member_table.update({
