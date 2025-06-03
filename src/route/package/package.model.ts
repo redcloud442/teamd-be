@@ -109,7 +109,7 @@ export const packagePostModel = async (params: {
     const referralChain = generateReferralChain(
       referralData?.company_referral_hierarchy ?? null,
       teamMemberProfile.company_member_id,
-      100
+      10
     );
 
     let bountyLogs: Prisma.package_ally_bounty_logCreateManyInput[] = [];
@@ -859,7 +859,7 @@ export const packagePostReinvestmentModel = async (params: {
 function generateReferralChain(
   hierarchy: string | null,
   teamMemberId: string,
-  maxDepth = 100
+  maxDepth = 10
 ) {
   if (!hierarchy) return [];
 

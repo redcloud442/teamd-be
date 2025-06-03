@@ -192,7 +192,7 @@ export const referralIndirectModelPost = async (params: {
   );
 
   if (finalIndirectReferralIds.length === 0) {
-    return { success: false, message: "No referral data found" };
+    return { data: [], totalCount: 0 };
   }
 
   const offset = Math.max((page - 1) * limit, 0);
