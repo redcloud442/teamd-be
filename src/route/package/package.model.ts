@@ -5,6 +5,7 @@ import {
 } from "@prisma/client";
 import {
   broadcastInvestmentMessage,
+  invalidateMultipleCache,
   invalidateMultipleCacheVersions,
   toNonNegative,
 } from "../../utils/function.js";
@@ -235,9 +236,9 @@ export const packagePostModel = async (params: {
     // }
 
     if (transactionKeys.length > 0 && referrerKeys.length > 0) {
-      await invalidateMultipleCacheVersions([
-        ...transactionKeys,
-        ...referrerKeys,
+      await Promise.all([
+        invalidateMultipleCacheVersions(transactionKeys),
+        invalidateMultipleCache(referrerKeys),
       ]);
     }
 

@@ -207,3 +207,13 @@ export const invalidateMultipleCacheVersions = async (baseKeys: string[]) => {
 
   await pipeline.exec();
 };
+
+export const invalidateMultipleCache = async (baseKeys: string[]) => {
+  const pipeline = redis.multi();
+
+  baseKeys.forEach((baseKey) => {
+    pipeline.del(baseKey);
+  });
+
+  await pipeline.exec();
+};
