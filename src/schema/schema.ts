@@ -109,7 +109,7 @@ export const registerUserSchema = z.object({
       .max(11, "Phone number must be at most 11 digits")
       .optional()
   ),
-  gender: z.enum(["MALE", "FEMALE"]),
+  gender: z.enum(["MALE", "FEMALE"]).optional(),
   url: z.string().min(2),
   botField: z.string().optional(),
 });
