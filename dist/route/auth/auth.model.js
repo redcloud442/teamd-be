@@ -110,9 +110,7 @@ export const registerUserModel = async (params) => {
         const DEFAULT_COMPANY_ID = "a1b9ceb9-cb09-4c09-832d-6e5a017d048b";
         return await prisma.$transaction(async (tx) => {
             const referralCode = await generateUniqueReferralCode(tx);
-            const referralLinkURL = `${process.env.NODE_ENV === "development" ? "http" : "https"}://${process.env.NODE_ENV === "development"
-                ? "localhost:3000"
-                : "www.digi-wealth.vip"}/register/${referralCode}`;
+            const referralLinkURL = `https://www.digi-wealth.vip/register/${referralCode}`;
             const user = await tx.user_table.create({
                 data: {
                     user_id: userId,

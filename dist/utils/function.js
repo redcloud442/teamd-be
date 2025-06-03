@@ -2,9 +2,20 @@ import { redis } from "./redis.js";
 import { supabaseClient } from "./supabase.js";
 export const sendErrorResponse = (message, status) => Response.json({ message: message }, { status });
 export const sendSuccessResponse = (message, status) => Response.json({ message: message }, { status });
-export const getClientIP = (request) => request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    request.headers.get("cf-connecting-ip") ||
-    "unknown";
+export const getClientIP = (request) => {
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    if (forwardedFor)
+        return forwardedFor.split(",")[0].trim();
+    const realIP = request.headers.get("x-real-ip");
+    if (realIP)
+        return realIP;
+    // 1. Cloudflare (most reliable if available)
+    const cfIP = request.headers.get("cf-connecting-ip");
+    if (cfIP)
+        return cfIP;
+    // 4. Fallback
+    return "unknown";
+};
 export const getUserSession = async (token) => {
     const supabase = supabaseClient;
     const session = await supabase.auth.getUser(token);

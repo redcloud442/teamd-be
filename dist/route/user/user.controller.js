@@ -46,7 +46,9 @@ export const userGetByIdController = async (c) => {
 export const userProfileGetController = async (c) => {
     try {
         const teamMemberProfile = c.get("teamMemberProfile");
-        const data = await userModelGetByUserIdData(teamMemberProfile.company_member_user_id);
+        const data = await userModelGetByUserIdData({
+            company_user_id: teamMemberProfile.company_user_id,
+        });
         return c.json(data, 200);
     }
     catch (error) {
@@ -156,6 +158,7 @@ export const userGetSearchController = async (c) => {
     try {
         const params = c.get("params");
         const data = await userGetSearchModel(params);
+        console.log(data);
         return c.json(data, 200);
     }
     catch (error) {

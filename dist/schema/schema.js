@@ -78,12 +78,12 @@ export const registerUserSchema = z.object({
         .min(10, "Phone number must be at least 10 digits")
         .max(11, "Phone number must be at most 11 digits")
         .optional()),
-    gender: z.enum(["MALE", "FEMALE"]),
+    gender: z.enum(["MALE", "FEMALE"]).optional(),
     url: z.string().min(2),
     botField: z.string().optional(),
 });
 export const registerUserCodeSchema = z.object({
-    code: z.string().min(1),
+    code: z.coerce.string().min(1).max(10).trim(),
 });
 //for deposit
 export const depositSchema = z.object({

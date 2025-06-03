@@ -3,9 +3,9 @@ import { protectionMiddleware } from "../../middleware/protection.middleware.js"
 import { adminController, loginController, loginGetController, registerUserCodeController, registerUserController, } from "./auth.controller.js";
 import { authGetMiddleware, authMiddleware, registerUserCodeMiddleware, registerUserMiddleware, } from "./auth.middleware.js";
 const auth = new Hono();
+auth.get("/register/:code", registerUserCodeMiddleware, registerUserCodeController);
 auth.get("/", authGetMiddleware, loginGetController);
 auth.post("/", authMiddleware, loginController);
-auth.post("/teamdAuth", authMiddleware, adminController);
-auth.get("/register/:code", registerUserCodeMiddleware, registerUserCodeController);
+auth.post("/digiAuth", authMiddleware, adminController);
 auth.post("/register", protectionMiddleware, registerUserMiddleware, registerUserController);
 export default auth;

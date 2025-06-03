@@ -29,6 +29,9 @@ export const packagePostModel = async (params) => {
         if (amount < packageData.package_minimum_amount) {
             throw new Error("Amount is less than the minimum amount.");
         }
+        if (amount >= packageData.package_maximum_amount) {
+            throw new Error("Amount is greater than the maximum amount.");
+        }
         if (packageData.package_is_disabled) {
             throw new Error("Package is disabled.");
         }
@@ -400,10 +403,12 @@ export const packageListGetModel = async (params) => {
             package_days: row.package_table.packages_days,
             package_image: row.package_table.package_image,
             package_date_created: row.package_member_connection_created,
-            package_days_remaining: row.package_table.packages_days -
-                Math.floor((currentTimestamp.getTime() -
-                    row.package_member_connection_created.getTime()) /
-                    (1000 * 60 * 60 * 24)),
+            package_days_remaining: percentage === 100
+                ? 0
+                : row.package_table.packages_days -
+                    Math.floor((currentTimestamp.getTime() -
+                        row.package_member_connection_created.getTime()) /
+                        (1000 * 60 * 60 * 24)),
             package_is_highlight: row.package_table.package_is_highlight,
         };
     }));

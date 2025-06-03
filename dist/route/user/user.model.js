@@ -72,15 +72,15 @@ export const userModelGetById = async (params) => {
     return { success: true, data: combinedData };
 };
 export const userModelGetByUserIdData = async (params) => {
-    const { id } = params;
-    const cacheKey = `user-${id}`;
-    // const cachedData = await redis.get(cacheKey);
-    // if (cachedData) {
-    //   return cachedData;
-    // }
+    const { company_user_id } = params;
+    const cacheKey = `user-${company_user_id}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const user = await prisma.user_table.findUnique({
         where: {
-            user_id: id,
+            user_id: company_user_id,
         },
         select: {
             user_id: true,
@@ -108,10 +108,9 @@ export const userModelGetByUserIdData = async (params) => {
             },
         },
     });
-    console.log(user);
-    // await redis.set(cacheKey, JSON.stringify(user), {
-    //   ex: 60 * 5,
-    // });
+    await redis.set(cacheKey, JSON.stringify(user), {
+        ex: 60 * 5,
+    });
     return user;
 };
 export const userModelPost = async (params) => {
@@ -186,10 +185,10 @@ export const userModelPost = async (params) => {
 };
 export const userModelGet = async ({ memberId }) => {
     const cacheKey = `user-model-get-${memberId}`;
-    const cachedData = await redis.get(cacheKey);
-    if (cachedData) {
-        return cachedData;
-    }
+    // const cachedData = await redis.get(cacheKey);
+    // if (cachedData) {
+    //   return cachedData;
+    // }
     const todayStart = getPhilippinesTime(new Date(), "start");
     const todayEnd = getPhilippinesTime(new Date(), "end");
     const baseWithdrawFilter = {
@@ -589,7 +588,8 @@ export const userActiveListModel = async (params) => {
       ut.user_username,
       ut.user_first_name,
       ut.user_last_name,
-      am.company_member_is_active
+      am.company_member_is_active,
+      am.company_member_id
     FROM user_schema.user_table ut
     JOIN company_schema.company_member_table am
       ON ut.user_id = am.company_member_user_id
@@ -778,6 +778,7 @@ export const userGetSearchModel = async (params) => {
             },
         },
     });
+    console.log(users);
     if (!users || users.length === 0) {
         return { data: [] };
     }
