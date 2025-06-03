@@ -70,15 +70,15 @@ user.put(
 
 user.post("/:id/referral", userReferralMiddleware, userReferralController);
 
-user.put("/:id", userProfilePutMiddleware, userProfilePutController);
-
-user.patch("/:id", userPatchMiddleware, userPatchController);
-
 user.get(
   "/:id/user-profile",
   userGetByIdUserProfileMiddleware,
   userGetByIdUserProfileController
 );
+
+user.put("/:id", userProfilePutMiddleware, userProfilePutController);
+
+user.patch("/:id", userPatchMiddleware, userPatchController);
 
 // ✅ Fully dynamic and base routes LAST
 user.get("/:id", userGetMiddleware, userGetController);

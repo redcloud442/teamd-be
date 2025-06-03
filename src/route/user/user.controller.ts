@@ -12,6 +12,7 @@ import {
   userListReinvestedModel,
   userModelGet,
   userModelGetById,
+  userModelGetByIdUserProfile,
   userModelGetByUserIdData,
   userModelPost,
   userModelPut,
@@ -64,7 +65,7 @@ export const userGetByIdUserProfileController = async (c: Context) => {
   try {
     const params = c.get("params");
 
-    const data = await userModelGetById(params);
+    const data = await userModelGetByIdUserProfile(params);
 
     return c.json(data, 200);
   } catch (error) {
@@ -125,6 +126,7 @@ export const userSponsorController = async (c: Context) => {
 
     return c.json(data, { status: 200 });
   } catch (error) {
+    console.log(error);
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }
 };

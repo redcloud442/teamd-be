@@ -66,14 +66,94 @@ export const userModelPut = async (params: {
 
 export const userModelGetById = async (params: { id: string }) => {
   const { id } = params;
-
-  const userData = await prisma.user_table.findUnique({
-    where: { user_id: id },
+  const userData = await prisma.user_table.findFirstOrThrow({
+    where: {
+      company_member_table: {
+        some: {
+          company_member_id: id,
+        },
+      },
+    },
     include: {
       company_member_table: {
         include: {
           dashboard_earnings_summary: true,
           merchant_member_table: true,
+        },
+      },
+    },
+  });
+
+  if (!userData) {
+    return { success: false, error: "User not found" };
+  }
+  const earningsData =
+    userData.company_member_table[0]?.dashboard_earnings_summary[0];
+  const allianceData = userData.company_member_table[0];
+  const merchantData =
+    userData.company_member_table[0]?.merchant_member_table[0];
+
+  const combinedData = {
+    ...userData,
+    ...allianceData,
+    ...merchantData,
+    ...earningsData,
+  };
+
+  return { success: true, data: combinedData };
+};
+
+export const userModelGetByIdUserProfile = async (params: { id: string }) => {
+  const { id } = params;
+  const userData = await prisma.user_table.findFirst({
+    where: {
+      company_member_table: {
+        some: {
+          company_member_id: id,
+        },
+      },
+    },
+    select: {
+      user_id: true,
+      user_username: true,
+      user_first_name: true,
+      user_last_name: true,
+      user_email: true,
+      user_phone_number: true,
+      user_profile_picture: true,
+      company_member_table: {
+        select: {
+          company_member_id: true,
+          company_member_role: true,
+          company_member_is_active: true,
+          company_member_date_created: true,
+          company_member_date_updated: true,
+          dashboard_earnings_summary: {
+            select: {
+              direct_referral_amount: true,
+              indirect_referral_amount: true,
+              total_earnings: true,
+              total_withdrawals: true,
+              direct_referral_count: true,
+              indirect_referral_count: true,
+              package_income: true,
+            },
+          },
+          company_earnings_table: {
+            select: {
+              company_earnings_member_id: true,
+              company_combined_earnings: true,
+              company_package_earnings: true,
+              company_referral_earnings: true,
+              company_member_wallet: true,
+            },
+          },
+          merchant_member_table: {
+            select: {
+              merchant_member_id: true,
+              merchant_member_balance: true,
+            },
+          },
         },
       },
     },
@@ -531,6 +611,8 @@ export const userSponsorModel = async (params: { userId: string }) => {
   if (!user) {
     return { success: false, error: "User not found." };
   }
+
+  console.log(user);
 
   return user[0].user_username;
 };
