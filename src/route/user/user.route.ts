@@ -3,6 +3,7 @@ import {
   userActiveListController,
   userChangePasswordController,
   userGenerateLinkController,
+  userGetByIdUserProfileController,
   userGetController,
   userGetSearchController,
   userListController,
@@ -20,6 +21,7 @@ import {
   userActiveListMiddleware,
   userChangePasswordMiddleware,
   userGenerateLinkMiddleware,
+  userGetByIdUserProfileMiddleware,
   userGetMiddleware,
   userGetSearchMiddleware,
   userListMiddleware,
@@ -71,6 +73,12 @@ user.post("/:id/referral", userReferralMiddleware, userReferralController);
 user.put("/:id", userProfilePutMiddleware, userProfilePutController);
 
 user.patch("/:id", userPatchMiddleware, userPatchController);
+
+user.get(
+  "/:id/user-profile",
+  userGetByIdUserProfileMiddleware,
+  userGetByIdUserProfileController
+);
 
 // ✅ Fully dynamic and base routes LAST
 user.get("/:id", userGetMiddleware, userGetController);
