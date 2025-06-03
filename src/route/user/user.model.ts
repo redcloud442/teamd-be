@@ -223,7 +223,7 @@ export const userModelGetByUserIdData = async (params: {
   });
 
   await redis.set(cacheKey, JSON.stringify(user), {
-    ex: 60 * 5,
+    ex: 60,
   });
 
   return user;
@@ -312,11 +312,11 @@ export const userModelPost = async (params: { memberId: string }) => {
 export const userModelGet = async ({ memberId }: { memberId: string }) => {
   const cacheKey = `user-model-get-${memberId}`;
 
-  // const cachedData = await redis.get(cacheKey);
+  const cachedData = await redis.get(cacheKey);
 
-  // if (cachedData) {
-  //   return cachedData;
-  // }
+  if (cachedData) {
+    return cachedData;
+  }
 
   const todayStart = getPhilippinesTime(new Date(), "start");
   const todayEnd = getPhilippinesTime(new Date(), "end");
@@ -459,7 +459,7 @@ export const userModelGet = async ({ memberId }: { memberId: string }) => {
   };
 
   await redis.set(cacheKey, JSON.stringify(returnData), {
-    ex: 600,
+    ex: 60,
   });
   return returnData;
 };
@@ -785,7 +785,7 @@ export const userListModel = async (
     data: formattedData,
   };
 
-  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 60 });
 
   return response;
 };
@@ -863,7 +863,7 @@ export const userActiveListModel = async (params: {
     totalCount: Number(totalCount[0]?.count ?? 0),
   };
 
-  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 60 });
 
   return response;
 };
@@ -986,7 +986,7 @@ export const userListReinvestedModel = async (params: {
     totalCount: Number(totalCount[0]?.count ?? 0),
   };
 
-  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 60 });
 
   return response;
 };

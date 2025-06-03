@@ -120,7 +120,7 @@ export const transactionModelGet = async (params: {
     transactionHistory: returnData.transactionHistory,
   };
 
-  await redis.set(cacheKey, JSON.stringify(result), { ex: 600 });
+  await redis.set(cacheKey, JSON.stringify(result), { ex: 60 });
 
   return result;
 };
