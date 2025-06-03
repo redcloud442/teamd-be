@@ -111,6 +111,8 @@ export const packagePostModel = async (params: {
     );
 
     let bountyLogs: Prisma.package_ally_bounty_logCreateManyInput[] = [];
+    let transactionKeys: string[] = [];
+    let referrerKeys: string[] = [];
 
     const connectionData = await tx.package_member_connection_table.create({
       data: {
@@ -190,6 +192,13 @@ export const packagePostModel = async (params: {
         //       ref.level === 1 ? "Direct" : `Unilevel`,
         //   };
         // });
+
+        for (const ref of batch) {
+          const referrerId = ref.referrerId;
+
+          transactionKeys.push(`transaction:${referrerId}:REFERRAL`);
+          referrerKeys.push(`user-model-get-${referrerId}`);
+        }
 
         await Promise.all(
           batch.map(async (ref) => {

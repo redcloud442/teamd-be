@@ -196,3 +196,14 @@ export async function broadcastInvestmentMessage({
     console.error("Redis publish error:", err);
   }
 }
+
+export const invalidateMultipleCacheVersions = async (baseKeys: string[]) => {
+  const pipeline = redis.multi();
+
+  baseKeys.forEach((baseKey) => {
+    const versionKey = `${baseKey}:version`;
+    pipeline.incr(versionKey);
+  });
+
+  await pipeline.exec();
+};
