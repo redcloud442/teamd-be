@@ -117,7 +117,7 @@ export const getDepositBonus = (amount: number) => {
   return amount * lowestTier.percentage;
 };
 
-export const generateRandomCode = (length = 6) => {
+export const generateRandomCode = (length = 8) => {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
   for (let i = 0; i < length; i++) {

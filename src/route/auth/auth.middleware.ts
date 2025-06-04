@@ -97,7 +97,7 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
     phoneNumber,
     gender,
   } = await c.req.json();
-  console.log(user);
+
   const parsed = registerUserSchema.safeParse({
     userName,
     firstName,

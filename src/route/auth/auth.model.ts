@@ -240,7 +240,7 @@ export const registerUserModel = async (params: {
 
 export const registerUserCodeModel = async (params: { code: string }) => {
   const { code } = params;
-  console.log(code);
+
   const user = await prisma.user_table.findFirstOrThrow({
     where: {
       company_member_table: {
