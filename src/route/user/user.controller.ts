@@ -66,7 +66,7 @@ export const userGetByIdUserProfileController = async (c: Context) => {
     const params = c.get("params");
 
     const data = await userModelGetByIdUserProfile(params);
-
+    console.log(data);
     return c.json(data, 200);
   } catch (error) {
     return c.json({ error: "Internal Server Error" }, { status: 500 });
@@ -140,7 +140,7 @@ export const userProfilePutController = async (c: Context) => {
 
     await userProfileModelPut({ profilePicture, userId: id });
 
-    await invalidateCache(`user-${teamMemberProfile.company_member_user_id}`);
+    await invalidateCache(`user-${teamMemberProfile.company_user_id}`);
 
     return c.json({ message: "Profile Updated" });
   } catch (error) {

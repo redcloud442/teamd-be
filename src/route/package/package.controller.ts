@@ -29,12 +29,14 @@ export const packagePostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
+    console.log(teamMemberProfile.company_user_id);
+
     await Promise.all([
       invalidateCacheVersion(
         `transaction:${teamMemberProfile.company_member_id}:EARNINGS`
       ),
       invalidateMultipleCache([
-        `user-${teamMemberProfile.company_member_user_id}`,
+        `user-${teamMemberProfile.company_user_id}`,
         `user-model-get-${teamMemberProfile.company_member_id}`,
         `package-purchase-summary:${teamMemberProfile.company_member_id}:${params.package_id}`,
         `package-list:${teamMemberProfile.company_member_id}`,

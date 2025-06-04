@@ -185,6 +185,8 @@ export const userModelGetByUserIdData = async (params: {
 
   const cacheKey = `user-${company_user_id}`;
 
+  console.log(cacheKey);
+
   const cachedData = await redis.get(cacheKey);
 
   if (cachedData) {
