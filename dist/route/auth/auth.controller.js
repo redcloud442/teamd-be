@@ -72,7 +72,6 @@ export const registerUserController = async (c) => {
             return c.json({ message: "A database error occurred" }, 500);
         }
         if (error instanceof Error) {
-            console.log(error);
             return c.json({ message: error.message }, 401);
         }
         return c.json({ message: "Internal server error" }, 500);
@@ -85,7 +84,6 @@ export const registerUserCodeController = async (c) => {
         return c.json(data, 200);
     }
     catch (error) {
-        console.log(error);
         return c.json({ message: "Internal server error" }, 500);
     }
 };

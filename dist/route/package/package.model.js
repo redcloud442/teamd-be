@@ -187,25 +187,30 @@ export const packagePostModel = async (params) => {
     });
     return connectionData;
 };
-export const packageGetModel = async () => {
+export const packageGetModel = async (memberId) => {
     // 1. Try to get from Redis cache
-    const cached = await redis.get("package-list:cached");
+    const cached = await redis.get(`package-list:${memberId}`);
     if (cached) {
         return cached;
     }
-    // 2. Not in cache, fetch from DB
-    const result = await prisma.$transaction(async (tx) => {
-        const data = await tx.package_table.findMany({
-            include: {
-                package_features_table: true,
-            },
-            orderBy: {
-                package_percentage: "asc",
-            },
-        });
-        return data;
+    const data = await prisma.package_table.findMany({
+        include: {
+            package_features_table: true,
+        },
+        orderBy: {
+            package_percentage: "asc",
+        },
     });
-    await redis.set("package-list:cached", JSON.stringify(result), {
+    const purchaseSummary = await prisma.package_purchase_summary.findUnique({
+        where: {
+            member_id: memberId,
+        },
+    });
+    const result = {
+        data,
+        purchaseSummary,
+    };
+    await redis.set(`package-list:${memberId}`, JSON.stringify(result), {
         ex: 60 * 5,
     });
     return result;

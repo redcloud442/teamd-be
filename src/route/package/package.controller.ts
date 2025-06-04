@@ -37,6 +37,7 @@ export const packagePostController = async (c: Context) => {
         `user-${teamMemberProfile.company_member_user_id}`,
         `user-model-get-${teamMemberProfile.company_member_id}`,
         `package-purchase-summary:${teamMemberProfile.company_member_id}:${params.package_id}`,
+        `package-list:${teamMemberProfile.company_member_id}`,
       ]),
     ]);
 
@@ -48,9 +49,11 @@ export const packagePostController = async (c: Context) => {
 
 export const packageGetController = async (c: Context) => {
   try {
-    const data = await packageGetModel();
+    const teamMemberProfile = c.get("teamMemberProfile");
 
-    return c.json({ data }, 200);
+    const data = await packageGetModel(teamMemberProfile.company_member_id);
+
+    return c.json(data, 200);
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }

@@ -87,7 +87,6 @@ export const userSponsorController = async (c) => {
         return c.json(data, { status: 200 });
     }
     catch (error) {
-        console.log(error);
         return c.json({ error: "Internal Server Error" }, { status: 500 });
     }
 };
@@ -169,7 +168,6 @@ export const userGetSearchController = async (c) => {
     try {
         const params = c.get("params");
         const data = await userGetSearchModel(params);
-        console.log(data);
         return c.json(data, 200);
     }
     catch (error) {

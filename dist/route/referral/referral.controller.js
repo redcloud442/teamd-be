@@ -33,7 +33,6 @@ export const referralIndirectPostController = async (c) => {
         return c.json(data);
     }
     catch (error) {
-        console.log(error);
         return sendErrorResponse("Invalid data", 400);
     }
 };

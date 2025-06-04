@@ -612,8 +612,6 @@ export const userSponsorModel = async (params: { userId: string }) => {
     return { success: false, error: "User not found." };
   }
 
-  console.log(user);
-
   return user[0].user_username;
 };
 
@@ -1079,8 +1077,6 @@ export const userGetSearchModel = async (params: { userName: string }) => {
       },
     },
   });
-
-  console.log(users);
 
   if (!users || users.length === 0) {
     return { data: [] };
