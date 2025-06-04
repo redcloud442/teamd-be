@@ -1,5 +1,6 @@
 import { Prisma, } from "@prisma/client";
-import { broadcastInvestmentMessage, toNonNegative, } from "../../utils/function.js";
+import { packageMap } from "../../utils/constant.js";
+import { broadcastInvestmentMessage, invalidateMultipleCache, invalidateMultipleCacheVersions, toNonNegative, } from "../../utils/function.js";
 import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
 export const packagePostModel = async (params) => {
@@ -26,6 +27,19 @@ export const packagePostModel = async (params) => {
         if (!packageData) {
             throw new Error("Package not found.");
         }
+        const packageType = packageMap[packageData.package_name];
+        const packagePurchaseSummary = await tx.package_purchase_summary.findUnique({
+            where: {
+                member_id: teamMemberProfile.company_member_id,
+            },
+            select: {
+                [packageType]: true,
+            },
+        });
+        if (packagePurchaseSummary &&
+            packagePurchaseSummary[packageType] >= packageData.package_limit) {
+            throw new Error("Package limit reached.");
+        }
         if (amount < packageData.package_minimum_amount) {
             throw new Error("Amount is less than the minimum amount.");
         }
@@ -47,8 +61,10 @@ export const packagePostModel = async (params) => {
         const { companyWallet, companyEarnings, companyReferralBounty, companyCombinedEarnings, updatedCombinedWallet, isReinvestment, } = deductFromWallets(requestedAmount, combinedEarnings, Number(company_member_wallet.toFixed(2)), Number(company_package_earnings.toFixed(2)), Number(company_referral_earnings.toFixed(2)), Number(company_combined_earnings.toFixed(2)));
         const packagePercentage = new Prisma.Decimal(Number(packageData.package_percentage)).div(100);
         const packageAmountEarnings = new Prisma.Decimal(requestedAmount).mul(packagePercentage);
-        const referralChain = generateReferralChain(referralData?.company_referral_hierarchy ?? null, teamMemberProfile.company_member_id, 100);
+        const referralChain = generateReferralChain(referralData?.company_referral_hierarchy ?? null, teamMemberProfile.company_member_id, 10);
         let bountyLogs = [];
+        let transactionKeys = [];
+        let referrerKeys = [];
         const connectionData = await tx.package_member_connection_table.create({
             data: {
                 package_member_member_id: teamMemberProfile.company_member_id,
@@ -116,6 +132,11 @@ export const packagePostModel = async (params) => {
                 //       ref.level === 1 ? "Direct" : `Unilevel`,
                 //   };
                 // });
+                for (const ref of batch) {
+                    const referrerId = ref.referrerId;
+                    transactionKeys.push(`transaction:${referrerId}:REFERRAL`);
+                    referrerKeys.push(`user-model-get-${referrerId}`);
+                }
                 await Promise.all(batch.map(async (ref) => {
                     if (!ref.referrerId)
                         return;
@@ -142,6 +163,12 @@ export const packagePostModel = async (params) => {
         //     data: transactionLogs,
         //   });
         // }
+        if (transactionKeys.length > 0 && referrerKeys.length > 0) {
+            await Promise.all([
+                invalidateMultipleCacheVersions(transactionKeys),
+                invalidateMultipleCache(referrerKeys),
+            ]);
+        }
         if (!teamMemberProfile?.company_member_is_active) {
             await tx.company_member_table.update({
                 where: { company_member_id: teamMemberProfile.company_member_id },
@@ -184,24 +211,42 @@ export const packageGetModel = async () => {
     return result;
 };
 export const packageGetIdModel = async (params) => {
-    const cacheKey = "package-list:cached";
+    let returnData = {};
+    const { id, memberId } = params;
+    const cacheKey = `package-purchase-summary:${memberId}:${id}`;
     const cached = await redis.get(cacheKey);
-    if (typeof cached === "string") {
-        const parsed = JSON.parse(cached); // ✅ Only if it's a string
-        const found = parsed.find((pkg) => pkg.package_id === params.id);
-        if (found) {
-            return found;
-        }
+    if (cached) {
+        return cached;
     }
-    const result = await prisma.$transaction(async (tx) => {
-        return await tx.package_table.findUnique({
-            where: { package_id: params.id },
-            include: {
-                package_features_table: true,
-            },
-        });
+    const packages = await prisma.package_table.findUnique({
+        where: { package_id: params.id },
+        include: {
+            package_features_table: true,
+        },
     });
-    return result;
+    if (!packages) {
+        throw new Error("Package not found.");
+    }
+    const type = packageMap[packages.package_name];
+    const packagePurchaseSummary = await prisma.package_purchase_summary.findUniqueOrThrow({
+        where: {
+            member_id: params.memberId,
+        },
+        select: {
+            member_id: true,
+            [type]: true,
+        },
+    });
+    if (packagePurchaseSummary[type] >= packages.package_limit) {
+        returnData = { data: packages, packagePurchaseSummary };
+    }
+    else {
+        returnData = { data: packages };
+    }
+    await redis.set(cacheKey, JSON.stringify(returnData), {
+        ex: 60,
+    });
+    return returnData;
 };
 export const packageCreatePostModel = async (params) => {
     const { packageName, packageDescription, packagePercentage, packageDays, packageGif, packageImage, } = params;
@@ -566,7 +611,7 @@ export const packagePostReinvestmentModel = async (params) => {
     });
     return connectionData;
 };
-function generateReferralChain(hierarchy, teamMemberId, maxDepth = 100) {
+function generateReferralChain(hierarchy, teamMemberId, maxDepth = 10) {
     if (!hierarchy)
         return [];
     const hierarchyArray = hierarchy.split(".");

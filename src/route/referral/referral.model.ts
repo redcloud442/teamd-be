@@ -157,8 +157,8 @@ export const referralIndirectModelPost = async (params: {
 
   const cacheKey = `referral-indirect-${teamMemberProfile.company_member_id}-${page}-${limit}-${search}-${columnAccessor}`;
 
-  const cachedData = await redis.get(cacheKey);
-  if (cachedData) return cachedData;
+  // const cachedData = await redis.get(cacheKey);
+  // if (cachedData) return cachedData;
 
   // Step 1: Get direct referral IDs
   const directReferrals = await prisma.company_referral_table.findMany({
@@ -192,7 +192,7 @@ export const referralIndirectModelPost = async (params: {
   );
 
   if (finalIndirectReferralIds.length === 0) {
-    return { data: [], totalCount: 0 };
+    return { success: false, message: "No referral data found" };
   }
 
   const offset = Math.max((page - 1) * limit, 0);

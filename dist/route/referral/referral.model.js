@@ -3,6 +3,10 @@ import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
 export const referralDirectModelPost = async (params) => {
     const { page, limit, search, columnAccessor, isAscendingSort, teamMemberProfile, } = params;
+    // const version =
+    //   (await redis.get(
+    //     `referral-direct:${teamMemberProfile.company_member_id}:version`
+    //   )) || "v1";
     const cacheKey = `referral-direct-${teamMemberProfile.company_member_id}-${page}-${limit}-${search}-${columnAccessor}`;
     const cachedData = await redis.get(cacheKey);
     if (cachedData) {
@@ -94,15 +98,18 @@ export const referralDirectModelPost = async (params) => {
         data: formattedDirectReferrals,
         totalCount: totalCount,
     };
-    await redis.set(cacheKey, JSON.stringify(returnData), { ex: 60 * 3 });
+    await redis.set(cacheKey, JSON.stringify(returnData), { ex: 60 * 5 });
     return returnData;
 };
 export const referralIndirectModelPost = async (params) => {
     const { page, limit, search, columnAccessor, isAscendingSort, teamMemberProfile, } = params;
-    const cacheKey = `referral-indirect-${teamMemberProfile.company_member_id}-${page}-${limit}-${search}-${columnAccessor}-${isAscendingSort}`;
-    const cachedData = await redis.get(cacheKey);
-    if (cachedData)
-        return cachedData;
+    // const version =
+    //   (await redis.get(
+    //     `indirect-referral:${teamMemberProfile.company_member_id}:version`
+    //   )) || "v1";
+    const cacheKey = `referral-indirect-${teamMemberProfile.company_member_id}-${page}-${limit}-${search}-${columnAccessor}`;
+    // const cachedData = await redis.get(cacheKey);
+    // if (cachedData) return cachedData;
     // Step 1: Get direct referral IDs
     const directReferrals = await prisma.company_referral_table.findMany({
         where: {
@@ -163,7 +170,7 @@ export const referralIndirectModelPost = async (params) => {
         data: indirectReferralDetails,
         totalCount: Number(totalCountResult[0]?.count || 0),
     };
-    await redis.set(cacheKey, returnData, { ex: 300 });
+    await redis.set(cacheKey, JSON.stringify(returnData), { ex: 60 * 5 });
     return returnData;
 };
 export const referralTotalGetModel = async (params) => {

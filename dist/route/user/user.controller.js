@@ -1,5 +1,5 @@
 import { invalidateCache, invalidateCacheVersion, } from "../../utils/function.js";
-import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userGetSearchModel, userListModel, userListReinvestedModel, userModelGet, userModelGetById, userModelGetByUserIdData, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userReferralModel, userSponsorModel, userTreeModel, } from "./user.model.js";
+import { userActiveListModel, userChangePasswordModel, userGenerateLinkModel, userGetSearchModel, userListModel, userListReinvestedModel, userModelGet, userModelGetById, userModelGetByIdUserProfile, userModelGetByUserIdData, userModelPost, userModelPut, userPatchModel, userProfileModelPut, userReferralModel, userSponsorModel, userTreeModel, } from "./user.model.js";
 export const userPutController = async (c) => {
     try {
         const { email, password, userId } = await c.req.json();
@@ -26,6 +26,16 @@ export const userGetController = async (c) => {
         const data = await userModelGet({
             memberId: teamMemberProfile.company_member_id,
         });
+        return c.json(data, 200);
+    }
+    catch (error) {
+        return c.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+};
+export const userGetByIdUserProfileController = async (c) => {
+    try {
+        const params = c.get("params");
+        const data = await userModelGetByIdUserProfile(params);
         return c.json(data, 200);
     }
     catch (error) {
@@ -77,6 +87,7 @@ export const userSponsorController = async (c) => {
         return c.json(data, { status: 200 });
     }
     catch (error) {
+        console.log(error);
         return c.json({ error: "Internal Server Error" }, { status: 500 });
     }
 };

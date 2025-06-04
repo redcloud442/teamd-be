@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import {
   invalidateCache,
   invalidateCacheVersion,
+  invalidateMultipleCache,
   sendErrorResponse,
 } from "../../utils/function.js";
 import {
@@ -32,8 +33,11 @@ export const packagePostController = async (c: Context) => {
       invalidateCacheVersion(
         `transaction:${teamMemberProfile.company_member_id}:EARNINGS`
       ),
-      invalidateCache(`user-${teamMemberProfile.company_member_user_id}`),
-      invalidateCache(`user-model-get-${teamMemberProfile.company_member_id}`),
+      invalidateMultipleCache([
+        `user-${teamMemberProfile.company_member_user_id}`,
+        `user-model-get-${teamMemberProfile.company_member_id}`,
+        `package-purchase-summary:${teamMemberProfile.company_member_id}:${params.package_id}`,
+      ]),
     ]);
 
     return c.json({ message: "Package Created" }, 200);
@@ -184,9 +188,14 @@ export const packageGetIdController = async (c: Context) => {
   try {
     const params = c.get("params");
 
-    const data = await packageGetIdModel({ id: params.id });
+    const teamMemberProfile = c.get("teamMemberProfile");
 
-    return c.json({ data }, 200);
+    const data = await packageGetIdModel({
+      id: params.id,
+      memberId: teamMemberProfile.company_member_id,
+    });
+
+    return c.json(data, 200);
   } catch (error) {
     return sendErrorResponse("Internal Server Error", 500);
   }

@@ -1,4 +1,4 @@
-import { invalidateCache, invalidateCacheVersion, sendErrorResponse, } from "../../utils/function.js";
+import { invalidateCache, invalidateCacheVersion, invalidateMultipleCache, sendErrorResponse, } from "../../utils/function.js";
 import { claimPackagePostModel, packageCreatePostModel, packageGetIdModel, packageGetModel, packageListGetAdminModel, packageListGetModel, packagePostModel, packagePostReinvestmentModel, packageUpdatePutModel, } from "./package.model.js";
 export const packagePostController = async (c) => {
     try {
@@ -11,8 +11,11 @@ export const packagePostController = async (c) => {
         });
         await Promise.all([
             invalidateCacheVersion(`transaction:${teamMemberProfile.company_member_id}:EARNINGS`),
-            invalidateCache(`user-${teamMemberProfile.company_member_user_id}`),
-            invalidateCache(`user-model-get-${teamMemberProfile.company_member_id}`),
+            invalidateMultipleCache([
+                `user-${teamMemberProfile.company_member_user_id}`,
+                `user-model-get-${teamMemberProfile.company_member_id}`,
+                `package-purchase-summary:${teamMemberProfile.company_member_id}:${params.package_id}`,
+            ]),
         ]);
         return c.json({ message: "Package Created" }, 200);
     }
@@ -126,8 +129,12 @@ export const packageReinvestmentPostController = async (c) => {
 export const packageGetIdController = async (c) => {
     try {
         const params = c.get("params");
-        const data = await packageGetIdModel({ id: params.id });
-        return c.json({ data }, 200);
+        const teamMemberProfile = c.get("teamMemberProfile");
+        const data = await packageGetIdModel({
+            id: params.id,
+            memberId: teamMemberProfile.company_member_id,
+        });
+        return c.json(data, 200);
     }
     catch (error) {
         return sendErrorResponse("Internal Server Error", 500);

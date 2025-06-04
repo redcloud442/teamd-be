@@ -46,13 +46,88 @@ export const userModelPut = async (params) => {
 };
 export const userModelGetById = async (params) => {
     const { id } = params;
-    const userData = await prisma.user_table.findUnique({
-        where: { user_id: id },
+    const userData = await prisma.user_table.findFirstOrThrow({
+        where: {
+            company_member_table: {
+                some: {
+                    company_member_id: id,
+                },
+            },
+        },
         include: {
             company_member_table: {
                 include: {
                     dashboard_earnings_summary: true,
                     merchant_member_table: true,
+                },
+            },
+        },
+    });
+    if (!userData) {
+        return { success: false, error: "User not found" };
+    }
+    const earningsData = userData.company_member_table[0]?.dashboard_earnings_summary[0];
+    const allianceData = userData.company_member_table[0];
+    const merchantData = userData.company_member_table[0]?.merchant_member_table[0];
+    const combinedData = {
+        ...userData,
+        ...allianceData,
+        ...merchantData,
+        ...earningsData,
+    };
+    return { success: true, data: combinedData };
+};
+export const userModelGetByIdUserProfile = async (params) => {
+    const { id } = params;
+    const userData = await prisma.user_table.findFirst({
+        where: {
+            company_member_table: {
+                some: {
+                    company_member_id: id,
+                },
+            },
+        },
+        select: {
+            user_id: true,
+            user_username: true,
+            user_first_name: true,
+            user_last_name: true,
+            user_email: true,
+            user_phone_number: true,
+            user_profile_picture: true,
+            company_member_table: {
+                select: {
+                    company_member_id: true,
+                    company_member_role: true,
+                    company_member_is_active: true,
+                    company_member_date_created: true,
+                    company_member_date_updated: true,
+                    dashboard_earnings_summary: {
+                        select: {
+                            direct_referral_amount: true,
+                            indirect_referral_amount: true,
+                            total_earnings: true,
+                            total_withdrawals: true,
+                            direct_referral_count: true,
+                            indirect_referral_count: true,
+                            package_income: true,
+                        },
+                    },
+                    company_earnings_table: {
+                        select: {
+                            company_earnings_member_id: true,
+                            company_combined_earnings: true,
+                            company_package_earnings: true,
+                            company_referral_earnings: true,
+                            company_member_wallet: true,
+                        },
+                    },
+                    merchant_member_table: {
+                        select: {
+                            merchant_member_id: true,
+                            merchant_member_balance: true,
+                        },
+                    },
                 },
             },
         },
@@ -109,7 +184,7 @@ export const userModelGetByUserIdData = async (params) => {
         },
     });
     await redis.set(cacheKey, JSON.stringify(user), {
-        ex: 60 * 5,
+        ex: 60,
     });
     return user;
 };
@@ -185,10 +260,10 @@ export const userModelPost = async (params) => {
 };
 export const userModelGet = async ({ memberId }) => {
     const cacheKey = `user-model-get-${memberId}`;
-    // const cachedData = await redis.get(cacheKey);
-    // if (cachedData) {
-    //   return cachedData;
-    // }
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        return cachedData;
+    }
     const todayStart = getPhilippinesTime(new Date(), "start");
     const todayEnd = getPhilippinesTime(new Date(), "end");
     const baseWithdrawFilter = {
@@ -312,7 +387,7 @@ export const userModelGet = async ({ memberId }) => {
         actions,
     };
     await redis.set(cacheKey, JSON.stringify(returnData), {
-        ex: 600,
+        ex: 60,
     });
     return returnData;
 };
@@ -436,6 +511,7 @@ export const userSponsorModel = async (params) => {
     if (!user) {
         return { success: false, error: "User not found." };
     }
+    console.log(user);
     return user[0].user_username;
 };
 export const userProfileModelPut = async (params) => {
@@ -558,7 +634,7 @@ export const userListModel = async (params, teamMemberProfile) => {
         totalCount,
         data: formattedData,
     };
-    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 60 });
     return response;
 };
 export const userActiveListModel = async (params) => {
@@ -618,7 +694,7 @@ export const userActiveListModel = async (params) => {
         data: usersWithActiveWallet,
         totalCount: Number(totalCount[0]?.count ?? 0),
     };
-    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 60 });
     return response;
 };
 export const userChangePasswordModel = async (params) => {
@@ -700,7 +776,7 @@ export const userListReinvestedModel = async (params) => {
         data,
         totalCount: Number(totalCount[0]?.count ?? 0),
     };
-    await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+    await redis.set(cacheKey, JSON.stringify(response), { ex: 60 });
     return response;
 };
 export const userTreeModel = async (params) => {

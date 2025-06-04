@@ -239,6 +239,7 @@ model company_transaction_table {
 
   @@schema("company_schema")
   @@index([company_transaction_member_id], name: "idx_company_transaction_member_id")
+  @@index([company_transaction_type], name: "idx_company_transaction_type")
 }
 
 model company_hidden_user_table {
@@ -265,12 +266,14 @@ model package_table {
   package_minimum_amount Float @default(0.0)
   package_maximum_amount Float @default(0.0)
   package_image      String?
+  package_limit      Int @default(1)
   package_is_popular Boolean @default(false)
   package_is_highlight Boolean @default(false)
 
   package_member_connection_table package_member_connection_table[]
   package_earnings_log package_earnings_log[]
   package_features_table package_features_table[]
+  
   @@schema("packages_schema")
 
 }
@@ -349,6 +352,15 @@ model package_ally_bounty_log {
   @@index([package_ally_bounty_member_id], name: "idx_package_ally_bounty_member_id")
   @@index([package_ally_bounty_connection_id], name: "idx_package_ally_bounty_connection_id")
   @@index([package_ally_bounty_from], name: "idx_package_ally_bounty_from")
+}
+
+view package_purchase_summary {
+  member_id         String   @id @map("member_id") @db.Uuid 
+  standard_count    Int
+  express_count     Int
+  premium_count     Int
+
+  @@schema("packages_schema")
 }
 
 model merchant_table {

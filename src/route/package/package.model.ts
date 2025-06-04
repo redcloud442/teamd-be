@@ -3,6 +3,7 @@ import {
   type company_member_table,
   type user_table,
 } from "@prisma/client";
+import { packageMap } from "../../utils/constant.js";
 import {
   broadcastInvestmentMessage,
   invalidateMultipleCache,
@@ -50,6 +51,27 @@ export const packagePostModel = async (params: {
 
     if (!packageData) {
       throw new Error("Package not found.");
+    }
+
+    const packageType =
+      packageMap[packageData.package_name as keyof typeof packageMap];
+
+    const packagePurchaseSummary = await tx.package_purchase_summary.findUnique(
+      {
+        where: {
+          member_id: teamMemberProfile.company_member_id,
+        },
+        select: {
+          [packageType]: true,
+        },
+      }
+    );
+
+    if (
+      packagePurchaseSummary &&
+      packagePurchaseSummary[packageType] >= packageData.package_limit
+    ) {
+      throw new Error("Package limit reached.");
     }
 
     if (amount < packageData.package_minimum_amount) {
@@ -290,30 +312,57 @@ export const packageGetModel = async () => {
   return result;
 };
 
-export const packageGetIdModel = async (params: { id: string }) => {
-  const cacheKey = "package-list:cached";
+export const packageGetIdModel = async (params: {
+  id: string;
+  memberId: string;
+}) => {
+  let returnData = {};
+
+  const { id, memberId } = params;
+
+  const cacheKey = `package-purchase-summary:${memberId}:${id}`;
 
   const cached = await redis.get(cacheKey);
 
-  if (typeof cached === "string") {
-    const parsed = JSON.parse(cached); // ✅ Only if it's a string
-    const found = parsed.find((pkg: any) => pkg.package_id === params.id);
-
-    if (found) {
-      return found;
-    }
+  if (cached) {
+    return cached;
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    return await tx.package_table.findUnique({
-      where: { package_id: params.id },
-      include: {
-        package_features_table: true,
-      },
-    });
+  const packages = await prisma.package_table.findUnique({
+    where: { package_id: params.id },
+    include: {
+      package_features_table: true,
+    },
   });
 
-  return result;
+  if (!packages) {
+    throw new Error("Package not found.");
+  }
+
+  const type = packageMap[packages.package_name as keyof typeof packageMap];
+
+  const packagePurchaseSummary =
+    await prisma.package_purchase_summary.findUniqueOrThrow({
+      where: {
+        member_id: params.memberId,
+      },
+      select: {
+        member_id: true,
+        [type]: true,
+      },
+    });
+
+  if (packagePurchaseSummary[type] >= packages.package_limit) {
+    returnData = { data: packages, packagePurchaseSummary };
+  } else {
+    returnData = { data: packages };
+  }
+
+  await redis.set(cacheKey, JSON.stringify(returnData), {
+    ex: 60,
+  });
+
+  return returnData;
 };
 
 export const packageCreatePostModel = async (params: {
