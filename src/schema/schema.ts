@@ -118,7 +118,12 @@ export const registerUserSchema = z.object({
 });
 
 export const registerUserCodeSchema = z.object({
-  code: z.coerce.string().min(1).max(10).trim(),
+  code: z.coerce
+    .string()
+    .min(6)
+    .max(6)
+    .regex(/^[A-Za-z0-9]{6}$/, "Code must be exactly 6 letters or numbers")
+    .trim(),
 });
 
 //for deposit

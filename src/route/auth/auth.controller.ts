@@ -103,8 +103,14 @@ export const registerUserCodeController = async (c: Context) => {
   try {
     const data = await registerUserCodeModel(params);
 
-    return c.json(data, 200);
+    return c.json({ data }, 200);
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return c.json({ message: "A database error occurred" }, 500);
+    }
+    if (error instanceof Error) {
+      return c.json({ message: error.message }, 401);
+    }
     return c.json({ message: "Internal server error" }, 500);
   }
 };
