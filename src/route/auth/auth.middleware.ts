@@ -97,7 +97,7 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
     phoneNumber,
     gender,
   } = await c.req.json();
-
+  console.log(user);
   const parsed = registerUserSchema.safeParse({
     userName,
     firstName,
@@ -112,6 +112,7 @@ export const registerUserMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!parsed.success) {
+    console.log(parsed.error);
     return c.json({ message: "Invalid request" }, 400);
   }
 
