@@ -111,6 +111,7 @@ export const registerUserCodeController = async (c: Context) => {
     if (error instanceof Error) {
       return c.json({ message: error.message }, 401);
     }
+
     return c.json({ message: "Internal server error" }, 500);
   }
 };

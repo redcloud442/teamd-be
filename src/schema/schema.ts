@@ -122,7 +122,7 @@ export const registerUserCodeSchema = z.object({
     .string()
     .min(6)
     .max(8)
-    .regex(/^[A-Za-z0-9]+$/, "Code must be letters or numbers")
+    .regex(/^[A-Za-z0-9]{6,8}$/, "Code must be letters or numbers")
     .trim(),
 });
 
