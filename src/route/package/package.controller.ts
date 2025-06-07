@@ -29,8 +29,6 @@ export const packagePostController = async (c: Context) => {
       teamMemberProfile: teamMemberProfile,
     });
 
-    console.log(teamMemberProfile.company_user_id);
-
     await Promise.all([
       invalidateCacheVersion(
         `transaction:${teamMemberProfile.company_member_id}:EARNINGS`

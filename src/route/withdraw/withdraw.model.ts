@@ -150,7 +150,7 @@ FOR UPDATE`;
         company_withdrawal_request_withdraw_type: earnings,
         company_withdrawal_request_approved_by:
           countAllRequests[0]?.approverId ?? null,
-        company_withdrawal_request_phone_number: phoneNumber,
+        company_withdrawal_request_phone_number: phoneNumber ?? null,
       },
     });
 

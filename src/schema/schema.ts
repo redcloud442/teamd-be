@@ -403,7 +403,9 @@ export const withdrawPostSchema = z.object({
   phoneNumber: z
     .string()
     .min(10, "Phone number is required")
-    .max(11, "Phone number must be at most 11 digits"),
+    .max(11, "Phone number must be at most 11 digits")
+    .optional()
+    .nullable(),
 });
 
 export const withdrawHistoryPostSchema = z.object({
