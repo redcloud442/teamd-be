@@ -84,6 +84,7 @@ export const depositPostModel = async (params: {
         company_transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
         company_transaction_member_id:
           params.teamMemberProfile.company_member_id,
+        company_transaction_attachment: publicUrl,
         company_transaction_type: "DEPOSIT",
       },
     });
@@ -190,9 +191,7 @@ export const depositPutModel = async (params: {
           updatedRequest.company_deposit_request_member_id,
         company_transaction_type: "DEPOSIT",
         company_transaction_attachment:
-          status === "REJECTED"
-            ? updatedRequest.company_deposit_request_attachment
-            : null,
+          updatedRequest.company_deposit_request_attachment,
       },
     });
 
