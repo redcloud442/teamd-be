@@ -269,27 +269,52 @@ export const dashboardPostModel = async (params: {
 export const dashboardGetModel = async () => {
   const cacheKey = `dashboard-get`;
 
+  const dateforTomottorow = new Date(
+    new Date().setDate(new Date().getDate() - 1)
+  );
+
   const cachedData = await redis.get(cacheKey);
   if (cachedData) {
     return cachedData;
   }
 
-  const [totalActivatedPackage, numberOfRegisteredUser, totalActivatedUser] =
-    await prisma.$transaction([
-      prisma.package_member_connection_table.count(),
-      prisma.company_member_table.count(),
-      prisma.company_member_table.count({
-        where: { company_member_is_active: true },
-      }),
-    ]);
+  const startDate = getPhilippinesTime(dateforTomottorow, "start");
+  const endDate = getPhilippinesTime(dateforTomottorow, "end");
+
+  const [
+    totalActivatedPackage,
+    numberOfRegisteredUser,
+    totalActivatedUser,
+    totalPendingWithdrawal,
+  ] = await prisma.$transaction([
+    prisma.package_member_connection_table.count(),
+    prisma.company_member_table.count(),
+    prisma.company_member_table.count({
+      where: { company_member_is_active: true },
+    }),
+    prisma.company_withdrawal_request_table.aggregate({
+      where: {
+        company_withdrawal_request_status: "PENDING",
+        company_withdrawal_request_date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        company_withdrawal_request_amount: true,
+      },
+    }),
+  ]);
 
   const response = {
     numberOfRegisteredUser,
     totalActivatedPackage,
     totalActivatedUser,
+    totalWithdrawalForTomorrow:
+      totalPendingWithdrawal._sum.company_withdrawal_request_amount ?? 0,
   };
 
-  await redis.set(cacheKey, JSON.stringify(response), { ex: 2 * 60 });
+  await redis.set(cacheKey, JSON.stringify(response), { ex: 60 * 5 });
 
   return response;
 };
