@@ -378,8 +378,7 @@ export const withdrawListPostModel = async (params: {
 }) => {
   const { parameters, teamMemberProfile } = params;
 
-  const twoDaysAgo = new Date();
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  const twoDaysAgo = new Date(Date.now() - 24 * 2 * 60 * 60 * 1000);
   const philippinesTimeStart = getPhilippinesTime(twoDaysAgo, "start");
   const philippinesTimeEnd = getPhilippinesTime(twoDaysAgo, "end");
 
