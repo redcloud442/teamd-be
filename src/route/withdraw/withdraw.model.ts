@@ -378,8 +378,9 @@ export const withdrawListPostModel = async (params: {
 }) => {
   const { parameters, teamMemberProfile } = params;
 
-  const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-
+  const twoDaysAgo = new Date();
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  twoDaysAgo.setHours(23, 59, 59, 0); // s
   const philippinesTimeStart = getPhilippinesTime(twoDaysAgo, "start");
   const philippinesTimeEnd = getPhilippinesTime(twoDaysAgo, "end");
 
@@ -457,7 +458,7 @@ export const withdrawListPostModel = async (params: {
 
     commonConditions.push(
       Prisma.raw(
-        `t.company_withdrawal_request_date::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
+        `t.company_withdrawal_request_date::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
       )
     );
   }
