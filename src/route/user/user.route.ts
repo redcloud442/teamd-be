@@ -12,6 +12,7 @@ import {
   userPostController,
   userProfileGetController,
   userProfilePutController,
+  userProfileUpdateController,
   userPutController,
   userReferralController,
   userSponsorController,
@@ -30,6 +31,7 @@ import {
   userPostMiddleware,
   userProfileGetMiddleware,
   userProfilePutMiddleware,
+  userProfileUpdateMiddleware,
   userPutMiddleware,
   userReferralMiddleware,
   userSponsorMiddleware,
@@ -74,6 +76,12 @@ user.get(
   "/:id/user-profile",
   userGetByIdUserProfileMiddleware,
   userGetByIdUserProfileController
+);
+
+user.put(
+  "/:id/update-profile",
+  userProfileUpdateMiddleware,
+  userProfileUpdateController
 );
 
 user.put("/:id", userProfilePutMiddleware, userProfilePutController);

@@ -18,6 +18,7 @@ import {
   userModelPut,
   userPatchModel,
   userProfileModelPut,
+  userProfileUpdateModel,
   userReferralModel,
   userSponsorModel,
   userTreeModel,
@@ -93,6 +94,18 @@ export const userProfileGetController = async (c: Context) => {
     const data = await userModelGetByUserIdData({
       company_user_id: teamMemberProfile.company_user_id,
     });
+
+    return c.json(data, 200);
+  } catch (error) {
+    return c.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+};
+
+export const userProfileUpdateController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const data = await userProfileUpdateModel(params);
 
     return c.json(data, 200);
   } catch (error) {

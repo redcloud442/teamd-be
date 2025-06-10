@@ -53,6 +53,7 @@ export const depositPostModel = async (params) => {
                 company_transaction_description: "Pending",
                 company_transaction_details: `Account Name: ${accountName}, Account Number: ${accountNumber}`,
                 company_transaction_member_id: params.teamMemberProfile.company_member_id,
+                company_transaction_attachment: publicUrl,
                 company_transaction_type: "DEPOSIT",
             },
         });
@@ -130,9 +131,7 @@ export const depositPutModel = async (params) => {
                 company_transaction_note: note,
                 company_transaction_member_id: updatedRequest.company_deposit_request_member_id,
                 company_transaction_type: "DEPOSIT",
-                company_transaction_attachment: status === "REJECTED"
-                    ? updatedRequest.company_deposit_request_attachment
-                    : null,
+                company_transaction_attachment: updatedRequest.company_deposit_request_attachment,
             },
         });
         if (status === "APPROVED") {
@@ -259,7 +258,7 @@ export const depositListPostModel = async (params, teamMemberProfile) => {
     if (dateFilter?.start && dateFilter?.end) {
         const startDate = getPhilippinesTime(new Date(dateFilter.start || new Date()), "start");
         const endDate = getPhilippinesTime(new Date(dateFilter.end || new Date()), "end");
-        commonConditions.push(Prisma.raw(`t.company_deposit_request_date_updated::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
+        commonConditions.push(Prisma.raw(`t.company_deposit_request_date::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
     }
     if (search) {
         commonConditions.push(Prisma.raw(`(

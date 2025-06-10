@@ -121,6 +121,7 @@ export const userModelGetByIdUserProfile = async (params: { id: string }) => {
       user_email: true,
       user_phone_number: true,
       user_profile_picture: true,
+      user_gender: true,
       company_member_table: {
         select: {
           company_member_id: true,
@@ -185,8 +186,6 @@ export const userModelGetByUserIdData = async (params: {
 
   const cacheKey = `user-${company_user_id}`;
 
-  console.log(cacheKey);
-
   const cachedData = await redis.get(cacheKey);
 
   if (cachedData) {
@@ -205,6 +204,7 @@ export const userModelGetByUserIdData = async (params: {
       user_email: true,
       user_phone_number: true,
       user_profile_picture: true,
+      user_gender: true,
       company_member_table: {
         select: {
           company_member_id: true,
@@ -464,6 +464,21 @@ export const userModelGet = async ({ memberId }: { memberId: string }) => {
     ex: 60,
   });
   return returnData;
+};
+
+export const userProfileUpdateModel = async (params: {
+  contactNo: string;
+  gender: string;
+  id: string;
+}) => {
+  const { contactNo, gender, id } = params;
+
+  const data = await prisma.user_table.update({
+    where: { user_id: id },
+    data: { user_phone_number: contactNo, user_gender: gender },
+  });
+
+  return { success: true, data };
 };
 
 export const userPatchModel = async (params: {

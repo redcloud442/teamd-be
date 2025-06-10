@@ -78,12 +78,20 @@ export const registerUserSchema = z.object({
         .min(10, "Phone number must be at least 10 digits")
         .max(11, "Phone number must be at most 11 digits")
         .optional()),
-    gender: z.enum(["MALE", "FEMALE"]).optional(),
-    url: z.string().min(2),
+    gender: z
+        .union([z.enum(["MALE", "FEMALE"]), z.literal("")])
+        .optional()
+        .nullable(),
+    url: z.string().min(2).optional(),
     botField: z.string().optional(),
 });
 export const registerUserCodeSchema = z.object({
-    code: z.coerce.string().min(1).max(10).trim(),
+    code: z.coerce
+        .string()
+        .min(6)
+        .max(8)
+        .regex(/^[A-Za-z0-9]{6,8}$/, "Code must be letters or numbers")
+        .trim(),
 });
 //for deposit
 export const depositSchema = z.object({
@@ -176,6 +184,14 @@ export const userChangePasswordSchema = z.object({
 });
 export const userGenerateLinkSchema = z.object({
     formattedUserName: z.string().min(1),
+});
+export const userProfileUpdateSchema = z.object({
+    contactNo: z
+        .string()
+        .min(10, "Contact number must be 10 digits")
+        .max(11, "Contact number must be 11 digits"),
+    gender: z.enum(["MALE", "FEMALE"]),
+    id: z.string().uuid(),
 });
 export const userSponsorSchema = z.object({
     userId: z.string().uuid(),
@@ -316,7 +332,9 @@ export const withdrawPostSchema = z.object({
     phoneNumber: z
         .string()
         .min(10, "Phone number is required")
-        .max(11, "Phone number must be at most 11 digits"),
+        .max(11, "Phone number must be at most 11 digits")
+        .optional()
+        .nullable(),
 });
 export const withdrawHistoryPostSchema = z.object({
     page: z.number().min(1),

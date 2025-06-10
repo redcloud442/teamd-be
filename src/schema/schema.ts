@@ -237,6 +237,15 @@ export const userGenerateLinkSchema = z.object({
   formattedUserName: z.string().min(1),
 });
 
+export const userProfileUpdateSchema = z.object({
+  contactNo: z
+    .string()
+    .min(10, "Contact number must be 10 digits")
+    .max(11, "Contact number must be 11 digits"),
+  gender: z.enum(["MALE", "FEMALE"]),
+  id: z.string().uuid(),
+});
+
 export const userSponsorSchema = z.object({
   userId: z.string().uuid(),
 });

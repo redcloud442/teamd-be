@@ -95,6 +95,7 @@ export const userModelGetByIdUserProfile = async (params) => {
             user_email: true,
             user_phone_number: true,
             user_profile_picture: true,
+            user_gender: true,
             company_member_table: {
                 select: {
                     company_member_id: true,
@@ -165,6 +166,7 @@ export const userModelGetByUserIdData = async (params) => {
             user_email: true,
             user_phone_number: true,
             user_profile_picture: true,
+            user_gender: true,
             company_member_table: {
                 select: {
                     company_member_id: true,
@@ -261,9 +263,9 @@ export const userModelPost = async (params) => {
 export const userModelGet = async ({ memberId }) => {
     const cacheKey = `user-model-get-${memberId}`;
     const cachedData = await redis.get(cacheKey);
-    if (cachedData) {
-        return cachedData;
-    }
+    // if (cachedData) {
+    //   return cachedData;
+    // }
     const todayStart = getPhilippinesTime(new Date(), "start");
     const todayEnd = getPhilippinesTime(new Date(), "end");
     const baseWithdrawFilter = {
@@ -390,6 +392,14 @@ export const userModelGet = async ({ memberId }) => {
         ex: 60,
     });
     return returnData;
+};
+export const userProfileUpdateModel = async (params) => {
+    const { contactNo, gender, id } = params;
+    const data = await prisma.user_table.update({
+        where: { user_id: id },
+        data: { user_phone_number: contactNo, user_gender: gender },
+    });
+    return { success: true, data };
 };
 export const userPatchModel = async (params) => {
     const { memberId, action, role, type } = params;

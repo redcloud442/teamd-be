@@ -81,7 +81,7 @@ FOR UPDATE`;
                 company_withdrawal_request_member_id: teamMemberProfile.company_member_id,
                 company_withdrawal_request_withdraw_type: earnings,
                 company_withdrawal_request_approved_by: countAllRequests[0]?.approverId ?? null,
-                company_withdrawal_request_phone_number: phoneNumber,
+                company_withdrawal_request_phone_number: phoneNumber ?? null,
             },
         });
         // Update the earnings
@@ -223,7 +223,7 @@ export const updateWithdrawModel = async (params) => {
 };
 export const withdrawListPostModel = async (params) => {
     const { parameters, teamMemberProfile } = params;
-    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const twoDaysAgo = new Date(Date.now() - 24 * 2 * 60 * 60 * 1000);
     const philippinesTimeStart = getPhilippinesTime(twoDaysAgo, "start");
     const philippinesTimeEnd = getPhilippinesTime(twoDaysAgo, "end");
     let returnData = {
@@ -257,7 +257,7 @@ export const withdrawListPostModel = async (params) => {
     if (dateFilter?.start && dateFilter?.end) {
         const startDate = getPhilippinesTime(new Date(dateFilter.start || new Date()), "start");
         const endDate = getPhilippinesTime(new Date(dateFilter.end || new Date()), "end");
-        commonConditions.push(Prisma.raw(`t.company_withdrawal_request_date::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
+        commonConditions.push(Prisma.raw(`t.company_withdrawal_request_date::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
     }
     if (search) {
         commonConditions.push(Prisma.raw(`(

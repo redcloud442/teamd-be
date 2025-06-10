@@ -16,6 +16,11 @@ export const referralDirectModelPost = async (params) => {
     const directReferrals = await prisma.company_referral_table.findMany({
         where: {
             company_referral_from_member_id: teamMemberProfile.company_member_id,
+            company_member_table: {
+                package_member_connection_table: {
+                    some: {},
+                },
+            },
         },
         select: {
             company_referral_member_id: true,
@@ -23,6 +28,11 @@ export const referralDirectModelPost = async (params) => {
             company_member_table: {
                 select: {
                     company_member_id: true,
+                    package_member_connection_table: {
+                        select: {
+                            package_member_connection_id: true,
+                        },
+                    },
                     user_table: {
                         select: {
                             user_first_name: true,
@@ -42,6 +52,11 @@ export const referralDirectModelPost = async (params) => {
     const totalCount = await prisma.company_referral_table.count({
         where: {
             company_referral_from_member_id: teamMemberProfile.company_member_id,
+            company_member_table: {
+                package_member_connection_table: {
+                    some: {},
+                },
+            },
         },
     });
     // const directReferralIds = directReferrals.map(

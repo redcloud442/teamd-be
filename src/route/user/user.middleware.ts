@@ -8,6 +8,7 @@ import {
   userListReinvestedSchema,
   userListSchema,
   userProfileSchemaPatch,
+  userProfileUpdateSchema,
   userSchemaPatch,
   userSchemaPost,
   userSchemaPut,
@@ -361,6 +362,55 @@ export const userProfileGetMiddleware = async (c: Context, next: Next) => {
   }
 
   c.set("teamMemberProfile", teamMemberProfile);
+
+  await next();
+};
+
+export const userProfileUpdateMiddleware = async (c: Context, next: Next) => {
+  const user = c.get("user");
+
+  const response = await protectionMemberUser(user);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.company_member_id}:user-profile-update-id`,
+    1,
+    "5m",
+    c
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse(
+      "Too Many Requests, You can only update your profile once every 5 minutes",
+      429
+    );
+  }
+
+  const { id } = c.req.param();
+
+  const { contactNo, gender } = await c.req.json();
+
+  const validate = userProfileUpdateSchema.safeParse({
+    contactNo,
+    gender,
+    id,
+  });
+
+  if (!validate.success) {
+    return sendErrorResponse("Invalid Request", 400);
+  }
+
+  c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", validate.data);
 
   await next();
 };

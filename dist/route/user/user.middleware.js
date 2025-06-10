@@ -1,4 +1,4 @@
-import { userChangePasswordSchema, userGenerateLinkSchema, userGetByIdSchema, userGetReferralSchema, userGetSearchSchema, userListReinvestedSchema, userListSchema, userProfileSchemaPatch, userSchemaPatch, userSchemaPost, userSchemaPut, userSponsorSchema, userTreeSchema, } from "../../schema/schema.js";
+import { userChangePasswordSchema, userGenerateLinkSchema, userGetByIdSchema, userGetReferralSchema, userGetSearchSchema, userListReinvestedSchema, userListSchema, userProfileSchemaPatch, userProfileUpdateSchema, userSchemaPatch, userSchemaPost, userSchemaPut, userSponsorSchema, userTreeSchema, } from "../../schema/schema.js";
 import { sendErrorResponse } from "../../utils/function.js";
 import { protectionAccountingAdmin, protectionAdmin, protectionMemberUser, protectionMerchantAdminAccounting, } from "../../utils/protection.js";
 import { rateLimit } from "../../utils/redis.js";
@@ -192,6 +192,34 @@ export const userProfileGetMiddleware = async (c, next) => {
         return sendErrorResponse("Too Many Requests", 429);
     }
     c.set("teamMemberProfile", teamMemberProfile);
+    await next();
+};
+export const userProfileUpdateMiddleware = async (c, next) => {
+    const user = c.get("user");
+    const response = await protectionMemberUser(user);
+    if (response instanceof Response) {
+        return response;
+    }
+    const { teamMemberProfile } = response;
+    if (!teamMemberProfile) {
+        return sendErrorResponse("Unauthorized", 401);
+    }
+    const isAllowed = await rateLimit(`rate-limit:${teamMemberProfile.company_member_id}:user-profile-update-id`, 1, "5m", c);
+    if (!isAllowed) {
+        return sendErrorResponse("Too Many Requests, You can only update your profile once every 5 minutes", 429);
+    }
+    const { id } = c.req.param();
+    const { contactNo, gender } = await c.req.json();
+    const validate = userProfileUpdateSchema.safeParse({
+        contactNo,
+        gender,
+        id,
+    });
+    if (!validate.success) {
+        return sendErrorResponse("Invalid Request", 400);
+    }
+    c.set("teamMemberProfile", teamMemberProfile);
+    c.set("params", validate.data);
     await next();
 };
 export const userGenerateLinkMiddleware = async (c, next) => {
