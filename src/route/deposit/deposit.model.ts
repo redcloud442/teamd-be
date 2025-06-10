@@ -408,7 +408,7 @@ export const depositListPostModel = async (
     );
     commonConditions.push(
       Prisma.raw(
-        `t.company_deposit_request_date_updated::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
+        `t.company_deposit_request_date::timestamptz at time zone 'Asia/Manila' BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
       )
     );
   }
