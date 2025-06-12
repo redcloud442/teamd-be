@@ -100,19 +100,19 @@ export const registerUserSchema = z.object({
     (val) => (val === "" || val == null ? undefined : val),
     z.string().email("Invalid email address").optional()
   ),
-  phoneNumber: z.preprocess(
-    (val) => (val === "" || val == null ? undefined : val),
-    z
-      .string()
-      .regex(/^\d+$/, "Phone number must only contain digits")
-      .min(10, "Phone number must be at least 10 digits")
-      .max(11, "Phone number must be at most 11 digits")
-      .optional()
-  ),
-  gender: z
-    .union([z.enum(["MALE", "FEMALE"]), z.literal("")])
-    .optional()
-    .nullable(),
+  // phoneNumber: z.preprocess(
+  //   (val) => (val === "" || val == null ? undefined : val),
+  //   z
+  //     .string()
+  //     .regex(/^\d+$/, "Phone number must only contain digits")
+  //     .min(10, "Phone number must be at least 10 digits")
+  //     .max(11, "Phone number must be at most 11 digits")
+  //     .optional()
+  // ),
+  // gender: z
+  //   .union([z.enum(["MALE", "FEMALE"]), z.literal("")])
+  //   .optional()
+  //   .nullable(),
   url: z.string().min(2).optional(),
   botField: z.string().optional(),
 });
