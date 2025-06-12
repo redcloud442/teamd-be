@@ -8,7 +8,7 @@ export const dashboardPostModel = async (params: {
   return await prisma.$transaction(async (tx) => {
     const { dateFilter } = params;
 
-    const cacheKey = `dashboard-post`;
+    const cacheKey = `dashboard-post:${dateFilter.start}-${dateFilter.end}`;
     const cachedData = await redis.get(cacheKey);
 
     if (cachedData) {
