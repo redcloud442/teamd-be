@@ -1,4 +1,4 @@
-name: Docker Image CI/CD
+name: Docker Image CI
 
 on:
   push:
@@ -11,8 +11,9 @@ permissions:
   packages: write
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
+
     environment: Production
 
     steps:
@@ -29,17 +30,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image for prod
+        run: |
+          docker build -t ghcr.io/redcloud442/teamd:prod-be-${SHORT_SHA} .
 
-      - name: Build and push Docker image with cache
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/redcloud442/teamd:prod-be-${{ env.SHORT_SHA }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Verify Docker login
+        run: docker info
+
+      - name: Verify image tagging
+        run: docker images
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/redcloud442/teamd:prod-be-${SHORT_SHA}
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
@@ -51,10 +54,28 @@ jobs:
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
 
+      - name: Show current Kubernetes context
+        run: |
+          kubectl config current-context
+          kubectl cluster-info
+
+      - name: Confirm deployment and container name
+        run: |
+          echo "🔍 Listing deployments in namespace 'teamd'..."
+          kubectl get deployment -n teamd
+
+          echo "🔍 Checking container names in 'teamd-be'..."
+          kubectl get deployment teamd-be -n teamd -o jsonpath="{.spec.template.spec.containers[*].name}"
+
+      - name: Check RBAC permissions
+        run: |
+          echo "🔐 Verifying permission to update deployments..."
+          kubectl auth can-i update deployment -n teamd
+
       - name: Deploy to Kubernetes
         run: |
-          echo "🚀 Updating image in deployment 'teamd-be'... .."
-          kubectl set image deployment/teamd-be teamd-be=ghcr.io/redcloud442/teamd:prod-${SHORT_SHA} -n teamd
+          echo "🚀 Updating image in deployment 'teamd-be'..."
+          kubectl set image deployment/teamd-be teamd-be=ghcr.io/redcloud442/teamd:prod-be-${SHORT_SHA} -n teamd
 
           echo "⏳ Waiting for rollout to complete..."
           kubectl rollout status deployment/teamd-be -n teamd
