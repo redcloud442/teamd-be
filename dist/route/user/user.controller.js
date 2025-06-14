@@ -36,7 +36,6 @@ export const userGetByIdUserProfileController = async (c) => {
     try {
         const params = c.get("params");
         const data = await userModelGetByIdUserProfile(params);
-        console.log(data);
         return c.json(data, 200);
     }
     catch (error) {

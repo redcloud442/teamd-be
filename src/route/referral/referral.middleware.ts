@@ -50,7 +50,6 @@ export const referralDirectMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!parsedData.success) {
-    console.log(parsedData.error);
     return sendErrorResponse("Invalid data", 400);
   }
 
@@ -99,7 +98,6 @@ export const referralIndirectMiddleware = async (c: Context, next: Next) => {
   });
 
   if (!parsedData.success) {
-    console.log(parsedData.error);
     return sendErrorResponse("Invalid request", 400);
   }
 

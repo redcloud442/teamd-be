@@ -105,7 +105,7 @@ export const adminModel = async (params) => {
     return { success: true };
 };
 export const registerUserModel = async (params) => {
-    const { userId, userName, firstName, lastName, referalLink, url, ip, botField, phoneNumber, gender, } = params;
+    const { userId, userName, firstName, lastName, referalLink, url, ip, botField, } = params;
     if (referalLink) {
         const DEFAULT_COMPANY_ID = "a1b9ceb9-cb09-4c09-832d-6e5a017d048b";
         return await prisma.$transaction(async (tx) => {
@@ -119,8 +119,6 @@ export const registerUserModel = async (params) => {
                     user_last_name: lastName,
                     user_username: userName,
                     user_bot_field: botField === "true" ? true : false,
-                    user_phone_number: phoneNumber,
-                    user_gender: gender,
                     user_history_log: {
                         create: {
                             user_ip_address: ip,

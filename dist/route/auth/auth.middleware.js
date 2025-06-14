@@ -45,7 +45,7 @@ export const loginCheckMiddleware = async (c, next) => {
 export const registerUserMiddleware = async (c, next) => {
     const user = c.get("user");
     const ip = getClientIP(c.req.raw);
-    const { userName, firstName, lastName, referalLink, url, botField, email, phoneNumber, gender, } = await c.req.json();
+    const { userName, firstName, lastName, referalLink, url, botField, email } = await c.req.json();
     const parsed = registerUserSchema.safeParse({
         userName,
         firstName,
@@ -55,8 +55,6 @@ export const registerUserMiddleware = async (c, next) => {
         url,
         botField,
         email,
-        phoneNumber,
-        gender,
     });
     if (!parsed.success) {
         return c.json({ message: "Invalid request" }, 400);
