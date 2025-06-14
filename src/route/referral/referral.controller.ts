@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { sendErrorResponse } from "../../utils/function.js";
 import {
+  newReferralModelPost,
   referralDirectModelPost,
   referralIndirectModelPost,
   referralTotalGetModel,
@@ -8,17 +9,12 @@ import {
 
 export const referralDirectPostController = async (c: Context) => {
   try {
-    const { page, limit, search, columnAccessor, isAscendingSort } =
-      await c.req.json();
+    const params = c.get("params");
 
     const teamMemberProfile = c.get("teamMemberProfile");
 
     const data = await referralDirectModelPost({
-      page,
-      limit,
-      search,
-      columnAccessor,
-      isAscendingSort,
+      ...params,
       teamMemberProfile,
     });
 
@@ -30,17 +26,29 @@ export const referralDirectPostController = async (c: Context) => {
 
 export const referralIndirectPostController = async (c: Context) => {
   try {
-    const { page, limit, search, columnAccessor, isAscendingSort } =
-      await c.req.json();
+    const params = c.get("params");
 
     const teamMemberProfile = c.get("teamMemberProfile");
 
     const data = await referralIndirectModelPost({
-      page,
-      limit,
-      search,
-      columnAccessor,
-      isAscendingSort,
+      ...params,
+      teamMemberProfile,
+    });
+
+    return c.json(data);
+  } catch (error) {
+    return sendErrorResponse("Invalid data", 400);
+  }
+};
+
+export const newReferralPostController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const teamMemberProfile = c.get("teamMemberProfile");
+
+    const data = await newReferralModelPost({
+      ...params,
       teamMemberProfile,
     });
 

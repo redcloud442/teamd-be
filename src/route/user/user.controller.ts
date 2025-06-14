@@ -67,7 +67,7 @@ export const userGetByIdUserProfileController = async (c: Context) => {
     const params = c.get("params");
 
     const data = await userModelGetByIdUserProfile(params);
-    console.log(data);
+
     return c.json(data, 200);
   } catch (error) {
     return c.json({ error: "Internal Server Error" }, { status: 500 });
