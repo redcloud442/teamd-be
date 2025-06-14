@@ -319,6 +319,7 @@ export const directReferralsSchemaPost = z.object({
   search: z.string().optional(),
   columnAccessor: z.string().min(3),
   isAscendingSort: z.boolean(),
+  date: z.string().optional().nullable(),
 });
 
 export const indirectReferralsSchemaPost = z.object({
@@ -327,6 +328,16 @@ export const indirectReferralsSchemaPost = z.object({
   search: z.string().optional(),
   columnAccessor: z.string().min(3),
   isAscendingSort: z.boolean(),
+  date: z.string().optional().nullable(),
+});
+
+export const newReferralSchemaPost = z.object({
+  page: z.number().min(1),
+  limit: z.number().min(1).max(10),
+  search: z.string().optional(),
+  columnAccessor: z.string().min(3),
+  isAscendingSort: z.boolean(),
+  date: z.string().optional().nullable(),
 });
 
 //packages schema

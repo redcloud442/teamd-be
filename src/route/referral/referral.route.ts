@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import {
+  newReferralPostController,
   referralDirectPostController,
   referralIndirectPostController,
   referralTotalGetController,
@@ -7,6 +8,7 @@ import {
 import {
   referralDirectMiddleware,
   referralIndirectMiddleware,
+  referralNewRegisterMiddleware,
   referralTotalGetMiddleware,
 } from "./referral.middleware.js";
 
@@ -24,6 +26,12 @@ referral.post(
   "/indirect",
   referralIndirectMiddleware,
   referralIndirectPostController
+);
+
+referral.post(
+  "/new-register",
+  referralNewRegisterMiddleware,
+  newReferralPostController
 );
 
 export default referral;
