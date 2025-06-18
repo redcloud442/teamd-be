@@ -424,11 +424,12 @@ export const withdrawListPostModel = async (params: {
   ];
 
   if (!showAllDays && !dateFilter?.start && !dateFilter?.end) {
-    commonConditions.push(
-      Prisma.raw(
-        `t.company_withdrawal_request_date::timestamptz BETWEEN '${philippinesTimeStart}'::timestamptz AND '${philippinesTimeEnd}'::timestamptz`
-      )
-    );
+    const orDateCondition = Prisma.raw(`(
+      (t.company_withdrawal_request_withdraw_type = 'PACKAGE' AND
+       t.company_withdrawal_request_date::timestamptz BETWEEN '${philippinesTimeStart}'::timestamptz AND '${philippinesTimeEnd}'::timestamptz)
+      OR t.company_withdrawal_request_withdraw_type = 'REFERRAL'
+    )`);
+    commonConditions.push(orDateCondition);
   }
 
   if (teamMemberProfile.company_member_role === "ACCOUNTING") {
@@ -453,12 +454,12 @@ export const withdrawListPostModel = async (params: {
       new Date(dateFilter.end || new Date()),
       "end"
     );
-
-    commonConditions.push(
-      Prisma.raw(
-        `t.company_withdrawal_request_date::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
-      )
-    );
+    const orDateCondition = Prisma.raw(`(
+      (t.company_withdrawal_request_withdraw_type = 'PACKAGE' AND
+       t.company_withdrawal_request_date::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz)
+      OR t.company_withdrawal_request_withdraw_type = 'REFERRAL'
+    )`);
+    commonConditions.push(orDateCondition);
   }
 
   if (search) {
