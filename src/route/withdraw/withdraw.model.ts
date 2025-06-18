@@ -454,12 +454,12 @@ export const withdrawListPostModel = async (params: {
       new Date(dateFilter.end || new Date()),
       "end"
     );
-    const orDateCondition = Prisma.raw(`(
-      (t.company_withdrawal_request_withdraw_type = 'PACKAGE' AND
-       t.company_withdrawal_request_date::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz)
-      OR t.company_withdrawal_request_withdraw_type = 'REFERRAL'
-    )`);
-    commonConditions.push(orDateCondition);
+
+    commonConditions.push(
+      Prisma.raw(
+        `t.company_withdrawal_request_date::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
+      )
+    );
   }
 
   if (search) {
