@@ -289,9 +289,6 @@ export const packageGetModel = async (memberId: string) => {
   }
 
   const data = await prisma.package_table.findMany({
-    include: {
-      package_features_table: true,
-    },
     orderBy: {
       package_percentage: "asc",
     },
@@ -333,9 +330,6 @@ export const packageGetIdModel = async (params: {
 
   const packages = await prisma.package_table.findUnique({
     where: { package_id: params.id },
-    include: {
-      package_features_table: true,
-    },
   });
 
   if (!packages) {
@@ -669,13 +663,26 @@ export const packageListGetModel = async (params: {
         package_date_created: row.package_member_connection_created,
         package_days_remaining:
           percentage === 100
-            ? 0
-            : row.package_table.packages_days -
-              Math.floor(
-                (currentTimestamp.getTime() -
-                  row.package_member_connection_created.getTime()) /
-                  (1000 * 60 * 60 * 24)
-              ),
+            ? "0"
+            : (() => {
+                const msElapsed =
+                  currentTimestamp.getTime() -
+                  new Date(row.package_member_connection_created).getTime();
+                const daysElapsed = msElapsed / (1000 * 60 * 60 * 24);
+                const daysRemaining =
+                  row.package_table.packages_days - daysElapsed;
+
+                const fullDays = Math.floor(daysRemaining);
+                const remainingHours = Math.floor(
+                  (daysRemaining - fullDays) * 24
+                );
+
+                return ` ${
+                  fullDays === 0
+                    ? ""
+                    : `${fullDays} ${fullDays === 1 ? "Day" : "Days"}`
+                } ${remainingHours} ${remainingHours === 1 ? "Hour" : "Hours"}`;
+              })(),
         package_is_highlight: row.package_table.package_is_highlight,
       };
     })

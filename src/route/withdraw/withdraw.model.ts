@@ -557,14 +557,13 @@ export const withdrawListPostModel = async (params: {
           },
         },
         _sum: {
-          company_withdrawal_request_amount: true,
-          company_withdrawal_request_fee: true,
+          company_withdrawal_request_withdraw_amount: true,
         },
       });
 
-    returnData.totalApprovedWithdrawal =
-      Number(totalApprovedWithdrawal._sum.company_withdrawal_request_amount) -
-      Number(totalApprovedWithdrawal._sum.company_withdrawal_request_fee);
+    returnData.totalApprovedWithdrawal = Number(
+      totalApprovedWithdrawal._sum.company_withdrawal_request_withdraw_amount
+    );
   }
 
   const totalPendingWithdrawal =

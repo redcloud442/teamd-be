@@ -359,6 +359,7 @@ view package_purchase_summary {
   standard_count    Int
   express_count     Int
   premium_count     Int
+  vip_count         Int
 
   @@schema("packages_schema")
 }
