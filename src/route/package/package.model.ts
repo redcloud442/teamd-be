@@ -74,6 +74,10 @@ export const packagePostModel = async (params: {
       throw new Error("Package limit reached.");
     }
 
+    if (amount < packageData.package_minimum_amount) {
+      throw new Error("Amount is less than the minimum amount.");
+    }
+
     if (amount > packageData.package_maximum_amount) {
       throw new Error("Amount is greater than the maximum amount.");
     }
