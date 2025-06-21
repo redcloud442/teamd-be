@@ -139,13 +139,14 @@ export const updateWithdrawMiddleware = async (c: Context, next: Next) => {
     return sendErrorResponse("Too Many Requests", 429);
   }
 
-  const { status, note } = await c.req.json();
+  const { status, note, singleFile } = await c.req.json();
 
   const { id } = c.req.param();
 
   const validate = updateWithdrawSchema.safeParse({
     status,
     note,
+    singleFile,
     requestId: id,
   });
 

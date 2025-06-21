@@ -241,7 +241,7 @@ export const userModelPost = async (params) => {
         indirectReferralAmount: member?.dashboard_earnings_summary[0]?.indirect_referral_amount ?? 0,
         totalEarnings: member?.dashboard_earnings_summary[0]?.total_earnings ?? 0,
         withdrawalAmount: member?.dashboard_earnings_summary[0]?.total_withdrawals ?? 0,
-        packageEarnings: member?.company_earnings_table[0]?.company_package_earnings ?? 0,
+        packageEarnings: member?.dashboard_earnings_summary[0]?.package_income ?? 0,
         directReferralCount: member?.dashboard_earnings_summary[0]?.direct_referral_count ?? 0,
         indirectReferralCount: member?.dashboard_earnings_summary[0]?.indirect_referral_count ?? 0,
     };
@@ -364,7 +364,7 @@ export const userModelGet = async ({ memberId }) => {
         indirectReferralAmount: member?.dashboard_earnings_summary[0]?.indirect_referral_amount ?? 0,
         totalEarnings: member?.dashboard_earnings_summary[0]?.total_earnings ?? 0,
         withdrawalAmount: member?.dashboard_earnings_summary[0]?.total_withdrawals ?? 0,
-        packageEarnings: member?.company_earnings_table[0]?.company_package_earnings ?? 0,
+        packageEarnings: member?.dashboard_earnings_summary[0]?.package_income ?? 0,
         directReferralCount: member?.dashboard_earnings_summary[0]?.direct_referral_count ?? 0,
         indirectReferralCount: member?.dashboard_earnings_summary[0]?.indirect_referral_count ?? 0,
     };

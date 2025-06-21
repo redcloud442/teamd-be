@@ -266,9 +266,10 @@ export const updateWithdrawModel = async (params: {
   status: string;
   note: string;
   requestId: string;
+  singleFile: string;
   teamMemberProfile: company_member_table;
 }) => {
-  const { status, note, requestId, teamMemberProfile } = params;
+  const { status, note, requestId, teamMemberProfile, singleFile } = params;
 
   const result = await prisma.$transaction(async (tx) => {
     const existingRequest =
@@ -341,6 +342,7 @@ export const updateWithdrawModel = async (params: {
         company_transaction_member_id:
           updatedRequest.company_withdrawal_request_member_id,
         company_transaction_type: "WITHDRAWAL",
+        company_transaction_attachment: singleFile ?? null,
       },
     });
 

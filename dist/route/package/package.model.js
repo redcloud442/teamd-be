@@ -194,9 +194,6 @@ export const packageGetModel = async (memberId) => {
         return cached;
     }
     const data = await prisma.package_table.findMany({
-        include: {
-            package_features_table: true,
-        },
         orderBy: {
             package_percentage: "asc",
         },
@@ -225,9 +222,6 @@ export const packageGetIdModel = async (params) => {
     }
     const packages = await prisma.package_table.findUnique({
         where: { package_id: params.id },
-        include: {
-            package_features_table: true,
-        },
     });
     if (!packages) {
         throw new Error("Package not found.");
@@ -431,7 +425,8 @@ export const packageListGetModel = async (params) => {
         // Calculate current amount
         const initialAmount = row.package_member_amount;
         const profitAmount = row.package_amount_earnings;
-        const currentAmount = (initialAmount + profitAmount) * percentage;
+        const percentageMultiplied = percentage / 100;
+        const currentAmount = (initialAmount + profitAmount) * percentageMultiplied;
         if (percentage === 100 && !row.package_member_is_ready_to_claim) {
             await prisma.package_member_connection_table.update({
                 where: {
@@ -447,18 +442,25 @@ export const packageListGetModel = async (params) => {
             completion: Number(percentage.toFixed(2)),
             package_connection_id: row.package_member_connection_id,
             profit_amount: Number(row.package_amount_earnings.toFixed(2)),
-            current_amount: Number(Math.trunc(currentAmount)),
+            current_amount: Number(currentAmount).toFixed(2),
             is_ready_to_claim: percentage === 100,
             package_percentage: row.package_table.package_percentage,
             package_days: row.package_table.packages_days,
             package_image: row.package_table.package_image,
             package_date_created: row.package_member_connection_created,
             package_days_remaining: percentage === 100
-                ? 0
-                : row.package_table.packages_days -
-                    Math.floor((currentTimestamp.getTime() -
-                        row.package_member_connection_created.getTime()) /
-                        (1000 * 60 * 60 * 24)),
+                ? "0"
+                : (() => {
+                    const msElapsed = currentTimestamp.getTime() -
+                        new Date(row.package_member_connection_created).getTime();
+                    const daysElapsed = msElapsed / (1000 * 60 * 60 * 24);
+                    const daysRemaining = row.package_table.packages_days - daysElapsed;
+                    const fullDays = Math.floor(daysRemaining);
+                    const remainingHours = Math.floor((daysRemaining - fullDays) * 24);
+                    return ` ${fullDays === 0
+                        ? ""
+                        : `${fullDays} ${fullDays === 1 ? "Day" : "Days"}`} ${remainingHours} ${remainingHours === 1 ? "Hour" : "Hours"}`;
+                })(),
             package_is_highlight: row.package_table.package_is_highlight,
         };
     }));

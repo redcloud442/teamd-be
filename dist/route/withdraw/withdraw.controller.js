@@ -31,12 +31,13 @@ export const withdrawHistoryPostController = async (c) => {
 };
 export const updateWithdrawPostController = async (c) => {
     try {
-        const { status, note } = await c.req.json();
+        const { status, note, singleFile } = await c.req.json();
         const { id } = c.req.param();
         const teamMemberProfile = c.get("teamMemberProfile");
         const data = await updateWithdrawModel({
             status,
             note,
+            singleFile,
             teamMemberProfile,
             requestId: id,
         });

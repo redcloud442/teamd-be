@@ -361,6 +361,7 @@ export const updateWithdrawSchema = z.object({
     status: z.enum(["APPROVED", "REJECTED"]),
     note: z.string().optional(),
     requestId: z.string().uuid(),
+    singleFile: z.string().optional(),
 });
 export const withdrawListPostSchema = z.object({
     page: z.number().min(1),
