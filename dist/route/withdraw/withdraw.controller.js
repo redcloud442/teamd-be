@@ -31,15 +31,11 @@ export const withdrawHistoryPostController = async (c) => {
 };
 export const updateWithdrawPostController = async (c) => {
     try {
-        const { status, note, singleFile } = await c.req.json();
-        const { id } = c.req.param();
+        const params = c.get("params");
         const teamMemberProfile = c.get("teamMemberProfile");
         const data = await updateWithdrawModel({
-            status,
-            note,
-            singleFile,
+            ...params,
             teamMemberProfile,
-            requestId: id,
         });
         await Promise.all([
             invalidateCacheVersion(`transaction:${data?.company_withdrawal_request_member_id}:WITHDRAWAL`),

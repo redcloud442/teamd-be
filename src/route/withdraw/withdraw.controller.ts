@@ -55,18 +55,13 @@ export const withdrawHistoryPostController = async (c: Context) => {
 
 export const updateWithdrawPostController = async (c: Context) => {
   try {
-    const { status, note, singleFile } = await c.req.json();
-
-    const { id } = c.req.param();
+    const params = c.get("params");
 
     const teamMemberProfile = c.get("teamMemberProfile");
 
     const data = await updateWithdrawModel({
-      status,
-      note,
-      singleFile,
+      ...params,
       teamMemberProfile,
-      requestId: id,
     });
 
     await Promise.all([

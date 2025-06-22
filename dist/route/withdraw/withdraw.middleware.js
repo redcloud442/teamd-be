@@ -89,6 +89,7 @@ export const updateWithdrawMiddleware = async (c, next) => {
         return sendErrorResponse(validate.error.message, 400);
     }
     c.set("teamMemberProfile", teamMemberProfile);
+    c.set("params", validate.data);
     await next();
 };
 export const withdrawListPostMiddleware = async (c, next) => {
