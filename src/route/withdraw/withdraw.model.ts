@@ -572,47 +572,15 @@ export const withdrawListPostModel = async (params: {
     await prisma.company_withdrawal_request_table.aggregate({
       where: {
         company_withdrawal_request_status: "PENDING",
-
-        ...(teamMemberProfile.company_member_role === "ACCOUNTING" && {
-          company_withdrawal_request_approved_by:
-            teamMemberProfile.company_member_id,
-        }),
-        ...(teamMemberProfile.company_member_role !== "ADMIN"
-          ? {
-              ...(dateFilter?.start && dateFilter?.end
-                ? {
-                    company_withdrawal_request_date: {
-                      gte: startDate,
-                      lte: endDate,
-                    },
-                  }
-                : {
-                    OR: [
-                      {
-                        company_withdrawal_request_withdraw_type: "PACKAGE",
-                        company_withdrawal_request_date: {
-                          gte: philippinesTimeStart,
-                          lte: philippinesTimeEnd,
-                        },
-                      },
-                      {
-                        company_withdrawal_request_withdraw_type: "REFERRAL",
-                      },
-                    ],
-                  }),
-            }
-          : {
-              ...(dateFilter?.start && dateFilter?.end
-                ? {
-                    company_withdrawal_request_date: {
-                      gte: startDate,
-                      lte: endDate,
-                    },
-                  }
-                : {}),
-            }),
+        company_withdrawal_request_approved_by:
+          teamMemberProfile.company_member_role === "ACCOUNTING"
+            ? teamMemberProfile.company_member_id
+            : undefined,
+        company_withdrawal_request_date: {
+          gte: startDate,
+          lte: endDate,
+        },
       },
-
       _sum: {
         company_withdrawal_request_amount: true,
         company_withdrawal_request_fee: true,
