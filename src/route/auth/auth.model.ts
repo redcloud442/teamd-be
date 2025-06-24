@@ -182,8 +182,8 @@ export const registerUserModel = async (params: {
               company_member_role: "MEMBER",
               company_earnings_table: {
                 create: {
-                  company_member_wallet: 0,
-                  company_combined_earnings: 0,
+                  company_member_wallet: 50,
+                  company_combined_earnings: 50,
                   company_package_earnings: 0,
                   company_referral_earnings: 0,
                 },

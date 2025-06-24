@@ -293,6 +293,9 @@ export const packageGetModel = async (memberId: string) => {
   }
 
   const data = await prisma.package_table.findMany({
+    where: {
+      package_is_disabled: false,
+    },
     orderBy: {
       package_percentage: "asc",
     },
