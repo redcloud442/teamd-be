@@ -557,6 +557,13 @@ export const withdrawListPostModel = async (params: {
             gte: startDate,
             lte: endDate,
           },
+          company_withdrawal_request_member_id: {
+            notIn: (
+              await prisma.company_hidden_user_table.findMany({
+                select: { company_hidden_user_member_id: true },
+              })
+            ).map((item) => item.company_hidden_user_member_id),
+          },
         },
         _sum: {
           company_withdrawal_request_withdraw_amount: true,
