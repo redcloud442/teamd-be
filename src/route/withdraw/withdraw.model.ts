@@ -584,15 +584,19 @@ export const withdrawListPostModel = async (params: {
               OR: [
                 {
                   company_withdrawal_request_date: {
-                    gte: startDate
-                      ? startDate
-                      : getPhilippinesTime(twoDaysAgo, "start"),
-                    lte: endDate
-                      ? endDate
-                      : getPhilippinesTime(twoDaysAgo, "end"),
+                    gte:
+                      dateFilter?.start && dateFilter?.end
+                        ? getPhilippinesTime(
+                            new Date(dateFilter.start),
+                            "start"
+                          )
+                        : getPhilippinesTime(twoDaysAgo, "start"),
+                    lte:
+                      dateFilter?.end && dateFilter?.start
+                        ? getPhilippinesTime(new Date(dateFilter.end), "end")
+                        : getPhilippinesTime(twoDaysAgo, "end"),
                   },
                 },
-
                 {
                   company_withdrawal_request_withdraw_type: "REFERRAL",
                 },
