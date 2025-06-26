@@ -582,8 +582,12 @@ export const withdrawListPostModel = async (params: {
         teamMemberProfile.company_member_role === "ACCOUNTING_HEAD"
           ? {
               company_withdrawal_request_date: {
-                gte: getPhilippinesTime(twoDaysAgo, "start"),
-                lte: getPhilippinesTime(twoDaysAgo, "end"),
+                gte: startDate
+                  ? getPhilippinesTime(new Date(startDate), "start")
+                  : getPhilippinesTime(twoDaysAgo, "start"),
+                lte: endDate
+                  ? getPhilippinesTime(new Date(endDate), "end")
+                  : getPhilippinesTime(twoDaysAgo, "end"),
               },
             }
           : {
