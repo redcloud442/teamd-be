@@ -582,8 +582,8 @@ export const withdrawListPostModel = async (params: {
         teamMemberProfile.company_member_role === "ACCOUNTING_HEAD"
           ? {
               company_withdrawal_request_date: {
-                gte: getPhilippinesTime(currentDate, "start"),
-                lte: getPhilippinesTime(currentDate, "end"),
+                gte: getPhilippinesTime(twoDaysAgo, "start"),
+                lte: getPhilippinesTime(twoDaysAgo, "end"),
               },
             }
           : {
@@ -601,14 +601,13 @@ export const withdrawListPostModel = async (params: {
         },
       },
       _sum: {
-        company_withdrawal_request_amount: true,
-        company_withdrawal_request_fee: true,
+        company_withdrawal_request_withdraw_amount: true,
       },
     });
 
-  returnData.totalPendingWithdrawal =
-    Number(totalPendingWithdrawal._sum.company_withdrawal_request_amount) -
-    Number(totalPendingWithdrawal._sum.company_withdrawal_request_fee);
+  returnData.totalPendingWithdrawal = Number(
+    totalPendingWithdrawal._sum.company_withdrawal_request_withdraw_amount
+  );
   ["APPROVED", "REJECTED", "PENDING"].forEach((status) => {
     const match = statusCounts.find((item) => item.status === status);
     returnData.data[status as keyof typeof returnData.data].count = match
