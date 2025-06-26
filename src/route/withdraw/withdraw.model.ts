@@ -581,26 +581,29 @@ export const withdrawListPostModel = async (params: {
         ...(teamMemberProfile.company_member_role === "ACCOUNTING" ||
         teamMemberProfile.company_member_role === "ACCOUNTING_HEAD"
           ? {
-              OR: [
-                {
-                  company_withdrawal_request_date: {
-                    gte:
-                      dateFilter?.start && dateFilter?.end
-                        ? getPhilippinesTime(
-                            new Date(dateFilter.start),
-                            "start"
-                          )
-                        : getPhilippinesTime(twoDaysAgo, "start"),
-                    lte:
-                      dateFilter?.end && dateFilter?.start
-                        ? getPhilippinesTime(new Date(dateFilter.end), "end")
-                        : getPhilippinesTime(twoDaysAgo, "end"),
-                  },
-                },
-                {
-                  company_withdrawal_request_withdraw_type: "REFERRAL",
-                },
-              ],
+              ...(dateFilter?.start && dateFilter?.end
+                ? {
+                    company_withdrawal_request_date: {
+                      gte: getPhilippinesTime(
+                        new Date(dateFilter.start),
+                        "start"
+                      ),
+                      lte: getPhilippinesTime(new Date(dateFilter.end), "end"),
+                    },
+                  }
+                : {
+                    OR: [
+                      {
+                        company_withdrawal_request_date: {
+                          gte: getPhilippinesTime(twoDaysAgo, "start"),
+                          lte: getPhilippinesTime(twoDaysAgo, "end"),
+                        },
+                      },
+                      {
+                        company_withdrawal_request_withdraw_type: "REFERRAL",
+                      },
+                    ],
+                  }),
             }
           : {
               company_withdrawal_request_date: {
