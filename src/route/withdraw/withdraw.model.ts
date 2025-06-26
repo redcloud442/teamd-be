@@ -585,10 +585,10 @@ export const withdrawListPostModel = async (params: {
                 {
                   company_withdrawal_request_date: {
                     gte: startDate
-                      ? getPhilippinesTime(new Date(startDate), "start")
+                      ? startDate
                       : getPhilippinesTime(twoDaysAgo, "start"),
                     lte: endDate
-                      ? getPhilippinesTime(new Date(endDate), "end")
+                      ? endDate
                       : getPhilippinesTime(twoDaysAgo, "end"),
                   },
                 },
