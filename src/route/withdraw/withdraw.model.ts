@@ -544,6 +544,7 @@ export const withdrawListPostModel = async (params: {
     dateFilter?.end && dateFilter?.start
       ? getPhilippinesTime(new Date(dateFilter.end), "end")
       : undefined;
+  const currentDate = new Date();
 
   if (
     teamMemberProfile.company_member_role === "ACCOUNTING_HEAD" ||
@@ -576,10 +577,21 @@ export const withdrawListPostModel = async (params: {
           teamMemberProfile.company_member_role === "ACCOUNTING"
             ? teamMemberProfile.company_member_id
             : undefined,
-        company_withdrawal_request_date: {
-          gte: startDate,
-          lte: endDate,
-        },
+
+        ...(teamMemberProfile.company_member_role === "ACCOUNTING" ||
+        teamMemberProfile.company_member_role === "ACCOUNTING_HEAD"
+          ? {
+              company_withdrawal_request_date: {
+                gte: getPhilippinesTime(currentDate, "start"),
+                lte: getPhilippinesTime(currentDate, "end"),
+              },
+            }
+          : {
+              company_withdrawal_request_date: {
+                gte: startDate,
+                lte: endDate,
+              },
+            }),
         company_withdrawal_request_member_id: {
           notIn: (
             await prisma.company_hidden_user_table.findMany({
