@@ -459,7 +459,7 @@ export const withdrawListPostModel = async (params: {
 
     commonConditions.push(
       Prisma.raw(
-        `t.company_withdrawal_request_date_updated::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
+        `t.company_withdrawal_request_date::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
       )
     );
   }
@@ -544,7 +544,6 @@ export const withdrawListPostModel = async (params: {
     dateFilter?.end && dateFilter?.start
       ? getPhilippinesTime(new Date(dateFilter.end), "end")
       : undefined;
-  const currentDate = new Date();
 
   if (
     teamMemberProfile.company_member_role === "ACCOUNTING_HEAD" ||
@@ -568,57 +567,62 @@ export const withdrawListPostModel = async (params: {
       totalApprovedWithdrawal._sum.company_withdrawal_request_withdraw_amount
     );
   }
+  const hasCustomRange = Boolean(dateFilter?.start && dateFilter?.end);
+  const hiddenIds = await prisma.company_hidden_user_table.findMany({
+    select: { company_hidden_user_member_id: true },
+  });
+
+  const notHiddenMembers = hiddenIds.map(
+    (u) => u.company_hidden_user_member_id
+  );
+
+  const dateOrReferralCondition: Prisma.company_withdrawal_request_tableWhereInput =
+    hasCustomRange
+      ? {
+          company_withdrawal_request_date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        }
+      : {
+          OR: [
+            {
+              company_withdrawal_request_date: {
+                gte: philippinesTimeStart,
+                lte: philippinesTimeEnd,
+              },
+            },
+            { company_withdrawal_request_withdraw_type: "REFERRAL" },
+          ],
+        };
+  const roleSpecificExtra: Prisma.company_withdrawal_request_tableWhereInput =
+    teamMemberProfile.company_member_role === "ACCOUNTING" ||
+    teamMemberProfile.company_member_role === "ACCOUNTING_HEAD"
+      ? dateOrReferralCondition
+      : {
+          company_withdrawal_request_date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        };
 
   const totalPendingWithdrawal =
     await prisma.company_withdrawal_request_table.aggregate({
       where: {
         company_withdrawal_request_status: "PENDING",
+
         company_withdrawal_request_approved_by:
           teamMemberProfile.company_member_role === "ACCOUNTING"
             ? teamMemberProfile.company_member_id
             : undefined,
 
-        ...(teamMemberProfile.company_member_role === "ACCOUNTING" ||
-        teamMemberProfile.company_member_role === "ACCOUNTING_HEAD"
-          ? {
-              ...(dateFilter?.start && dateFilter?.end
-                ? {
-                    company_withdrawal_request_date: {
-                      gte: startDate,
-                      lte: endDate,
-                    },
-                  }
-                : {
-                    OR: [
-                      {
-                        company_withdrawal_request_date: {
-                          gte: getPhilippinesTime(twoDaysAgo, "start"),
-                          lte: getPhilippinesTime(twoDaysAgo, "end"),
-                        },
-                      },
-                      {
-                        company_withdrawal_request_withdraw_type: "REFERRAL",
-                      },
-                    ],
-                  }),
-            }
-          : {
-              company_withdrawal_request_date: {
-                gte: startDate,
-                lte: endDate,
-              },
-            }),
+        ...roleSpecificExtra,
+
         company_withdrawal_request_member_id: {
-          notIn: (
-            await prisma.company_hidden_user_table.findMany({
-              select: { company_hidden_user_member_id: true },
-            })
-          ).map((item) => item.company_hidden_user_member_id),
+          notIn: notHiddenMembers,
         },
       },
-      _sum: {
-        company_withdrawal_request_withdraw_amount: true,
-      },
+      _sum: { company_withdrawal_request_withdraw_amount: true },
     });
 
   returnData.totalPendingWithdrawal = Number(
