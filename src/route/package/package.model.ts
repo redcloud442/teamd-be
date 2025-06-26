@@ -53,27 +53,6 @@ export const packagePostModel = async (params: {
       throw new Error("Package not found.");
     }
 
-    const packageType =
-      packageMap[packageData.package_name as keyof typeof packageMap];
-
-    const packagePurchaseSummary = await tx.package_purchase_summary.findUnique(
-      {
-        where: {
-          member_id: teamMemberProfile.company_member_id,
-        },
-        select: {
-          [packageType]: true,
-        },
-      }
-    );
-
-    if (
-      packagePurchaseSummary &&
-      packagePurchaseSummary[packageType] >= packageData.package_limit
-    ) {
-      throw new Error("Package limit reached.");
-    }
-
     if (amount < packageData.package_minimum_amount) {
       throw new Error("Amount is less than the minimum amount.");
     }
@@ -301,15 +280,8 @@ export const packageGetModel = async (memberId: string) => {
     },
   });
 
-  const purchaseSummary = await prisma.package_purchase_summary.findUnique({
-    where: {
-      member_id: memberId,
-    },
-  });
-
   const result = {
     data,
-    purchaseSummary,
   };
 
   await redis.set(`package-list:${memberId}`, JSON.stringify(result), {
