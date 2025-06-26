@@ -581,14 +581,22 @@ export const withdrawListPostModel = async (params: {
         ...(teamMemberProfile.company_member_role === "ACCOUNTING" ||
         teamMemberProfile.company_member_role === "ACCOUNTING_HEAD"
           ? {
-              company_withdrawal_request_date: {
-                gte: startDate
-                  ? getPhilippinesTime(new Date(startDate), "start")
-                  : getPhilippinesTime(twoDaysAgo, "start"),
-                lte: endDate
-                  ? getPhilippinesTime(new Date(endDate), "end")
-                  : getPhilippinesTime(twoDaysAgo, "end"),
-              },
+              OR: [
+                {
+                  company_withdrawal_request_date: {
+                    gte: startDate
+                      ? getPhilippinesTime(new Date(startDate), "start")
+                      : getPhilippinesTime(twoDaysAgo, "start"),
+                    lte: endDate
+                      ? getPhilippinesTime(new Date(endDate), "end")
+                      : getPhilippinesTime(twoDaysAgo, "end"),
+                  },
+                },
+
+                {
+                  company_withdrawal_request_withdraw_type: "REFERRAL",
+                },
+              ],
             }
           : {
               company_withdrawal_request_date: {
