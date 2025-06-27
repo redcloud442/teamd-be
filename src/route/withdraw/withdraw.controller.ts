@@ -132,6 +132,8 @@ export const withdrawHideUserPostController = async (c: Context) => {
       teamMemberProfile,
     });
 
+    await invalidateCacheVersion(`user-list`);
+
     return c.json({ message: "User hidden" }, 200);
   } catch (e) {
     return sendErrorResponse("Internal Server Error", 500);
