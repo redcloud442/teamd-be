@@ -27,19 +27,6 @@ export const packagePostModel = async (params) => {
         if (!packageData) {
             throw new Error("Package not found.");
         }
-        const packageType = packageMap[packageData.package_name];
-        const packagePurchaseSummary = await tx.package_purchase_summary.findUnique({
-            where: {
-                member_id: teamMemberProfile.company_member_id,
-            },
-            select: {
-                [packageType]: true,
-            },
-        });
-        if (packagePurchaseSummary &&
-            packagePurchaseSummary[packageType] >= packageData.package_limit) {
-            throw new Error("Package limit reached.");
-        }
         if (amount < packageData.package_minimum_amount) {
             throw new Error("Amount is less than the minimum amount.");
         }
@@ -194,18 +181,15 @@ export const packageGetModel = async (memberId) => {
         return cached;
     }
     const data = await prisma.package_table.findMany({
+        where: {
+            package_is_disabled: false,
+        },
         orderBy: {
             package_percentage: "asc",
         },
     });
-    const purchaseSummary = await prisma.package_purchase_summary.findUnique({
-        where: {
-            member_id: memberId,
-        },
-    });
     const result = {
         data,
-        purchaseSummary,
     };
     await redis.set(`package-list:${memberId}`, JSON.stringify(result), {
         ex: 60 * 5,

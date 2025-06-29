@@ -263,7 +263,7 @@ export const withdrawListPostModel = async (params) => {
     if (dateFilter?.start && dateFilter?.end) {
         const startDate = getPhilippinesTime(new Date(dateFilter.start || new Date()), "start");
         const endDate = getPhilippinesTime(new Date(dateFilter.end || new Date()), "end");
-        commonConditions.push(Prisma.raw(`t.company_withdrawal_request_date_updated::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
+        commonConditions.push(Prisma.raw(`t.company_withdrawal_request_date::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`));
     }
     if (search) {
         commonConditions.push(Prisma.raw(`(
@@ -339,55 +339,52 @@ export const withdrawListPostModel = async (params) => {
         });
         returnData.totalApprovedWithdrawal = Number(totalApprovedWithdrawal._sum.company_withdrawal_request_withdraw_amount);
     }
+    const hasCustomRange = Boolean(dateFilter?.start && dateFilter?.end);
+    const hiddenIds = await prisma.company_hidden_user_table.findMany({
+        select: { company_hidden_user_member_id: true },
+    });
+    const notHiddenMembers = hiddenIds.map((u) => u.company_hidden_user_member_id);
+    const dateOrReferralCondition = hasCustomRange
+        ? {
+            company_withdrawal_request_date: {
+                gte: startDate,
+                lte: endDate,
+            },
+        }
+        : {
+            OR: [
+                {
+                    company_withdrawal_request_date: {
+                        gte: philippinesTimeStart,
+                        lte: philippinesTimeEnd,
+                    },
+                },
+                { company_withdrawal_request_withdraw_type: "REFERRAL" },
+            ],
+        };
+    const roleSpecificExtra = teamMemberProfile.company_member_role === "ACCOUNTING" ||
+        teamMemberProfile.company_member_role === "ACCOUNTING_HEAD"
+        ? dateOrReferralCondition
+        : {
+            company_withdrawal_request_date: {
+                gte: startDate,
+                lte: endDate,
+            },
+        };
     const totalPendingWithdrawal = await prisma.company_withdrawal_request_table.aggregate({
         where: {
             company_withdrawal_request_status: "PENDING",
-            ...(teamMemberProfile.company_member_role === "ACCOUNTING" && {
-                company_withdrawal_request_approved_by: teamMemberProfile.company_member_id,
-            }),
-            ...(teamMemberProfile.company_member_role !== "ADMIN"
-                ? {
-                    ...(dateFilter?.start && dateFilter?.end
-                        ? {
-                            company_withdrawal_request_date: {
-                                gte: startDate,
-                                lte: endDate,
-                            },
-                        }
-                        : {
-                            OR: [
-                                {
-                                    company_withdrawal_request_withdraw_type: "PACKAGE",
-                                    company_withdrawal_request_date: {
-                                        gte: philippinesTimeStart,
-                                        lte: philippinesTimeEnd,
-                                    },
-                                },
-                                {
-                                    company_withdrawal_request_withdraw_type: "REFERRAL",
-                                },
-                            ],
-                        }),
-                }
-                : {
-                    ...(dateFilter?.start && dateFilter?.end
-                        ? {
-                            company_withdrawal_request_date: {
-                                gte: startDate,
-                                lte: endDate,
-                            },
-                        }
-                        : {}),
-                }),
+            company_withdrawal_request_approved_by: teamMemberProfile.company_member_role === "ACCOUNTING"
+                ? teamMemberProfile.company_member_id
+                : undefined,
+            ...roleSpecificExtra,
+            company_withdrawal_request_member_id: {
+                notIn: notHiddenMembers,
+            },
         },
-        _sum: {
-            company_withdrawal_request_amount: true,
-            company_withdrawal_request_fee: true,
-        },
+        _sum: { company_withdrawal_request_withdraw_amount: true },
     });
-    returnData.totalPendingWithdrawal =
-        Number(totalPendingWithdrawal._sum.company_withdrawal_request_amount) -
-            Number(totalPendingWithdrawal._sum.company_withdrawal_request_fee);
+    returnData.totalPendingWithdrawal = Number(totalPendingWithdrawal._sum.company_withdrawal_request_withdraw_amount);
     ["APPROVED", "REJECTED", "PENDING"].forEach((status) => {
         const match = statusCounts.find((item) => item.status === status);
         returnData.data[status].count = match
