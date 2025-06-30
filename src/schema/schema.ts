@@ -63,6 +63,15 @@ export const loginCheckSchema = z.object({
     }),
 });
 
+export const authCodeSchema = z.object({
+  code: z.coerce
+    .string()
+    .min(6)
+    .max(8)
+    .regex(/^[A-Za-z0-9]{6,8}$/, "Code must be letters or numbers")
+    .trim(),
+});
+
 //register
 
 export const registerUserSchema = z.object({

@@ -3,12 +3,14 @@ import { protectionMiddleware } from "../../middleware/protection.middleware.js"
 
 import {
   adminController,
+  authCodeGetController,
   loginController,
   loginGetController,
   registerUserCodeController,
   registerUserController,
 } from "./auth.controller.js";
 import {
+  authCodeGetMiddleware,
   authGetMiddleware,
   authMiddleware,
   registerUserCodeMiddleware,
@@ -24,6 +26,8 @@ auth.get(
 );
 
 auth.get("/", authGetMiddleware, loginGetController);
+
+auth.get("/code", authCodeGetMiddleware, authCodeGetController);
 
 auth.post("/", authMiddleware, loginController);
 

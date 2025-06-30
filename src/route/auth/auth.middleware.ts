@@ -1,5 +1,6 @@
 import type { Context, Next } from "hono";
 import {
+  authCodeSchema,
   loginCheckSchema,
   LoginSchema,
   registerUserCodeSchema,
@@ -53,6 +54,31 @@ export const authGetMiddleware = async (c: Context, next: Next) => {
   }
 
   c.set("userName", userName);
+
+  await next();
+};
+
+export const authCodeGetMiddleware = async (c: Context, next: Next) => {
+  const { searchParams } = new URL(c.req.url);
+
+  const code = searchParams.get("code");
+
+  const parsed = authCodeSchema.safeParse({ code });
+
+  if (!parsed.success) {
+    return c.json({ message: "Invalid code" }, 400);
+  }
+
+  const isAllowed = await rateLimit(`rate-limit:${code}`, 5, "10s", c);
+
+  if (!isAllowed) {
+    return sendErrorResponse(
+      "Too many requests. Please try again later after 1 minute.",
+      429
+    );
+  }
+
+  c.set("code", code);
 
   await next();
 };

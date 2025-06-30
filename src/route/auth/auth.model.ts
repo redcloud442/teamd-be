@@ -326,3 +326,37 @@ async function handleReferral(
     },
   });
 }
+
+export const authCodeGetModel = async (code: string) => {
+  const user = await prisma.user_table.findFirstOrThrow({
+    where: {
+      company_member_table: {
+        some: {
+          company_referral_link_table: {
+            some: {
+              company_referral_code: code,
+            },
+          },
+        },
+      },
+    },
+    select: {
+      company_member_table: {
+        select: {
+          company_referral_link_table: {
+            select: {
+              company_referral_link: true,
+            },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  return {
+    referralLink:
+      user.company_member_table[0].company_referral_link_table[0]
+        .company_referral_link,
+  };
+};

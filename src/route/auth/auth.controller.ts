@@ -4,6 +4,7 @@ import { getClientIP } from "../../utils/function.js";
 import { supabaseClient } from "../../utils/supabase.js";
 import {
   adminModel,
+  authCodeGetModel,
   loginGetModel,
   loginModel,
   registerUserCodeModel,
@@ -45,6 +46,36 @@ export const loginGetController = async (c: Context) => {
     }
 
     return c.json({ message: "User does not exist" }, 200);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return c.json({ message: "A database error occurred" }, 500);
+    }
+    if (error instanceof Error) {
+      return c.json({ message: error.message }, 401);
+    }
+
+    // Handles any unknown errors
+    return c.json({ message: "Internal server error" }, 500);
+  }
+};
+
+export const authCodeGetController = async (c: Context) => {
+  try {
+    const code = c.get("code");
+    if (!code) {
+      return c.json({ message: "code query parameter is required" }, 400);
+    }
+
+    const data = await authCodeGetModel(code);
+
+    if (data) {
+      return c.json(
+        { message: "Code exists", referralLink: data.referralLink },
+        200
+      );
+    }
+
+    return c.json({ message: "Code does not exist" }, 200);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return c.json({ message: "A database error occurred" }, 500);
