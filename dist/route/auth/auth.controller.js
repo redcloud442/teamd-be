@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { getClientIP } from "../../utils/function.js";
 import { supabaseClient } from "../../utils/supabase.js";
-import { adminModel, loginGetModel, loginModel, registerUserCodeModel, registerUserModel, } from "./auth.model.js";
+import { adminModel, authCodeGetModel, loginGetModel, loginModel, registerUserCodeModel, registerUserModel, } from "./auth.model.js";
 export const loginController = async (c) => {
     try {
         const ip = getClientIP(c.req.raw);
@@ -30,6 +30,29 @@ export const loginGetController = async (c) => {
             return c.json({ message: "User exists" }, 400);
         }
         return c.json({ message: "User does not exist" }, 200);
+    }
+    catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            return c.json({ message: "A database error occurred" }, 500);
+        }
+        if (error instanceof Error) {
+            return c.json({ message: error.message }, 401);
+        }
+        // Handles any unknown errors
+        return c.json({ message: "Internal server error" }, 500);
+    }
+};
+export const authCodeGetController = async (c) => {
+    try {
+        const code = c.get("code");
+        if (!code) {
+            return c.json({ message: "code query parameter is required" }, 400);
+        }
+        const data = await authCodeGetModel(code);
+        if (data) {
+            return c.json({ message: "Code exists", referralLink: data.referralLink }, 200);
+        }
+        return c.json({ message: "Code does not exist" }, 200);
     }
     catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {

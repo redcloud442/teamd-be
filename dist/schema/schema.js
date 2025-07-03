@@ -45,6 +45,14 @@ export const loginCheckSchema = z.object({
         message: "This username is not allowed",
     }),
 });
+export const authCodeSchema = z.object({
+    code: z.coerce
+        .string()
+        .min(6)
+        .max(8)
+        .regex(/^[A-Za-z0-9]{6,8}$/, "Code must be letters or numbers")
+        .trim(),
+});
 //register
 export const registerUserSchema = z.object({
     userId: z.string().uuid(),
@@ -330,7 +338,7 @@ export const withdrawPostSchema = z.object({
     amount: z
         .string()
         .min(3, "Minimum amount is required atleast 100 pesos")
-        .refine((amount) => parseInt(amount.replace(/,/g, ""), 10) >= 100, {
+        .refine((amount) => parseInt(amount.replace(/,/g, ""), 10) > 100, {
         message: "Amount must be at least 100 pesos",
     }),
     bank: z.string().min(1, "Please select a bank"),

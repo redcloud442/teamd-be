@@ -90,6 +90,7 @@ export const withdrawHideUserPostController = async (c) => {
             type: params.type,
             teamMemberProfile,
         });
+        await invalidateCacheVersion(`user-list`);
         return c.json({ message: "User hidden" }, 200);
     }
     catch (e) {

@@ -616,6 +616,11 @@ export const userListModel = async (params, teamMemberProfile) => {
         include: {
             user_table: true,
             merchant_member_table: true,
+            company_hidden_user_table: {
+                select: {
+                    company_hidden_user_id: true,
+                },
+            },
         },
         orderBy: orderByCondition,
         take: limit,
@@ -638,6 +643,7 @@ export const userListModel = async (params, teamMemberProfile) => {
         user_first_name: entry.user_table.user_first_name || "",
         user_last_name: entry.user_table.user_last_name || "",
         user_date_created: entry.user_table.user_date_created.toISOString(),
+        user_withdrawal_hidden: Boolean(entry?.company_hidden_user_table[0]?.company_hidden_user_id),
     }));
     const response = {
         totalCount,

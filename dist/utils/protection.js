@@ -104,7 +104,7 @@ export const protectionMerchantAdminAccounting = async (user) => {
         if (!userData) {
             return sendErrorResponse("Internal Server Error", 500);
         }
-        if (!["MERCHANT", "ACCOUNTING", "ADMIN"].includes(userData.Role)) {
+        if (!["MERCHANT", "ACCOUNTING", "ACCOUNTING_HEAD", "ADMIN"].includes(userData.Role)) {
             return sendErrorResponse("Unauthorized", 401);
         }
         const teamMemberProfile = {

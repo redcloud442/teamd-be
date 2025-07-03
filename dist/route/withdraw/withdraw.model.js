@@ -224,9 +224,9 @@ export const updateWithdrawModel = async (params) => {
 };
 export const withdrawListPostModel = async (params) => {
     const { parameters, teamMemberProfile } = params;
-    const twoDaysAgo = new Date(Date.now() - 24 * 2 * 60 * 60 * 1000);
-    const philippinesTimeStart = getPhilippinesTime(twoDaysAgo, "start");
-    const philippinesTimeEnd = getPhilippinesTime(twoDaysAgo, "end");
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const philippinesTimeStart = getPhilippinesTime(oneDayAgo, "start");
+    const philippinesTimeEnd = getPhilippinesTime(oneDayAgo, "end");
     let returnData = {
         data: {
             APPROVED: { data: [], count: BigInt(0) },
