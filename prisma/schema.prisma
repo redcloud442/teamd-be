@@ -278,6 +278,14 @@ model package_table {
 
 }
 
+model company_promo_table {
+  company_promo_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  company_promo_image String
+  company_promo_date DateTime @default(now()) @db.Timestamptz(3)
+
+  @@schema("company_schema")
+}
+
 model package_features_table {
   package_features_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   package_features_description Json

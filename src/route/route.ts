@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { protectionMiddleware } from "../middleware/protection.middleware.js";
 import auth from "./auth/auth.route.js";
+import banner from "./banner/banner.route.js";
 import dashboard from "./dashboard/dashboard.route.js";
 import deposit from "./deposit/deposit.route.js";
 import health from "./health/health.route.js";
@@ -60,6 +61,10 @@ app.route("/leaderboard", leaderboard);
 //options route
 app.use("/options/*", protectionMiddleware);
 app.route("/options", options);
+
+//company promo route
+app.use("/banner/*", protectionMiddleware);
+app.route("/banner", banner);
 
 app.get("/", (c) => {
   return c.html(`
