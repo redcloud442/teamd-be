@@ -362,6 +362,15 @@ model package_ally_bounty_log {
   @@index([package_ally_bounty_from], name: "idx_package_ally_bounty_from")
 }
 
+model company_proof_table {
+  company_proof_id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  company_proof_date DateTime @default(now()) @db.Timestamptz(3)
+  company_proof_thumbnail String
+  company_proof_video String
+
+  @@schema("company_schema")
+}
+
 view package_purchase_summary {
   member_id         String   @id @map("member_id") @db.Uuid 
   standard_count    Int

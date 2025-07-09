@@ -97,6 +97,7 @@ export const userProfileGetController = async (c: Context) => {
 
     return c.json(data, 200);
   } catch (error) {
+    console.log(error);
     return c.json({ error: "Internal Server Error" }, { status: 500 });
   }
 };

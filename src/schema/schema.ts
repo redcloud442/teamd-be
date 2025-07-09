@@ -564,3 +564,20 @@ export const bannerPutSchema = z.object({
 export const bannerDeleteSchema = z.object({
   id: z.string().uuid(),
 });
+
+export const proofVideoGetSchema = z.object({
+  take: z.coerce.number().min(1).max(15),
+  page: z.coerce.number().min(1),
+});
+
+export const proofVideoPostSchema = z.array(
+  z.object({
+    company_proof_video: z.string().min(1),
+    company_proof_thumbnail: z.string().min(1),
+    company_proof_id: z.string().uuid(),
+  })
+);
+
+export const proofVideoDeleteSchema = z.object({
+  company_proof_id: z.string().uuid(),
+});

@@ -9,6 +9,7 @@ import leaderboard from "./leaderboard/leaderboard.route.js";
 import merchant from "./merchant/merchant.route.js";
 import options from "./options/options.route.js";
 import packages from "./package/package.route.js";
+import proof from "./proof-of-earnings/proof.route.js";
 import referral from "./referral/referral.route.js";
 import transaction from "./transaction/transaction.route.js";
 import user from "./user/user.route.js";
@@ -51,6 +52,9 @@ app.route("/options", options);
 //company promo route
 app.use("/banner/*", protectionMiddleware);
 app.route("/banner", banner);
+//proof of earnings route
+app.use("/proof-of-earnings/*", protectionMiddleware);
+app.route("/proof-of-earnings", proof);
 app.get("/", (c) => {
     return c.html(`
         <!DOCTYPE html>
