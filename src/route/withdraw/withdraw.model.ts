@@ -89,8 +89,8 @@ FOR UPDATE`;
         ? "company_package_earnings"
         : "company_referral_earnings";
 
-    const earningsValue =
-      Math.round(Number(amountMatch[0][earningsType]) * 100) / 100;
+    const raw = Number(amountMatch[0][earningsType]);
+    const earningsValue = Math.ceil(raw * 100) / 100;
 
     if (amountValue > earningsValue) {
       throw new Error("Insufficient balance.");
