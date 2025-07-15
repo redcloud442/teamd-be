@@ -269,9 +269,7 @@ export const dashboardPostModel = async (params: {
 export const dashboardGetModel = async () => {
   const cacheKey = `dashboard-get`;
 
-  const dateforTomottorow = new Date(
-    new Date().setDate(new Date().getDate() - 1)
-  );
+  const dateforTomottorow = new Date();
 
   const cachedData = await redis.get(cacheKey);
   if (cachedData) {
@@ -280,7 +278,13 @@ export const dashboardGetModel = async () => {
 
   const startDate = getPhilippinesTime(dateforTomottorow, "start");
   const endDate = getPhilippinesTime(dateforTomottorow, "end");
+  const hiddenIds = await prisma.company_hidden_user_table.findMany({
+    select: { company_hidden_user_member_id: true },
+  });
 
+  const notHiddenMembers = hiddenIds.map(
+    (u) => u.company_hidden_user_member_id
+  );
   const [
     totalActivatedPackage,
     numberOfRegisteredUser,
@@ -298,6 +302,9 @@ export const dashboardGetModel = async () => {
         company_withdrawal_request_date: {
           gte: startDate,
           lte: endDate,
+        },
+        company_withdrawal_request_member_id: {
+          notIn: notHiddenMembers,
         },
       },
       _sum: {
