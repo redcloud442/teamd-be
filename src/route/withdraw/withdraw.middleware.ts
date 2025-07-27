@@ -4,6 +4,7 @@ import {
   withdrawHideUserPostSchema,
   withdrawHistoryPostSchema,
   withdrawHistoryReportPostSchema,
+  withdrawListExportPostSchema,
   withdrawListPostSchema,
   withdrawPostSchema,
   withdrawTotalReportPostSchema,
@@ -393,6 +394,53 @@ export const withdrawUserGetMiddleware = async (c: Context, next: Next) => {
 
   if (!validate.success) {
     return sendErrorResponse(validate.error.message, 400);
+  }
+
+  c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", validate.data);
+
+  await next();
+};
+
+export const withdrawListExportPostMiddleware = async (
+  c: Context,
+  next: Next
+) => {
+  const user = c.get("user");
+
+  const response = await protectionAccountingAdmin(user);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.company_member_id}:withdraw-list-export-post`,
+    100,
+    "1m",
+    c
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
+
+  const { page, limit, dateFilter } = await c.req.json();
+
+  const validate = withdrawListExportPostSchema.safeParse({
+    page,
+    limit,
+    dateFilter,
+  });
+
+  if (!validate.success) {
+    return sendErrorResponse("Invalid request", 400);
   }
 
   c.set("teamMemberProfile", teamMemberProfile);

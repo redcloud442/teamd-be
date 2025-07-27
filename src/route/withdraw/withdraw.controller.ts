@@ -10,6 +10,7 @@ import {
   withdrawHistoryModel,
   withdrawHistoryReportPostModel,
   withdrawHistoryReportPostTotalModel,
+  withdrawListExportPostModel,
   withdrawListPostModel,
   withdrawModel,
   withdrawUserGetModel,
@@ -148,6 +149,24 @@ export const withdrawUserGetController = async (c: Context) => {
 
     return c.json(data, 200);
   } catch (e) {
+    return sendErrorResponse("Internal Server Error", 500);
+  }
+};
+
+export const withdrawListExportPostController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const teamMemberProfile = c.get("teamMemberProfile");
+
+    const data = await withdrawListExportPostModel({
+      ...params,
+      teamMemberProfile,
+    });
+
+    return c.json(data, 200);
+  } catch (e) {
+    console.log(e);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };

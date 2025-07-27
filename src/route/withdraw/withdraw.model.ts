@@ -9,6 +9,7 @@ import prisma from "../../utils/prisma.js";
 import { redis } from "../../utils/redis.js";
 import type {
   WithdrawalRequestData,
+  WithdrawListExportData,
   WithdrawReturnDataType,
 } from "../../utils/types.js";
 
@@ -935,4 +936,115 @@ export const withdrawUserGetModel = async (params: { id: string }) => {
     packageWithdrawal: packageWithdrawal !== null,
     referralWithdrawal: referralWithdrawal !== null,
   };
+};
+
+export const withdrawListExportPostModel = async (params: {
+  page: number;
+  limit: number;
+  dateFilter?: {
+    start: string;
+    end: string;
+  };
+  teamMemberProfile: company_member_table;
+}) => {
+  const { teamMemberProfile } = params;
+  let returnData = {
+    data: [] as WithdrawListExportData[],
+    totalCount: 0,
+  };
+
+  const { page, limit, dateFilter } = params;
+
+  const offset = (page - 1) * limit;
+
+  const orderBy = Prisma.sql`ORDER BY t.company_withdrawal_request_date DESC`;
+
+  const commonConditions: Prisma.Sql[] = [
+    Prisma.raw(
+      `m.company_member_company_id = '${teamMemberProfile.company_member_company_id}'::uuid`
+    ),
+  ];
+
+  if (dateFilter?.start && dateFilter?.end) {
+    const startDate = getPhilippinesTime(
+      new Date(dateFilter.start || new Date()),
+      "start"
+    );
+
+    const endDate = getPhilippinesTime(
+      new Date(dateFilter.end || new Date()),
+      "end"
+    );
+
+    commonConditions.push(
+      Prisma.raw(
+        `t.company_withdrawal_request_date_updated::timestamptz BETWEEN '${startDate}'::timestamptz AND '${endDate}'::timestamptz`
+      )
+    );
+  }
+
+  commonConditions.push(
+    Prisma.raw(`t.company_withdrawal_request_status = 'APPROVED'`)
+  );
+
+  const dataQueryConditions = [...commonConditions];
+
+  const dataWhereClause = Prisma.sql`${Prisma.join(
+    dataQueryConditions,
+    " AND "
+  )}`;
+
+  const countWhereClause = Prisma.sql`${Prisma.join(
+    commonConditions,
+    " AND "
+  )}`;
+
+  const withdrawals: WithdrawListExportData[] = await prisma.$queryRaw`
+  SELECT 
+    u.user_username AS "Requestor Username",
+    t.company_withdrawal_request_status AS "Status",
+    ROUND(t.company_withdrawal_request_amount::numeric, 2) AS "Amount",
+    t.company_withdrawal_request_type AS "Bank Account",
+    t.company_withdrawal_request_bank_name AS "Bank Name",
+    t.company_withdrawal_request_account AS "Account Number",
+    TO_CHAR(t.company_withdrawal_request_date, 'FMMonth DD, YYYY') AS "Date Created",
+    t.company_withdrawal_request_withdraw_type AS "Withdrawal Type",
+    TO_CHAR(t.company_withdrawal_request_date_updated, 'FMMonth DD, YYYY') AS "Date Updated",
+    approver.user_username AS "Approved By"
+  FROM company_schema.company_withdrawal_request_table t
+  JOIN company_schema.company_member_table m 
+    ON t.company_withdrawal_request_member_id = m.company_member_id
+  JOIN user_schema.user_table u 
+    ON u.user_id = m.company_member_user_id
+  LEFT JOIN company_schema.company_member_table mt 
+    ON mt.company_member_id = t.company_withdrawal_request_approved_by
+  LEFT JOIN user_schema.user_table approver 
+    ON approver.user_id = mt.company_member_user_id
+  WHERE ${dataWhereClause}
+  ${orderBy}
+  LIMIT ${Prisma.raw(limit.toString())}
+  OFFSET ${Prisma.raw(offset.toString())}
+`;
+
+  const [{ count } = { count: 0 }] = await prisma.$queryRaw<
+    { count: bigint }[]
+  >`
+  SELECT 
+    COUNT(*) AS count
+  FROM company_schema.company_withdrawal_request_table t
+  JOIN company_schema.company_member_table m 
+    ON t.company_withdrawal_request_member_id = m.company_member_id
+  JOIN user_schema.user_table u 
+    ON u.user_id = m.company_member_user_id
+  LEFT JOIN company_schema.company_member_table mt 
+    ON mt.company_member_id = t.company_withdrawal_request_approved_by
+  LEFT JOIN user_schema.user_table approver 
+    ON approver.user_id = mt.company_member_user_id
+  WHERE ${countWhereClause}
+`;
+
+  returnData.data = withdrawals;
+  returnData.totalCount = Number(count);
+
+  return returnData;
 };

@@ -581,3 +581,14 @@ export const proofVideoPostSchema = z.array(
 export const proofVideoDeleteSchema = z.object({
   company_proof_id: z.string().uuid(),
 });
+
+export const withdrawListExportPostSchema = z.object({
+  page: z.number().min(1),
+  limit: z.number().min(1).max(500),
+  dateFilter: z
+    .object({
+      start: z.string().optional(),
+      end: z.string().optional(),
+    })
+    .optional(),
+});
