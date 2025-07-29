@@ -77,6 +77,8 @@ export const depositHistoryPostController = async (c: Context) => {
     const params = c.get("params");
     const teamMemberProfile = c.get("teamMemberProfile");
 
+    console.log(params);
+    console.log(teamMemberProfile);
     const data = await depositHistoryPostModel(params, teamMemberProfile);
 
     return c.json(data, { status: 200 });

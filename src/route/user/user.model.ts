@@ -801,8 +801,6 @@ export const userListModel = async (
     ),
   }));
 
-
-
   const response = {
     totalCount,
     data: formattedData,
@@ -1132,7 +1130,6 @@ export const userReferralModel = async (params: {
 }) => {
   const { memberId, dateFilter } = params;
 
-  // Aggregate Direct and Indirect referrals separately
   const referrals = await prisma.package_ally_bounty_log.groupBy({
     by: ["package_ally_bounty_type"],
     where: {
@@ -1145,7 +1142,6 @@ export const userReferralModel = async (params: {
     _sum: { package_ally_bounty_earnings: true },
   });
 
-  // Convert the result into an object with direct & indirect earnings
   const result = {
     directReferral: 0,
     indirectReferral: 0,
