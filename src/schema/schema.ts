@@ -453,6 +453,11 @@ export const updateWithdrawSchema = z.object({
   singleFile: z.string().optional(),
 });
 
+export const hideAllWithdrawSchema = z.object({
+  take: z.number().min(1).max(500),
+  skip: z.number().min(1),
+});
+
 export const withdrawListPostSchema = z.object({
   page: z.number().min(1),
   limit: z.number().min(1).max(10),

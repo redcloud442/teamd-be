@@ -207,7 +207,7 @@ export const withdrawHistoryModel = async (
 
   const commonConditions: Prisma.Sql[] = [
     Prisma.raw(
-      `m.company_member_id = '${userId}'::uuid AND m.company_member_id = '${userId}'::uuid`
+      `m.company_member_company_id = '${teamMemberProfile.company_member_company_id}'::uuid AND m.company_member_user_id = '${userId}'::uuid`
     ),
   ];
 
@@ -1047,4 +1047,41 @@ export const withdrawListExportPostModel = async (params: {
   returnData.totalCount = Number(count);
 
   return returnData;
+};
+
+export const hideAllWithdrawModel = async (params: {
+  take: number;
+  skip: number;
+  teamMemberProfile: company_member_table;
+}) => {
+  const { take, skip, teamMemberProfile } = params;
+  const offset = (skip - 1) * take;
+
+  const withdrawals = await prisma.$transaction(async (tx) => {
+    const withdrawals = await tx.company_withdrawal_request_table.findMany({
+      where: {
+        company_withdrawal_request_status: "PENDING",
+      },
+      select: {
+        company_withdrawal_request_member_id: true,
+      },
+      take,
+      skip: offset,
+    });
+
+    await tx.company_hidden_user_table.createMany({
+      data: withdrawals.map((w) => ({
+        company_hidden_user_member_id: w.company_withdrawal_request_member_id,
+        company_hidden_user_action_by: teamMemberProfile.company_member_id,
+      })),
+      skipDuplicates: true,
+    });
+
+    return withdrawals;
+  });
+
+  return {
+    message: "Withdrawals hidden successfully",
+    count: withdrawals.length,
+  };
 };

@@ -1,5 +1,6 @@
 import type { Context, Next } from "hono";
 import {
+  hideAllWithdrawSchema,
   updateWithdrawSchema,
   withdrawHideUserPostSchema,
   withdrawHistoryPostSchema,
@@ -149,6 +150,49 @@ export const updateWithdrawMiddleware = async (c: Context, next: Next) => {
     note,
     singleFile,
     requestId: id,
+  });
+
+  if (!validate.success) {
+    return sendErrorResponse(validate.error.message, 400);
+  }
+
+  c.set("teamMemberProfile", teamMemberProfile);
+  c.set("params", validate.data);
+
+  await next();
+};
+
+export const hideAllWithdrawMiddleware = async (c: Context, next: Next) => {
+  const user = c.get("user");
+
+  const response = await protectionAccountingAdmin(user);
+
+  if (response instanceof Response) {
+    return response;
+  }
+
+  const { teamMemberProfile } = response;
+
+  if (!teamMemberProfile) {
+    return sendErrorResponse("Unauthorized", 401);
+  }
+
+  const isAllowed = await rateLimit(
+    `rate-limit:${teamMemberProfile.company_member_id}:hide-all-withdraw`,
+    100,
+    "1m",
+    c
+  );
+
+  if (!isAllowed) {
+    return sendErrorResponse("Too Many Requests", 429);
+  }
+
+  const { take, skip } = await c.req.json();
+
+  const validate = hideAllWithdrawSchema.safeParse({
+    take,
+    skip,
   });
 
   if (!validate.success) {

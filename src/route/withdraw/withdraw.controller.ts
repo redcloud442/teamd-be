@@ -5,6 +5,7 @@ import {
   sendErrorResponse,
 } from "../../utils/function.js";
 import {
+  hideAllWithdrawModel,
   updateWithdrawModel,
   withdrawHideUserModel,
   withdrawHistoryModel,
@@ -167,6 +168,24 @@ export const withdrawListExportPostController = async (c: Context) => {
 
     return c.json(data, 200);
   } catch (e) {
+    return sendErrorResponse("Internal Server Error", 500);
+  }
+};
+
+export const hideAllWithdrawPostController = async (c: Context) => {
+  try {
+    const params = c.get("params");
+
+    const teamMemberProfile = c.get("teamMemberProfile");
+
+    const data = await hideAllWithdrawModel({
+      ...params,
+      teamMemberProfile,
+    });
+
+    return c.json(data, 200);
+  } catch (e) {
+    console.log(e);
     return sendErrorResponse("Internal Server Error", 500);
   }
 };
